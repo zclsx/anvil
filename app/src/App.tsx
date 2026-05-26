@@ -476,43 +476,48 @@ export function App() {
                 <div>开始一个新对话或从左侧选择历史 session</div>
               </div>
             )}
-            {pendingPrompt && awaitingFirstItem && <UserEchoCard prompt={pendingPrompt} />}
-            {turns.map((turn) => (
-              <div key={turn.id} className="flex flex-col gap-2.5">
-                {turn.itemIds.map((id) => {
-                  const item = items[id]
-                  if (!item) return null
-                  return (
-                    <MainItemView
-                      key={id}
-                      item={item}
-                      isSelected={selectedItemId === id}
-                      onSelect={() => setSelectedItemId(id)}
-                    />
-                  )
-                })}
-                {turn.status !== 'running' && turn.stats && (
-                  <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
-                    <span className={
-                      turn.status === 'failed' ? 'text-[#ff8080]' : 'text-[#6fbf6f]'
-                    }>{turn.status}</span>
-                    {turn.stats.durationMs && <span>{(turn.stats.durationMs / 1000).toFixed(1)}s</span>}
-                    {turn.stats.outputTokens != null && <span>{turn.stats.outputTokens} out</span>}
-                    {turn.stats.cacheReadTokens != null && turn.stats.cacheReadTokens > 0 && (
-                      <span>cache: {turn.stats.cacheReadTokens}</span>
-                    )}
-                    {turn.stats.costUsd != null && <span>${turn.stats.costUsd.toFixed(4)}</span>}
-                  </div>
-                )}
-              </div>
-            ))}
             {awaitingFirstItem && (
-              <ThinkingIndicator
-                hasTurnStarted={turns.length > 0}
-                anchorRef={loadingAnchorRef}
-                autoFollow={autoFollow}
-              />
+              <>
+                {pendingPrompt && <UserEchoCard prompt={pendingPrompt} />}
+                <ThinkingIndicator
+                  hasTurnStarted={turns.length > 0}
+                  anchorRef={loadingAnchorRef}
+                  autoFollow={autoFollow}
+                />
+              </>
             )}
+            {turns.map((turn) => {
+              if (turn.status === 'running' && turn.itemIds.length === 0) return null
+              return (
+                <div key={turn.id} className="flex flex-col gap-2.5">
+                  {turn.itemIds.map((id) => {
+                    const item = items[id]
+                    if (!item) return null
+                    return (
+                      <MainItemView
+                        key={id}
+                        item={item}
+                        isSelected={selectedItemId === id}
+                        onSelect={() => setSelectedItemId(id)}
+                      />
+                    )
+                  })}
+                  {turn.status !== 'running' && turn.stats && (
+                    <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
+                      <span className={
+                        turn.status === 'failed' ? 'text-[#ff8080]' : 'text-[#6fbf6f]'
+                      }>{turn.status}</span>
+                      {turn.stats.durationMs && <span>{(turn.stats.durationMs / 1000).toFixed(1)}s</span>}
+                      {turn.stats.outputTokens != null && <span>{turn.stats.outputTokens} out</span>}
+                      {turn.stats.cacheReadTokens != null && turn.stats.cacheReadTokens > 0 && (
+                        <span>cache: {turn.stats.cacheReadTokens}</span>
+                      )}
+                      {turn.stats.costUsd != null && <span>${turn.stats.costUsd.toFixed(4)}</span>}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {/* Pending Approvals Panel */}

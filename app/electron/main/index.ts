@@ -414,11 +414,14 @@ async function runAgentQuery(req: QueryRequest) {
 
   try {
     const q = query({ prompt: req.prompt, options })
+    let terminalResultStatus: 'completed' | 'failed' | null = null
+    let terminalResultError: string | null = null
     for await (const msg of q) {
+      const rawType = (msg as any)?.type
       const isMeaningful =
-        (msg as any)?.type === 'assistant' ||
-        (msg as any)?.type === 'user' ||
-        (msg as any)?.type === 'result'
+        rawType === 'assistant' ||
+        rawType === 'user' ||
+        rawType === 'result'
 
       if (isMeaningful && !receivedAnyMessage) {
         receivedAnyMessage = true
@@ -428,6 +431,15 @@ async function runAgentQuery(req: QueryRequest) {
 
       const envelopes = adapter.ingest(msg)
       for (const env of envelopes) sendEnvelope(env)
+
+      if (rawType === 'result') {
+        terminalResultStatus = (msg as any)?.is_error ? 'failed' : 'completed'
+        terminalResultError =
+          typeof (msg as any)?.result === 'string' && (msg as any).result
+            ? (msg as any).result
+            : null
+        break
+      }
 
       if (alreadyFinished || query_state.failure) break
     }
@@ -441,11 +453,12 @@ async function runAgentQuery(req: QueryRequest) {
     if (sessionId) {
       const now = new Date().toISOString()
       const existing = getSession(sessionId)
+      const lastStatus = terminalResultStatus ?? 'completed'
       const meta: SessionMeta = existing
         ? {
             ...existing,
             updatedAt: now,
-            lastStatus: 'completed',
+            lastStatus,
             turnCount: existing.turnCount + 1,
           }
         : {
@@ -455,11 +468,15 @@ async function runAgentQuery(req: QueryRequest) {
             firstPrompt: req.prompt,
             createdAt: now,
             updatedAt: now,
-            lastStatus: 'completed',
+            lastStatus,
             turnCount: 1,
             totalCostUsd: 0,
           }
       upsertSession(meta)
+    }
+
+    if (terminalResultStatus === 'failed') {
+      return { ok: false, error: terminalResultError ?? '上游返回失败结果', sessionId }
     }
 
     return { ok: true, sessionId }
