@@ -150,7 +150,7 @@ export function App() {
     setQueuedPrompt(null)
 
     if (lastTurn.status === 'completed') {
-      if (!fireDirect('continue', q)) {
+      if (!fireDirect(followUpRequest(q))) {
         setPrompt((prev) => (prev.trim().length === 0 ? q : `${prev}\n\n${q}`))
         setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
       }
@@ -187,7 +187,10 @@ export function App() {
       submittingRef.current = false
       return
     }
-    reset()
+    if (req.mode === 'new') {
+      reset()
+      setActiveSessionId(null)
+    }
     setSelectedItemId(null)
     setDismissedErrorCount(0)
     setRunning(true)
@@ -207,11 +210,17 @@ export function App() {
     }
   }
 
-  function fireDirect(mode: PromptMode, text: string) {
+  function followUpRequest(text: string): QueryRequest {
+    return activeSessionId
+      ? { mode: 'resume', sessionId: activeSessionId, prompt: text }
+      : { mode: 'continue', prompt: text }
+  }
+
+  function fireDirect(req: QueryRequest) {
     if (submittingRef.current) return false
     submittingRef.current = true
-    setPendingPrompt(text)
-    executeQuery({ mode, prompt: text })
+    setPendingPrompt(req.prompt)
+    executeQuery(req)
     return true
   }
 
@@ -221,7 +230,11 @@ export function App() {
       enqueueNext()
       return
     }
-    if (!fireDirect(mode, trimmedPrompt)) return
+    const req: QueryRequest =
+      mode === 'new'
+        ? { mode: 'new', prompt: trimmedPrompt }
+        : followUpRequest(trimmedPrompt)
+    if (!fireDirect(req)) return
     setPrompt('')
   }
 
@@ -254,13 +267,17 @@ export function App() {
     submitPrompt('continue')
   }
 
+  function runSend() {
+    submitPrompt(activeSessionId ? 'continue' : 'new')
+  }
+
   function handlePromptKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.nativeEvent.isComposing) return
     if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault()
       if (trimmedPrompt.length === 0) return
       if (running) enqueueNext()
-      else runNew()
+      else runSend()
     }
   }
 
@@ -309,7 +326,7 @@ export function App() {
   const visibleErrors = errors.slice(dismissedErrorCount)
   const lastTurn = turns[turns.length - 1]
   const awaitingFirstItem =
-    running && (turns.length === 0 || (lastTurn && lastTurn.itemIds.length === 0))
+    running && (turns.length === 0 || !lastTurn || lastTurn.status !== 'running' || lastTurn.itemIds.length === 0)
 
   return (
     <div className="h-screen overflow-hidden flex flex-col font-body-sm bg-background text-on-surface select-none relative">
@@ -476,16 +493,6 @@ export function App() {
                 <div>开始一个新对话或从左侧选择历史 session</div>
               </div>
             )}
-            {awaitingFirstItem && (
-              <>
-                {pendingPrompt && <UserEchoCard prompt={pendingPrompt} />}
-                <ThinkingIndicator
-                  hasTurnStarted={turns.length > 0}
-                  anchorRef={loadingAnchorRef}
-                  autoFollow={autoFollow}
-                />
-              </>
-            )}
             {turns.map((turn) => {
               if (turn.status === 'running' && turn.itemIds.length === 0) return null
               return (
@@ -518,6 +525,16 @@ export function App() {
                 </div>
               )
             })}
+            {awaitingFirstItem && (
+              <>
+                {pendingPrompt && <UserEchoCard prompt={pendingPrompt} />}
+                <ThinkingIndicator
+                  hasTurnStarted={turns.length > 0}
+                  anchorRef={loadingAnchorRef}
+                  autoFollow={autoFollow}
+                />
+              </>
+            )}
           </div>
 
           {/* Pending Approvals Panel */}
@@ -615,7 +632,7 @@ export function App() {
                   </>
                 ) : (
                   <button
-                    onClick={runNew}
+                    onClick={runSend}
                     disabled={!canSubmitPrompt}
                     className="px-4 py-1.5 bg-[#ffffff] hover:bg-zinc-200 disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed text-[#000000] font-semibold text-[11px] transition-colors cursor-pointer"
                   >
