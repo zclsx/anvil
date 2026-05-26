@@ -3,6 +3,7 @@ export interface AnvilSettings {
   apiKey: string
   model: string
   stitchProjectId: string
+  workspacePath: string
 }
 
 export interface PublicSettings {
@@ -11,5 +12,6 @@ export interface PublicSettings {
   apiKeyHint: string
   model: string
   stitchProjectId: string
+  workspacePath: string
   source: 'user' | 'env' | 'default'
 }

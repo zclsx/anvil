@@ -1,4 +1,5 @@
 import Store from 'electron-store'
+import { app } from 'electron'
 import type { AnvilSettings, PublicSettings } from '../shared/settings'
 
 export type { AnvilSettings, PublicSettings }
@@ -8,6 +9,7 @@ const defaults: AnvilSettings = {
   apiKey: '',
   model: 'mimo-v2.5-pro',
   stitchProjectId: '',
+  workspacePath: '',
 }
 
 interface StoreSchema extends AnvilSettings {
@@ -22,9 +24,19 @@ const store = new Store<StoreSchema>({
     apiKey: { type: 'string' },
     model: { type: 'string' },
     stitchProjectId: { type: 'string' },
+    workspacePath: { type: 'string' },
     hasUserConfigured: { type: 'boolean' },
   },
 })
+
+function resolveWorkspacePath(stored: string): string {
+  if (stored && stored.length > 0) return stored
+  try {
+    return app.getPath('home')
+  } catch {
+    return process.cwd()
+  }
+}
 
 function getRawSettings(): AnvilSettings {
   return {
@@ -32,6 +44,7 @@ function getRawSettings(): AnvilSettings {
     apiKey: store.get('apiKey'),
     model: store.get('model'),
     stitchProjectId: store.get('stitchProjectId') || '',
+    workspacePath: resolveWorkspacePath(store.get('workspacePath') || ''),
   }
 }
 
@@ -48,6 +61,7 @@ export function getPublicSettings(): PublicSettings {
     apiKeyHint: apiKey.length > 8 ? `${apiKey.slice(0, 4)}…${apiKey.slice(-4)}` : '',
     model: raw.model,
     stitchProjectId: raw.stitchProjectId,
+    workspacePath: raw.workspacePath,
     source: store.get('hasUserConfigured') ? 'user' : raw.apiKey ? 'env' : 'default',
   }
 }
@@ -62,32 +76,20 @@ export function setSettings(patch: Partial<AnvilSettings>): PublicSettings {
 
 export function bootstrapFromEnv() {
   const hasUserConfigured = store.get('hasUserConfigured')
-  if (hasUserConfigured) {
-    return
-  }
+  if (hasUserConfigured) return
 
   const envBaseUrl = process.env.ANVIL_DEV_BASE_URL
   const envApiKey = process.env.ANVIL_DEV_API_KEY
   const envModel = process.env.ANVIL_DEV_MODEL
   const envStitchProjectId = process.env.ANVIL_DEV_STITCH_PROJECT_ID
+  const envWorkspace = process.env.ANVIL_DEV_WORKSPACE_PATH
 
   const applied: string[] = []
-  if (envBaseUrl) {
-    store.set('baseUrl', envBaseUrl)
-    applied.push('baseUrl')
-  }
-  if (envApiKey) {
-    store.set('apiKey', envApiKey)
-    applied.push('apiKey')
-  }
-  if (envModel) {
-    store.set('model', envModel)
-    applied.push('model')
-  }
-  if (envStitchProjectId) {
-    store.set('stitchProjectId', envStitchProjectId)
-    applied.push('stitchProjectId')
-  }
+  if (envBaseUrl) { store.set('baseUrl', envBaseUrl); applied.push('baseUrl') }
+  if (envApiKey) { store.set('apiKey', envApiKey); applied.push('apiKey') }
+  if (envModel) { store.set('model', envModel); applied.push('model') }
+  if (envStitchProjectId) { store.set('stitchProjectId', envStitchProjectId); applied.push('stitchProjectId') }
+  if (envWorkspace) { store.set('workspacePath', envWorkspace); applied.push('workspacePath') }
 
   if (applied.length > 0) {
     console.log('[settings] bootstrapped from .env.local:', applied.join(', '))

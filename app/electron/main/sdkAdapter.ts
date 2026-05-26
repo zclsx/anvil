@@ -15,6 +15,9 @@ export function createAdapter(): {
   ingest: (raw: any) => AgentEventEnvelope[]
   finish: (status: 'completed' | 'failed' | 'cancelled') => AgentEventEnvelope
   fail: (message: string) => AgentEventEnvelope
+  getSessionId: () => string
+  getTurnId: () => string
+  nextSeq: () => number
 } {
   const state: AdapterState = {
     sessionId: '',
@@ -250,5 +253,15 @@ export function createAdapter(): {
         timestamp: now(),
       })
     },
+
+    getSessionId() {
+      return state.sessionId
+    },
+
+    getTurnId() {
+      return state.turnId
+    },
+
+    nextSeq,
   }
 }

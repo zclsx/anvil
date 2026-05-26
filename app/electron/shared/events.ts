@@ -7,9 +7,20 @@ export type AgentEventBase = {
 
 export type AgentRole = 'user' | 'assistant' | 'tool' | 'system'
 
+export type RiskLevel = 'low' | 'medium' | 'high'
+
+export type ApprovalRequest = {
+  approvalId: string
+  toolName: string
+  input: unknown
+  risk: RiskLevel
+  reason?: string
+}
+
 export type AgentEvent =
   | (AgentEventBase & {
       type: 'turn.started'
+      userPrompt?: string
     })
   | (AgentEventBase & {
       type: 'item.added'
@@ -33,6 +44,17 @@ export type AgentEvent =
       itemId: string
       output: unknown
       isError: boolean
+    })
+  | (AgentEventBase & {
+      type: 'approval.requested'
+      itemId: string
+      request: ApprovalRequest
+    })
+  | (AgentEventBase & {
+      type: 'approval.decided'
+      approvalId: string
+      decision: 'allow' | 'deny'
+      reason?: string
     })
   | (AgentEventBase & {
       type: 'turn.finished'
