@@ -15,7 +15,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron/main',
             rollupOptions: {
-              external: ['electron', '@anthropic-ai/claude-agent-sdk', 'electron-store', 'dotenv'],
+              external: ['electron', '@anthropic-ai/claude-agent-sdk', 'electron-store', 'dotenv', 'better-sqlite3'],
             },
           },
         },
