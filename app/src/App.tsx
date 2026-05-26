@@ -115,7 +115,17 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const submittingRef = useRef(false)
   const loadingAnchorRef = useRef<HTMLDivElement | null>(null)
+  const conversationEndRef = useRef<HTMLDivElement | null>(null)
   const lastConsumedTurnIdRef = useRef<string | null>(null)
+  const autoScrollStateRef = useRef({
+    awaitingFirstItem: false,
+    lastItemId: null as string | null | undefined,
+    lastTurnId: undefined as string | undefined,
+    lastTurnStatus: undefined as string | undefined,
+    lastTurnItemCount: 0,
+    pendingApprovalCount: 0,
+    turnsLength: 0,
+  })
 
   const sessionId = useAgentStore((s) => s.sessionId)
   const turns = useAgentStore((s) => s.turns)
@@ -371,8 +381,49 @@ export function App() {
   const selectedItem = selectedItemId ? items[selectedItemId] : null
   const visibleErrors = errors.slice(dismissedErrorCount)
   const lastTurn = turns[turns.length - 1]
+  const lastTurnItemCount = lastTurn?.itemIds.length ?? 0
+  const lastItemId = lastTurnItemCount > 0 ? lastTurn?.itemIds[lastTurnItemCount - 1] : null
+  const lastItemTextLength = lastItemId ? (items[lastItemId]?.text?.length ?? 0) : 0
   const awaitingFirstItem =
     running && (turns.length === 0 || !lastTurn || lastTurn.status !== 'running' || lastTurn.itemIds.length === 0)
+
+  useEffect(() => {
+    const nextAutoScrollState = {
+      awaitingFirstItem,
+      lastItemId,
+      lastTurnId: lastTurn?.id,
+      lastTurnStatus: lastTurn?.status,
+      lastTurnItemCount,
+      pendingApprovalCount: pendingApprovals.length,
+      turnsLength: turns.length,
+    }
+    const previous = autoScrollStateRef.current
+    const isStructuralChange =
+      previous.awaitingFirstItem !== nextAutoScrollState.awaitingFirstItem ||
+      previous.lastItemId !== nextAutoScrollState.lastItemId ||
+      previous.lastTurnId !== nextAutoScrollState.lastTurnId ||
+      previous.lastTurnStatus !== nextAutoScrollState.lastTurnStatus ||
+      previous.lastTurnItemCount !== nextAutoScrollState.lastTurnItemCount ||
+      previous.pendingApprovalCount !== nextAutoScrollState.pendingApprovalCount ||
+      previous.turnsLength !== nextAutoScrollState.turnsLength
+
+    autoScrollStateRef.current = nextAutoScrollState
+    if (!autoFollow) return
+    conversationEndRef.current?.scrollIntoView({
+      behavior: isStructuralChange ? 'smooth' : 'auto',
+      block: 'end',
+    })
+  }, [
+    autoFollow,
+    awaitingFirstItem,
+    lastItemId,
+    lastItemTextLength,
+    lastTurn?.id,
+    lastTurn?.status,
+    lastTurnItemCount,
+    pendingApprovals.length,
+    turns.length,
+  ])
 
   return (
     <div className="h-screen overflow-hidden flex flex-col font-body-sm bg-background text-on-surface select-none relative">
@@ -581,6 +632,7 @@ export function App() {
                 />
               </>
             )}
+            <div ref={conversationEndRef} aria-hidden="true" className="h-px shrink-0" />
           </div>
 
           {/* Pending Approvals Panel */}
