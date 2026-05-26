@@ -1,0 +1,131 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+.container {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+h1 { margin: 0 0 16px; font-size: 20px; }
+
+.config {
+  background: #252525;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.config label {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.config input {
+  background: #1a1a1a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.prompt {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.prompt textarea {
+  flex: 1;
+  background: #252525;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.prompt button {
+  background: #4a9eff;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.prompt button:disabled { background: #333; cursor: not-allowed; }
+
+.messages { display: flex; flex-direction: column; gap: 8px; }
+
+.msg {
+  background: #252525;
+  border-left: 3px solid #4a9eff;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.msg-header {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.msg pre {
+  margin: 0;
+  font-size: 12px;
+  overflow-x: auto;
+  color: #d0d0d0;
+}
+
+.msg-system { border-left-color: #888; }
+.msg-assistant { border-left-color: #4a9eff; }
+.msg-user { border-left-color: #ffaa4a; }
+.msg-result { border-left-color: #4aff7e; }
+
+.status {
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.status.ok { background: #1f3a1f; color: #6fbf6f; }
+.status.fail { background: #3a1f1f; color: #ff8080; }
+
+.error {
+  background: #3a1f1f;
+  color: #ff8080;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.error pre { margin: 4px 0 0; font-size: 12px; white-space: pre-wrap; }
+
+.save-btn {
+  background: #444;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  justify-self: end;
+  margin-top: 4px;
+}
+
+.save-btn:hover { background: #555; }
