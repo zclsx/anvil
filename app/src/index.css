@@ -1,131 +1,106 @@
-* { box-sizing: border-box; }
+@import "tailwindcss";
+
+@theme {
+  /* Premium Restrained Zinc/Charcoal Color System */
+  --color-surface-container: #201f21;
+  --color-background: #131315;
+  --color-secondary-fixed: #e2e1eb;
+  --color-surface: #131315;
+  --color-secondary: #c6c6cf;
+  --color-tertiary: #ffffff;
+  --color-surface-variant: #353437;
+  --color-on-background: #e5e1e4;
+  --color-on-secondary-container: #b4b4bd;
+  --color-surface-dim: #131315;
+  --color-inverse-surface: #e5e1e4;
+  --color-error: #ffb4ab;
+  --color-outline: #8e9192;
+  --color-primary-container: #e2e2e2;
+  --color-surface-container-low: #1c1b1d;
+  --color-on-tertiary: #303033;
+  --color-on-error-container: #ffdad6;
+  --color-on-primary-fixed: #1a1c1c;
+  --color-primary-fixed-dim: #c6c6c7;
+  --color-secondary-fixed-dim: #c6c6cf;
+  --color-on-primary-fixed-variant: #454747;
+  --color-error-container: #93000a;
+  --color-tertiary-container: #e4e1e5;
+  --color-surface-container-lowest: #0e0e10;
+  --color-on-surface-variant: #c4c7c8;
+  --color-on-secondary-fixed: #1a1b22;
+  --color-on-error: #690005;
+  --color-on-secondary-fixed-variant: #45464e;
+  --color-primary-fixed: #e2e2e2;
+  --color-on-primary-container: #636565;
+  --color-on-surface: #e5e1e4;
+  --color-outline-variant: #444748;
+  --color-primary: #ffffff;
+  --color-surface-tint: #c6c6c7;
+  --color-on-tertiary-container: #656467;
+  --color-tertiary-fixed-dim: #c8c6c9;
+  --color-surface-bright: #39393b;
+  --color-surface-container-highest: #353437;
+  --color-inverse-on-surface: #313032;
+  --color-on-tertiary-fixed: #1b1b1e;
+  --color-on-tertiary-fixed-variant: #47464a;
+  --color-surface-container-high: #2a2a2c;
+  --color-tertiary-fixed: #e4e1e5;
+  --color-secondary-container: #45464e;
+  --color-on-secondary: #2f3037;
+
+  /* Typography Fonts */
+  --font-mono-code: "JetBrains Mono", ui-monospace, monospace;
+  --font-mono-label: "JetBrains Mono", ui-monospace, monospace;
+  --font-body-lg: "Sora", var(--font-sans);
+  --font-body-sm: "Sora", var(--font-sans);
+  --font-label-caps: "Sora", var(--font-sans);
+  --font-headline: "Sora", var(--font-sans);
+  --font-display: "Sora", var(--font-sans);
+}
+
+/* Base resets */
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #1a1a1a;
-  color: #e0e0e0;
-  font-size: 14px;
+  background-color: #131315;
+  color: #e5e1e4;
+  -webkit-font-smoothing: antialiased;
 }
 
-.container {
-  padding: 24px;
-  max-width: 900px;
-  margin: 0 auto;
+/* Custom Scrollbars for Mac Feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-h1 { margin: 0 0 16px; font-size: 20px; }
-
-.config {
-  background: #252525;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  display: grid;
-  gap: 8px;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.config label {
-  display: grid;
-  grid-template-columns: 100px 1fr;
-  align-items: center;
-  gap: 12px;
-}
-
-.config input {
-  background: #1a1a1a;
-  color: #e0e0e0;
-  border: 1px solid #444;
+::-webkit-scrollbar-thumb {
+  background: #2a2a2c;
   border-radius: 4px;
-  padding: 6px 10px;
+  transition: background 0.15s ease;
 }
 
-.prompt {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+::-webkit-scrollbar-thumb:hover {
+  background: #353437;
 }
 
-.prompt textarea {
-  flex: 1;
-  background: #252525;
-  color: #e0e0e0;
-  border: 1px solid #444;
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-family: inherit;
-  font-size: 14px;
-  resize: vertical;
+/* Electron Draggable Titlebar Utilities */
+.app-header {
+  -webkit-app-region: drag;
 }
 
-.prompt button {
-  background: #4a9eff;
-  color: white;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 
-.prompt button:disabled { background: #333; cursor: not-allowed; }
-
-.messages { display: flex; flex-direction: column; gap: 8px; }
-
-.msg {
-  background: #252525;
-  border-left: 3px solid #4a9eff;
-  border-radius: 4px;
-  padding: 8px 12px;
-}
-
-.msg-header {
-  font-size: 12px;
-  color: #888;
-  margin-bottom: 4px;
-}
-
-.msg pre {
-  margin: 0;
-  font-size: 12px;
-  overflow-x: auto;
-  color: #d0d0d0;
-}
-
-.msg-system { border-left-color: #888; }
-.msg-assistant { border-left-color: #4a9eff; }
-.msg-user { border-left-color: #ffaa4a; }
-.msg-result { border-left-color: #4aff7e; }
-
-.status {
-  padding: 8px 12px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  font-size: 13px;
-}
-
-.status.ok { background: #1f3a1f; color: #6fbf6f; }
-.status.fail { background: #3a1f1f; color: #ff8080; }
-
-.error {
-  background: #3a1f1f;
-  color: #ff8080;
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-
-.error pre { margin: 4px 0 0; font-size: 12px; white-space: pre-wrap; }
-
-.save-btn {
-  background: #444;
-  color: #e0e0e0;
-  border: 1px solid #555;
-  padding: 6px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  justify-self: end;
-  margin-top: 4px;
-}
-
-.save-btn:hover { background: #555; }
+/* Code highlight tweaks */
+.token.property { color: #8e9192; }
+.token.string { color: #c4c7c8; }
+.token.number { color: #ffffff; }
+.token.punctuation { color: #444748; }

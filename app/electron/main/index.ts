@@ -1,9 +1,23 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getSettings, setSettings, type AnvilSettings } from './settings'
+import { config as loadEnv } from 'dotenv'
+import {
+  getSettings,
+  getPublicSettings,
+  setSettings,
+  bootstrapFromEnv,
+} from './settings'
+import type { AnvilSettings } from '../shared/settings'
+import { createAdapter } from './sdkAdapter'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const projectRoot = path.resolve(__dirname, '..', '..')
+loadEnv({ path: path.join(projectRoot, '.env.local') })
+loadEnv({ path: path.join(projectRoot, '.env') })
+
+bootstrapFromEnv()
 
 const isDev = !app.isPackaged
 let mainWindow: BrowserWindow | null = null
@@ -41,7 +55,7 @@ app.on('window-all-closed', () => {
 })
 
 ipcMain.handle('settings:get', () => {
-  return getSettings()
+  return getPublicSettings()
 })
 
 ipcMain.handle('settings:set', (_event, patch: Partial<AnvilSettings>) => {
@@ -59,16 +73,41 @@ ipcMain.handle('agent:query', async (_event, args: { prompt: string }) => {
   process.env.ANTHROPIC_BASE_URL = settings.baseUrl
   process.env.ANTHROPIC_API_KEY = settings.apiKey
 
-  const q = query({
-    prompt: args.prompt,
-    options: settings.model ? { model: settings.model } : {},
-  })
+  const adapter = createAdapter()
+  adapter.start()
 
-  const messages: unknown[] = []
-  for await (const msg of q) {
-    messages.push(msg)
-    mainWindow?.webContents.send('agent:message', msg)
+  try {
+    const options: any = settings.model ? { model: settings.model } : {}
+
+    if (settings.stitchProjectId) {
+      options.mcpServers = {
+        stitch: {
+          command: 'npx',
+          args: ['-y', '@_davideast/stitch-mcp', 'proxy'],
+          env: {
+            STITCH_PROJECT_ID: settings.stitchProjectId,
+            ...process.env,
+          },
+        },
+      }
+    }
+
+    const q = query({
+      prompt: args.prompt,
+      options,
+    })
+
+    for await (const msg of q) {
+      const envelopes = adapter.ingest(msg)
+      for (const env of envelopes) {
+        mainWindow?.webContents.send('agent:event', env)
+      }
+    }
+    return { ok: true }
+  } catch (err: any) {
+    const message = err?.message ?? String(err)
+    mainWindow?.webContents.send('agent:event', adapter.fail(message))
+    mainWindow?.webContents.send('agent:event', adapter.finish('failed'))
+    return { ok: false, error: message }
   }
-
-  return { ok: true, count: messages.length }
 })

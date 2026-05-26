@@ -1,24 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron'
-
-export interface AnvilSettings {
-  baseUrl: string
-  apiKey: string
-  model: string
-}
+import type { AnvilSettings, PublicSettings } from '../shared/settings'
+import type { AgentEventEnvelope } from '../shared/events'
 
 const anvil = {
   settings: {
-    get: (): Promise<AnvilSettings> => ipcRenderer.invoke('settings:get'),
-    set: (patch: Partial<AnvilSettings>): Promise<AnvilSettings> =>
+    get: (): Promise<PublicSettings> => ipcRenderer.invoke('settings:get'),
+    set: (patch: Partial<AnvilSettings>): Promise<PublicSettings> =>
       ipcRenderer.invoke('settings:set', patch),
   },
 
   query: (args: { prompt: string }) => ipcRenderer.invoke('agent:query', args),
 
-  onMessage: (callback: (msg: unknown) => void) => {
-    const listener = (_e: unknown, msg: unknown) => callback(msg)
-    ipcRenderer.on('agent:message', listener)
-    return () => ipcRenderer.off('agent:message', listener)
+  onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => {
+    const listener = (_e: unknown, envelope: AgentEventEnvelope) => callback(envelope)
+    ipcRenderer.on('agent:event', listener)
+    return () => ipcRenderer.off('agent:event', listener)
   },
 }
 
