@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import ReactMarkdown, { type Components } from 'react-markdown'
+import remarkBreaks from 'remark-breaks'
+import remarkGfm from 'remark-gfm'
 import { History, FileSearch, Plus, RotateCw, Shield, AlertCircle, Trash2 } from 'lucide-react'
 import { useAgentStore, type Item, type PendingApproval } from './store'
 import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
@@ -11,7 +14,54 @@ const LogoIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <img src={logoUrl} className={className} alt="Anvil Logo" />
 )
 
-type PromptMode = 'new' | 'continue'
+const markdownComponents: Components = {
+  p: ({ node: _node, ...props }) => (
+    <p className="mb-2 last:mb-0" {...props} />
+  ),
+  strong: ({ node: _node, ...props }) => (
+    <strong className="font-semibold text-primary" {...props} />
+  ),
+  em: ({ node: _node, ...props }) => (
+    <em className="italic text-on-surface" {...props} />
+  ),
+  ul: ({ node: _node, ...props }) => (
+    <ul className="my-2 list-disc pl-5" {...props} />
+  ),
+  ol: ({ node: _node, ...props }) => (
+    <ol className="my-2 list-decimal pl-5" {...props} />
+  ),
+  li: ({ node: _node, ...props }) => (
+    <li className="my-1 pl-1" {...props} />
+  ),
+  a: ({ node: _node, ...props }) => (
+    <a className="text-[#8ab4ff] underline underline-offset-2 hover:text-primary" target="_blank" rel="noreferrer" {...props} />
+  ),
+  code: ({ node: _node, className, ...props }) => (
+    <code className={`font-mono-code text-[0.92em] bg-surface-container-high px-1 py-0.5 rounded ${className ?? ''}`} {...props} />
+  ),
+  pre: ({ node: _node, ...props }) => (
+    <pre className="my-2 overflow-x-auto border border-outline-variant bg-surface-container p-3 font-mono-code text-[11px] leading-relaxed" {...props} />
+  ),
+  blockquote: ({ node: _node, ...props }) => (
+    <blockquote className="my-2 border-l-2 border-outline-variant pl-3 text-on-surface-variant" {...props} />
+  ),
+  hr: ({ node: _node, ...props }) => (
+    <hr className="my-3 border-outline-variant" {...props} />
+  ),
+  table: ({ node: _node, ...props }) => (
+    <div className="my-2 overflow-x-auto">
+      <table className="w-full border-collapse text-[12px]" {...props} />
+    </div>
+  ),
+  th: ({ node: _node, ...props }) => (
+    <th className="border border-outline-variant bg-surface-container px-2 py-1 text-left font-semibold" {...props} />
+  ),
+  td: ({ node: _node, ...props }) => (
+    <td className="border border-outline-variant px-2 py-1 align-top" {...props} />
+  ),
+}
+
+type PromptMode = 'new' | 'send'
 
 declare global {
   interface Window {
@@ -150,7 +200,7 @@ export function App() {
     setQueuedPrompt(null)
 
     if (lastTurn.status === 'completed') {
-      if (!fireDirect(followUpRequest(q))) {
+      if (!fireDirect(currentSessionRequest(q))) {
         setPrompt((prev) => (prev.trim().length === 0 ? q : `${prev}\n\n${q}`))
         setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
       }
@@ -210,10 +260,10 @@ export function App() {
     }
   }
 
-  function followUpRequest(text: string): QueryRequest {
+  function currentSessionRequest(text: string): QueryRequest {
     return activeSessionId
       ? { mode: 'resume', sessionId: activeSessionId, prompt: text }
-      : { mode: 'continue', prompt: text }
+      : { mode: 'new', prompt: text }
   }
 
   function fireDirect(req: QueryRequest) {
@@ -233,7 +283,7 @@ export function App() {
     const req: QueryRequest =
       mode === 'new'
         ? { mode: 'new', prompt: trimmedPrompt }
-        : followUpRequest(trimmedPrompt)
+        : currentSessionRequest(trimmedPrompt)
     if (!fireDirect(req)) return
     setPrompt('')
   }
@@ -263,12 +313,8 @@ export function App() {
     submitPrompt('new')
   }
 
-  function runContinue() {
-    submitPrompt('continue')
-  }
-
   function runSend() {
-    submitPrompt(activeSessionId ? 'continue' : 'new')
+    submitPrompt('send')
   }
 
   function handlePromptKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -606,13 +652,6 @@ export function App() {
                 >
                   <Plus size={11} /> New
                 </button>
-                <button
-                  onClick={runContinue}
-                  disabled={!canSubmitPrompt}
-                  className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed border border-outline-variant text-on-surface text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  <RotateCw size={11} /> Continue
-                </button>
                 {running ? (
                   <>
                     {trimmedPrompt.length > 0 && (
@@ -783,9 +822,7 @@ function MainItemView({ item, isSelected, onSelect }: { item: Item; isSelected: 
         <div className="font-mono-label text-[9px] text-on-surface-variant uppercase mb-1.5 tracking-wider">
           {item.role === 'assistant' ? 'Assistant' : item.role}
         </div>
-        <div className="text-on-surface text-[13px] leading-relaxed whitespace-pre-wrap break-words">
-          {item.text || '...'}
-        </div>
+        <MarkdownText text={item.text || '...'} />
       </div>
     )
   }
@@ -843,6 +880,19 @@ function MainItemView({ item, isSelected, onSelect }: { item: Item; isSelected: 
     <div onClick={onSelect} className={`${baseClass} bg-surface-container-low opacity-75`}>
       <div className="font-mono-label text-[9px] text-on-surface-variant uppercase">{item.role} · {item.kind}</div>
       <div className="text-on-surface text-[11px] whitespace-pre-wrap">{item.text}</div>
+    </div>
+  )
+}
+
+function MarkdownText({ text }: { text: string }) {
+  return (
+    <div className="text-on-surface text-[13px] leading-relaxed break-words">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+        components={markdownComponents}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   )
 }

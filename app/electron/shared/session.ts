@@ -18,5 +18,4 @@ export type ApprovalDecision = {
 
 export type QueryRequest =
   | { mode: 'new'; prompt: string }
-  | { mode: 'continue'; prompt: string }
   | { mode: 'resume'; sessionId: string; prompt: string }

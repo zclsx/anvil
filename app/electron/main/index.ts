@@ -396,7 +396,6 @@ async function runAgentQuery(req: QueryRequest) {
   }
 
   if (settings.model) options.model = settings.model
-  if (req.mode === 'continue') options.continue = true
   if (req.mode === 'resume') options.resume = req.sessionId
 
   if (settings.stitchProjectId) {
