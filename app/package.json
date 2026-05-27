@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && electron-builder",
+    "build:win": "tsc -b && vite build && electron-builder --win --x64",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
@@ -59,7 +60,29 @@
       ]
     },
     "win": {
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "executableName": "Anvil",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Anvil"
     },
     "files": [
       "dist",

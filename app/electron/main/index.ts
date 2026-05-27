@@ -28,12 +28,21 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
-loadEnv({ path: path.join(projectRoot, '.env.local') })
-loadEnv({ path: path.join(projectRoot, '.env') })
-bootstrapFromEnv()
-
 const isDev = !app.isPackaged
+const APP_NAME = 'Anvil'
+const APP_ID = 'com.anvil.app'
 let mainWindow: BrowserWindow | null = null
+
+if (isDev) {
+  loadEnv({ path: path.join(projectRoot, '.env.local') })
+  loadEnv({ path: path.join(projectRoot, '.env') })
+  bootstrapFromEnv()
+}
+
+app.setName(APP_NAME)
+if (process.platform === 'win32') {
+  app.setAppUserModelId(APP_ID)
+}
 
 const pendingApprovals = new Map<
   string,
@@ -133,6 +142,7 @@ function createWindow() {
       nodeIntegration: false,
     },
     titleBarStyle: 'hiddenInset',
+    title: APP_NAME,
     ...(icon ? { icon } : {}),
   })
 
