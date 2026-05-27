@@ -1108,7 +1108,7 @@ export function App() {
             </div>
             {isFileDragActive && (
               <div className="border border-[#4a9eff]/50 bg-[#1f2a3a] px-3 py-2 text-[11px] font-mono-code text-[#a0c4ff]">
-                {running ? '松开后插入到草稿，当前任务结束后再发送' : '松开后插入文件路径'}
+                {running ? '松开后插入到草稿（不会自动发送）' : '松开后插入文件路径'}
               </div>
             )}
             {queuedPrompt && (
