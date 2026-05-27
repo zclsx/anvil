@@ -66,7 +66,7 @@ const anvil = {
 
   files: {
     getPaths: (files: File[]): string[] =>
-      files.map((file) => webUtils.getPathForFile(file)).filter((path) => path.length > 0),
+      files.map((file) => webUtils.getPathForFile(file)),
   },
 
   onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => {

@@ -251,6 +251,23 @@ export function App() {
   }, [ingest, autoFollow])
 
   useEffect(() => {
+    function preventFileNavigation(event: DragEvent) {
+      if (!Array.from(event.dataTransfer?.types ?? []).includes('Files')) return
+      event.preventDefault()
+      if (event.type === 'drop') {
+        setIsFileDragActive(false)
+      }
+    }
+
+    window.addEventListener('dragover', preventFileNavigation)
+    window.addEventListener('drop', preventFileNavigation)
+    return () => {
+      window.removeEventListener('dragover', preventFileNavigation)
+      window.removeEventListener('drop', preventFileNavigation)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!window.anvil?.updates) return
     let mounted = true
     window.anvil.updates.get()
@@ -471,10 +488,22 @@ export function App() {
     })
   }
 
-  function formatDroppedPath(filePath: string) {
-    if (!displayWorkspace) return filePath
-    const relativePath = getWorkspaceRelativePath(filePath, displayWorkspace)
-    return relativePath ?? filePath
+  function formatPathLiteral(pathLiteral: string) {
+    const longestBacktickRun = Math.max(0, ...Array.from(pathLiteral.matchAll(/`+/g), (match) => match[0].length))
+    const fence = '`'.repeat(longestBacktickRun + 1)
+    const padding = longestBacktickRun > 0 ? ' ' : ''
+    return `${fence}${padding}${pathLiteral}${padding}${fence}`
+  }
+
+  function getDroppedPathInfo(filePath: string) {
+    const renderedPath = displayWorkspace
+      ? (getWorkspaceRelativePath(filePath, displayWorkspace) ?? filePath)
+      : filePath
+
+    return {
+      promptPath: formatPathLiteral(renderedPath),
+      isOutsideWorkspace: !!displayWorkspace && renderedPath !== '.' && !renderedPath.startsWith('./'),
+    }
   }
 
   function getWorkspaceRelativePath(filePath: string, workspacePath: string): string | null {
@@ -505,6 +534,7 @@ export function App() {
   function handlePromptDragOver(event: React.DragEvent) {
     if (!isFileDrop(event)) return
     event.preventDefault()
+    event.stopPropagation()
     event.dataTransfer.dropEffect = 'copy'
     setIsFileDragActive(true)
   }
@@ -519,27 +549,35 @@ export function App() {
   function handlePromptDrop(event: React.DragEvent) {
     if (!isFileDrop(event)) return
     event.preventDefault()
+    event.stopPropagation()
     setIsFileDragActive(false)
 
     const files = Array.from(event.dataTransfer.files)
     if (files.length === 0) return
 
-    const paths = window.anvil?.files.getPaths(files) ?? []
+    const rawPaths = window.anvil?.files.getPaths(files) ?? []
+    const paths = rawPaths.filter((path) => path.length > 0)
+    const ignoredCount = files.length - paths.length
     if (paths.length === 0) {
-      setNotice('未能读取拖入文件的本地路径')
+      setNotice(`未能读取拖入文件的本地路径（${ignoredCount} 个已忽略）`)
       return
     }
 
-    const promptPaths = paths.map(formatDroppedPath)
+    const pathInfos = paths.map(getDroppedPathInfo)
+    const promptPaths = pathInfos.map((info) => info.promptPath)
     insertTextAtPromptCursor(promptPaths.join('\n'))
-    const outsideCount = displayWorkspace
-      ? promptPaths.filter((path) => !path.startsWith('./') && path !== '.').length
-      : paths.length
-    setNotice(
-      outsideCount > 0
-        ? `已插入 ${paths.length} 个路径，其中 ${outsideCount} 个在当前 workspace 外`
-        : `已插入 ${paths.length} 个路径`,
-    )
+    const outsideCount = pathInfos.filter((info) => info.isOutsideWorkspace).length
+
+    let nextNotice = displayWorkspace
+      ? `已插入 ${paths.length} 个路径`
+      : `已插入 ${paths.length} 个绝对路径（未选 workspace）`
+    if (outsideCount > 0) {
+      nextNotice = `已插入 ${paths.length} 个路径，其中 ${outsideCount} 个在当前 workspace 外`
+    }
+    if (ignoredCount > 0) {
+      nextNotice = `${nextNotice}；${ignoredCount} 个无本地路径已忽略`
+    }
+    setNotice(nextNotice)
   }
 
   function editQueued() {
@@ -1070,7 +1108,7 @@ export function App() {
             </div>
             {isFileDragActive && (
               <div className="border border-[#4a9eff]/50 bg-[#1f2a3a] px-3 py-2 text-[11px] font-mono-code text-[#a0c4ff]">
-                松开后插入文件路径
+                {running ? '松开后插入到草稿，当前任务结束后再发送' : '松开后插入文件路径'}
               </div>
             )}
             {queuedPrompt && (
