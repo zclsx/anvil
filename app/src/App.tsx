@@ -13,6 +13,8 @@ import {
   FolderOpen,
   File as FileIcon,
   Image as ImageIcon,
+  ChevronDown,
+  ChevronUp,
   X,
 } from 'lucide-react'
 import { useAgentStore, type Item, type PendingApproval } from './store'
@@ -206,6 +208,7 @@ export function App() {
   const [queuedPrompt, setQueuedPrompt] = useState<string | null>(null)
   const [fileReferences, setFileReferences] = useState<FileReference[]>([])
   const [queuedFileReferences, setQueuedFileReferences] = useState<FileReference[]>([])
+  const [showFileReferencePaths, setShowFileReferencePaths] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [isFileDragActive, setIsFileDragActive] = useState(false)
   const [updateSnapshot, setUpdateSnapshot] = useState<UpdateSnapshot | null>(null)
@@ -478,6 +481,7 @@ export function App() {
     if (!fireDirect(req)) return
     setPrompt('')
     setFileReferences([])
+    setShowFileReferencePaths(false)
   }
 
   function enqueueNext() {
@@ -487,6 +491,7 @@ export function App() {
     setQueuedFileReferences(fileReferences)
     setPrompt('')
     setFileReferences([])
+    setShowFileReferencePaths(false)
     setNotice(replacing ? '已替换排队消息' : '已排队，将在当前任务完成后自动发送')
   }
 
@@ -548,7 +553,7 @@ export function App() {
       .split('/')
       .filter((part) => part.length > 0 && part !== '.')
     if (parts.length === 0) return pathLiteral
-    return parts.slice(-2).join('/')
+    return parts[parts.length - 1] ?? pathLiteral
   }
 
   function isImagePath(filePath: string) {
@@ -662,9 +667,13 @@ export function App() {
 
   function removeFileReference(pathToRemove: string) {
     const keyToRemove = getComparablePath(normalizePathForCompare(pathToRemove))
-    setFileReferences((prev) =>
-      prev.filter((reference) => getComparablePath(normalizePathForCompare(reference.path)) !== keyToRemove),
+    const nextReferences = fileReferences.filter(
+      (reference) => getComparablePath(normalizePathForCompare(reference.path)) !== keyToRemove,
     )
+    setFileReferences(nextReferences)
+    if (nextReferences.length === 0) {
+      setShowFileReferencePaths(false)
+    }
   }
 
   async function chooseWorkspaceForNewSession() {
@@ -688,6 +697,7 @@ export function App() {
     setQueuedPrompt(null)
     setQueuedFileReferences([])
     setFileReferences([])
+    setShowFileReferencePaths(false)
     setPendingPrompt(null)
     lastConsumedTurnIdRef.current = null
     setPendingWorkspace(result.path)
@@ -826,6 +836,7 @@ export function App() {
     setQueuedPrompt(null)
     setQueuedFileReferences([])
     setFileReferences([])
+    setShowFileReferencePaths(false)
     setPendingPrompt(null)
     setPendingWorkspace(null)
     lastConsumedTurnIdRef.current = null
@@ -861,6 +872,7 @@ export function App() {
       setActiveSessionId(null)
       setPendingWorkspace(null)
       setFileReferences([])
+      setShowFileReferencePaths(false)
     }
     await refreshSessions()
   }
@@ -1193,41 +1205,66 @@ export function App() {
               </div>
             )}
             {fileReferences.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 border border-outline-variant bg-surface-container px-3 py-2">
-                <span className="font-mono-label text-[10px] text-on-surface-variant uppercase tracking-wider">
-                  引用
-                </span>
-                {fileReferences.map((reference, index) => {
-                  const Icon = reference.isImage ? ImageIcon : FileIcon
-                  return (
-                    <span
-                      key={reference.path}
-                      title={reference.path}
-                      className="inline-flex max-w-full items-center gap-1.5 border border-[#4a9eff]/35 bg-[#1f2a3a] px-2 py-1 text-[11px] text-[#d8e7ff]"
-                    >
-                      <Icon size={12} className={reference.isImage ? 'text-[#b7a7ff]' : 'text-[#a0c4ff]'} />
-                      <span className="font-mono-label text-[9px] text-[#7fb2f0]">
-                        {index + 1}
-                      </span>
-                      <span className="font-mono-code truncate max-w-[180px]">
-                        {reference.label}
-                      </span>
-                      {reference.isOutsideWorkspace && (
-                        <span className="font-mono-label text-[9px] text-[#f59e0b]">
-                          外部
-                        </span>
-                      )}
-                      <button
-                        onClick={() => removeFileReference(reference.path)}
-                        className="text-on-surface-variant hover:text-[#ffffff] cursor-pointer"
-                        aria-label={`移除文件引用 ${reference.label}`}
-                        title="移除"
+              <div className="flex flex-col gap-2 border border-outline-variant bg-surface-container px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono-label text-[10px] text-on-surface-variant uppercase tracking-wider">
+                    引用
+                  </span>
+                  {fileReferences.map((reference, index) => {
+                    const Icon = reference.isImage ? ImageIcon : FileIcon
+                    return (
+                      <span
+                        key={reference.path}
+                        title={reference.path}
+                        className="inline-flex max-w-full items-center gap-1.5 border border-[#4a9eff]/35 bg-[#1f2a3a] px-2 py-1 text-[11px] text-[#d8e7ff]"
                       >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  )
-                })}
+                        <Icon size={12} className={reference.isImage ? 'text-[#b7a7ff]' : 'text-[#a0c4ff]'} />
+                        <span className="font-mono-label text-[9px] text-[#7fb2f0]">
+                          {index + 1}
+                        </span>
+                        <span className="font-mono-code truncate max-w-[140px]">
+                          {reference.label}
+                        </span>
+                        {reference.isOutsideWorkspace && (
+                          <span className="font-mono-label text-[9px] text-[#f59e0b]">
+                            外部
+                          </span>
+                        )}
+                        <button
+                          onClick={() => removeFileReference(reference.path)}
+                          className="text-on-surface-variant hover:text-[#ffffff] cursor-pointer"
+                          aria-label={`移除文件引用 ${reference.label}`}
+                          title="移除"
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    )
+                  })}
+                  <button
+                    onClick={() => setShowFileReferencePaths((open) => !open)}
+                    className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono-label text-on-surface-variant hover:text-primary cursor-pointer"
+                    aria-expanded={showFileReferencePaths}
+                    title={showFileReferencePaths ? '收起完整路径' : '查看完整路径'}
+                  >
+                    {showFileReferencePaths ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    路径
+                  </button>
+                </div>
+                {showFileReferencePaths && (
+                  <div className="border-t border-outline-variant pt-2 flex flex-col gap-1">
+                    {fileReferences.map((reference, index) => (
+                      <div key={reference.path} className="grid grid-cols-[24px_1fr] gap-2 text-[11px]">
+                        <span className="font-mono-label text-[#7fb2f0] text-right">
+                          {index + 1}
+                        </span>
+                        <span className="font-mono-code text-on-surface-variant break-all">
+                          {reference.path}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {queuedPrompt && (
