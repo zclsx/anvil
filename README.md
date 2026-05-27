@@ -39,7 +39,7 @@ Windows-friendly testing, and future spec-aware automation.
 ---
 
 > [!NOTE]
-> Current version: `0.0.2` closed alpha. Windows builds include a manual update checker. Builds are not signed or notarized yet.
+> Current version: `0.0.3` closed alpha. Windows builds include a manual update checker. Builds are not signed or notarized yet.
 
 ## The Idea
 
@@ -159,8 +159,8 @@ be packaged on a Windows runner.
 2. Download `Artifacts -> anvil-windows`.
 3. Extract the artifact.
 4. Run one of:
-   - `Anvil Setup 0.0.2.exe` for the installer.
-   - `Anvil 0.0.2.exe` for the portable build.
+   - `Anvil Setup 0.0.3.exe` for the installer.
+   - `Anvil 0.0.3.exe` for the portable build.
    - Newer builds should use the version printed in the artifact filename.
 
 The workflow verifies that the Windows Claude Agent SDK native binary is present
@@ -290,8 +290,8 @@ To publish a new Windows update, bump `app/package.json` version, merge the
 change, then push a matching tag:
 
 ```bash
-git tag v0.0.2
-git push origin v0.0.2
+git tag v0.0.3
+git push origin v0.0.3
 ```
 
 The `Windows Release` workflow builds on `windows-latest` and uploads the

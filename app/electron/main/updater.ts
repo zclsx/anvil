@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { autoUpdater } from 'electron-updater'
+import updaterPackage from 'electron-updater'
 import type { UpdateSnapshot } from '../shared/updates'
 
 const DEFAULT_WINDOWS_FEED_URL = 'https://github.com/zclsx/anvil/releases/latest/download/'
+const { autoUpdater } = updaterPackage
 
 let targetWindow: BrowserWindow | null = null
 let configured = false

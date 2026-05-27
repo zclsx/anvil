@@ -888,7 +888,7 @@ export function App() {
           <button onClick={() => setShowDebug(!showDebug)} className="hover:text-primary cursor-pointer uppercase">
             {showDebug ? '隐藏' : '显示'} debug ({rawEvents.length})
           </button>
-          <span>v0.0.2 · dev</span>
+          <span>v0.0.3 · dev</span>
         </div>
       </footer>
 
