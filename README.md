@@ -17,12 +17,12 @@ Windows-friendly testing, and future spec-aware automation.
 [![Built with Electron](https://img.shields.io/badge/built_with-Electron-47848f?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Claude Agent SDK](https://img.shields.io/badge/SDK-Claude_Agent_SDK-000000?style=for-the-badge)](https://docs.anthropic.com/)
 
-[![License](https://img.shields.io/github/license/zclsx/anvil?style=flat-square&color=blue)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/zclsx/anvil?style=flat-square&logo=github&color=yellow)](https://github.com/zclsx/anvil/stargazers)
-[![Forks](https://img.shields.io/github/forks/zclsx/anvil?style=flat-square&logo=github)](https://github.com/zclsx/anvil/network/members)
-[![Last Commit](https://img.shields.io/github/last-commit/zclsx/anvil?style=flat-square&logo=git&logoColor=white)](https://github.com/zclsx/anvil/commits)
-[![Issues](https://img.shields.io/github/issues/zclsx/anvil?style=flat-square)](https://github.com/zclsx/anvil/issues)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-2D3748?style=flat-square)
 
 <br/>
 
