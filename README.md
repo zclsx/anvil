@@ -1,3 +1,7 @@
+<div align="center">
+
+<img src="app/build/logo.svg" alt="Anvil" width="120" />
+
 # Anvil
 
 **A local agent workbench for Claude Code-style workflows.**
@@ -6,13 +10,36 @@ Run, resume, approve, and replay AI coding sessions from a desktop UI. Anvil is
 built on the official Claude Agent SDK and designed for local-first work,
 Windows-friendly testing, and future spec-aware automation.
 
-![Status](https://img.shields.io/badge/status-closed_alpha-orange)
-![Platforms](https://img.shields.io/badge/platforms-macOS_%7C_Windows-blue)
-![Built with Electron](https://img.shields.io/badge/built_with-Electron-47848f)
-![Claude Agent SDK](https://img.shields.io/badge/SDK-Claude_Agent_SDK-black)
+<br/>
 
-> Current version: `0.0.1` closed alpha. No auto-update yet. Builds are not
-> signed or notarized yet.
+[![Status](https://img.shields.io/badge/status-closed_alpha-orange?style=for-the-badge)](#)
+[![Platforms](https://img.shields.io/badge/platforms-macOS_%7C_Windows-blue?style=for-the-badge)](#alpha-install)
+[![Built with Electron](https://img.shields.io/badge/built_with-Electron-47848f?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Claude Agent SDK](https://img.shields.io/badge/SDK-Claude_Agent_SDK-000000?style=for-the-badge)](https://docs.anthropic.com/)
+
+[![License](https://img.shields.io/github/license/zclsx/anvil?style=flat-square&color=blue)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/zclsx/anvil?style=flat-square&logo=github&color=yellow)](https://github.com/zclsx/anvil/stargazers)
+[![Forks](https://img.shields.io/github/forks/zclsx/anvil?style=flat-square&logo=github)](https://github.com/zclsx/anvil/network/members)
+[![Last Commit](https://img.shields.io/github/last-commit/zclsx/anvil?style=flat-square&logo=git&logoColor=white)](https://github.com/zclsx/anvil/commits)
+[![Issues](https://img.shields.io/github/issues/zclsx/anvil?style=flat-square)](https://github.com/zclsx/anvil/issues)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+<br/>
+
+[**The Idea**](#the-idea) ·
+[**Highlights**](#highlights) ·
+[**What Works**](#what-works-today) ·
+[**Roadmap**](#product-direction) ·
+[**Install**](#alpha-install) ·
+[**First Run**](#first-run) ·
+[**Development**](#development)
+
+</div>
+
+---
+
+> [!NOTE]
+> Current version: `0.0.1` closed alpha. No auto-update yet. Builds are not signed or notarized yet.
 
 ## The Idea
 
@@ -21,66 +48,102 @@ Anvil turns agent execution into a workbench.
 Instead of treating an AI coding session as a terminal stream, Anvil gives it a
 local UI surface:
 
-- conversations are persisted,
-- tool calls are visible,
-- approvals are explicit,
-- errors are readable,
-- sessions can be replayed,
-- settings live in one place.
+<table>
+<tr>
+<td align="center" width="33%"><b>Conversations are persisted</b></td>
+<td align="center" width="33%"><b>Tool calls are visible</b></td>
+<td align="center" width="33%"><b>Approvals are explicit</b></td>
+</tr>
+<tr>
+<td align="center"><b>Errors are readable</b></td>
+<td align="center"><b>Sessions can be replayed</b></td>
+<td align="center"><b>Settings live in one place</b></td>
+</tr>
+</table>
 
 The long-term goal is a local, auditable, spec-aware environment for AI-assisted
 work: workspace selection, file tree, diff review, project rules, browser tools,
 and safer desktop automation.
 
+---
+
 ## Highlights
 
-```text
-Local sessions      Every Anvil session is stored locally in SQLite.
-Readable streams    Assistant output renders as Markdown, not raw events.
-Approvals           Tool permission requests show up as explicit UI decisions.
-Queue next          Draft the next prompt while the current turn is running.
-Resume workflow     Continue from the selected Anvil session.
-Windows alpha       Native Windows artifacts are built on GitHub Actions.
-```
+| Capability | What it gives you |
+| :--- | :--- |
+| **Local sessions** | Every Anvil session is stored locally in SQLite. |
+| **Readable streams** | Assistant output renders as Markdown, not raw events. |
+| **Approvals** | Tool permission requests show up as explicit UI decisions. |
+| **Queue next** | Draft the next prompt while the current turn is running. |
+| **Resume workflow** | Continue from the selected Anvil session. |
+| **Windows alpha** | Native Windows artifacts are built on GitHub Actions. |
+
+---
 
 ## What Works Today
 
-- macOS and Windows desktop shell.
-- Settings drawer for API key, base URL, model, workspace path, and Stitch
-  project ID.
-- Local session persistence with SQLite.
-- Session list and replay from Anvil's own event log.
-- Context-aware send behavior: selected session is resumed; otherwise a new
-  session is created.
-- Single queued next prompt while the current turn is running.
-- Markdown rendering for assistant responses.
-- Loading, cancellation, timeout, and API error states.
-- Tool call cards with risk labels.
-- Approval panel for tool permission requests.
-- Windows installer and portable build through GitHub Actions.
+<table>
+<tr>
+<th align="left" width="33%">Desktop shell</th>
+<th align="left" width="33%">Session layer</th>
+<th align="left" width="33%">Conversation UX</th>
+</tr>
+<tr>
+<td valign="top">
+
+- macOS and Windows desktop shell
+- Settings drawer for API key, base URL, model, workspace path, and Stitch project ID
+- Windows installer and portable build through GitHub Actions
+
+</td>
+<td valign="top">
+
+- Local session persistence with SQLite
+- Session list and replay from Anvil's own event log
+- Context-aware send behavior: selected session is resumed; otherwise a new session is created
+- Single queued next prompt while the current turn is running
+
+</td>
+<td valign="top">
+
+- Markdown rendering for assistant responses
+- Loading, cancellation, timeout, and API error states
+- Tool call cards with risk labels
+- Approval panel for tool permission requests
+
+</td>
+</tr>
+</table>
+
+---
 
 ## Product Direction
 
 Anvil is still early, but the shape is intentional:
 
-```text
-v0.1  Stable local sessions, settings, Windows/macOS alpha packaging
-v0.2  Workspace path, file tree, stronger session/replay behavior
-v0.3  Diff review, patch visibility, safer approval policy
-v0.x  Browser adapter, Computer Use adapter, spec-aware workflows
-```
+| Version | Focus |
+| :---: | :--- |
+| **v0.1** | Stable local sessions, settings, Windows/macOS alpha packaging |
+| **v0.2** | Workspace path, file tree, stronger session/replay behavior |
+| **v0.3** | Diff review, patch visibility, safer approval policy |
+| **v0.x** | Browser adapter, Computer Use adapter, spec-aware workflows |
+
+---
 
 ## Current Limits
 
-- No auto-update yet.
-- Builds are not code-signed or notarized yet.
-- Windows may show SmartScreen warnings.
-- macOS may show standard unidentified developer warnings for unsigned builds.
-- Anvil does not import old Claude CLI sessions yet.
-- Anvil only lists sessions created inside Anvil.
-- Provider compatibility depends on how well the endpoint implements the
-  Anthropic-compatible API surface expected by Claude Agent SDK.
-- Browser adapter, Computer Use, file tree, and diff review are future work.
+> [!WARNING]
+> - No auto-update yet.
+> - Builds are not code-signed or notarized yet.
+> - Windows may show SmartScreen warnings.
+> - macOS may show standard unidentified developer warnings for unsigned builds.
+> - Anvil does not import old Claude CLI sessions yet.
+> - Anvil only lists sessions created inside Anvil.
+> - Provider compatibility depends on how well the endpoint implements the
+>   Anthropic-compatible API surface expected by Claude Agent SDK.
+> - Browser adapter, Computer Use, file tree, and diff review are future work.
+
+---
 
 ## Alpha Install
 
@@ -118,6 +181,8 @@ app/release/
 
 Unsigned alpha builds may require right-click -> Open on first launch.
 
+---
+
 ## First Run
 
 Open Settings and configure:
@@ -129,6 +194,8 @@ Open Settings and configure:
 
 Then send a prompt from the main input area. Anvil will create a local session
 and store its event stream in the app data directory.
+
+---
 
 ## Local Data
 
@@ -155,15 +222,24 @@ When installing a newer build over an older build, the app binary is replaced bu
 the user data directory is preserved. This means API settings and Anvil sessions
 should remain available after manual upgrades.
 
+---
+
 ## Development
 
-Requirements:
+<table>
+<tr>
+<td valign="top" width="50%">
+
+**Requirements**
 
 - Node.js 22+
 - npm
 - macOS or Windows, depending on the platform you want to run locally
 
-Install and run:
+</td>
+<td valign="top" width="50%">
+
+**Install and run**
 
 ```bash
 cd app
@@ -171,21 +247,25 @@ npm install
 npm run dev
 ```
 
-Type-check:
+</td>
+</tr>
+</table>
+
+**Type-check**
 
 ```bash
 cd app
 npm run typecheck
 ```
 
-Build macOS locally:
+**Build macOS locally**
 
 ```bash
 cd app
 npm run build
 ```
 
-Build Windows on Windows:
+**Build Windows on Windows**
 
 ```bash
 cd app
@@ -213,6 +293,8 @@ On macOS, the rebuilt module should look like a Mach-O bundle:
 file node_modules/better-sqlite3/build/Release/better_sqlite3.node
 ```
 
+---
+
 ## Environment Variables
 
 Development mode can bootstrap settings from:
@@ -233,6 +315,8 @@ ANVIL_DEV_MODEL=
 Packaged builds do not load these development env files. Users configure their
 own settings in the app UI.
 
+---
+
 ## Project Structure
 
 ```text
@@ -249,35 +333,28 @@ anvil/
 └── README.md
 ```
 
-## Release Checklist
+---
 
-Before handing a build to testers:
+<div align="center">
 
-- Run `npm run typecheck`.
-- Confirm a clean install starts without native module errors.
-- Confirm Settings can save API configuration.
-- Send one basic prompt.
-- Close and reopen the app.
-- Confirm the session is still listed and can be replayed.
-- On Windows, use the latest successful `Windows Build` artifact.
-- Document known limitations for testers.
+### Star History
 
-Before public alpha:
+<a href="https://www.star-history.com/#zclsx/anvil&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=zclsx/anvil&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=zclsx/anvil&type=Date" />
+    <img alt="Star History" src="https://api.star-history.com/svg?repos=zclsx/anvil&type=Date" width="640" />
+  </picture>
+</a>
 
-- Add signed/notarized macOS builds.
-- Add Windows code signing.
-- Add a stable release download flow.
-- Add a short privacy note.
-- Add screenshots or a demo GIF.
-- Add a changelog.
+<br/>
+<br/>
 
-## License
+If Anvil resonates with how you want agents to work, a ⭐ helps it reach more workbench-minded developers.
 
-License is not finalized yet.
+</div>
 
-Candidate: Apache-2.0.
+---
 
-## Disclaimer
-
-Anvil is not affiliated with Anthropic. Claude, Claude Code, and related marks
-belong to their respective owners.
+> [!IMPORTANT]
+> **Disclaimer** — Anvil is not affiliated with Anthropic. Claude, Claude Code, and related marks belong to their respective owners.
