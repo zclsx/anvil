@@ -157,6 +157,9 @@ declare global {
         install: () => Promise<{ ok: boolean; error?: string }>
         onStatus: (callback: (snapshot: UpdateSnapshot) => void) => () => void
       }
+      files: {
+        getPaths: (files: File[]) => string[]
+      }
       onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => () => void
     }
   }
@@ -182,6 +185,7 @@ export function App() {
   const [pendingWorkspace, setPendingWorkspace] = useState<string | null>(null)
   const [queuedPrompt, setQueuedPrompt] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [isFileDragActive, setIsFileDragActive] = useState(false)
   const [updateSnapshot, setUpdateSnapshot] = useState<UpdateSnapshot | null>(null)
   const submittingRef = useRef(false)
   const promptInputRef = useRef<HTMLTextAreaElement | null>(null)
@@ -442,6 +446,100 @@ export function App() {
 
   function mergeTextIntoPrompt(text: string) {
     setPrompt((prev) => (prev.trim().length === 0 ? text : `${prev}\n\n${text}`))
+  }
+
+  function insertTextAtPromptCursor(text: string) {
+    const input = promptInputRef.current
+    if (!input) {
+      mergeTextIntoPrompt(text)
+      return
+    }
+
+    const start = input.selectionStart ?? prompt.length
+    const end = input.selectionEnd ?? start
+    const before = prompt.slice(0, start)
+    const after = prompt.slice(end)
+    const prefix = before.length === 0 || before.endsWith('\n') ? '' : '\n'
+    const suffix = after.length === 0 || after.startsWith('\n') ? '' : '\n'
+    const nextPrompt = `${before}${prefix}${text}${suffix}${after}`
+    const nextCursor = before.length + prefix.length + text.length
+
+    setPrompt(nextPrompt)
+    requestAnimationFrame(() => {
+      input.focus()
+      input.setSelectionRange(nextCursor, nextCursor)
+    })
+  }
+
+  function formatDroppedPath(filePath: string) {
+    if (!displayWorkspace) return filePath
+    const relativePath = getWorkspaceRelativePath(filePath, displayWorkspace)
+    return relativePath ?? filePath
+  }
+
+  function getWorkspaceRelativePath(filePath: string, workspacePath: string): string | null {
+    const normalizedFile = normalizePathForCompare(filePath)
+    const normalizedWorkspace = normalizePathForCompare(workspacePath)
+    const comparableFile = getComparablePath(normalizedFile)
+    const comparableWorkspace = getComparablePath(normalizedWorkspace)
+
+    if (comparableFile === comparableWorkspace) return '.'
+    if (!comparableFile.startsWith(`${comparableWorkspace}/`)) return null
+
+    const relative = normalizedFile.slice(normalizedWorkspace.length + 1)
+    return relative.length > 0 ? `./${relative}` : '.'
+  }
+
+  function normalizePathForCompare(filePath: string) {
+    return filePath.replace(/\\/g, '/').replace(/\/+$/g, '')
+  }
+
+  function getComparablePath(filePath: string) {
+    return /^[A-Za-z]:\//.test(filePath) ? filePath.toLowerCase() : filePath
+  }
+
+  function isFileDrop(event: React.DragEvent) {
+    return Array.from(event.dataTransfer.types).includes('Files')
+  }
+
+  function handlePromptDragOver(event: React.DragEvent) {
+    if (!isFileDrop(event)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    setIsFileDragActive(true)
+  }
+
+  function handlePromptDragLeave(event: React.DragEvent) {
+    const currentTarget = event.currentTarget
+    const relatedTarget = event.relatedTarget
+    if (relatedTarget instanceof Node && currentTarget.contains(relatedTarget)) return
+    setIsFileDragActive(false)
+  }
+
+  function handlePromptDrop(event: React.DragEvent) {
+    if (!isFileDrop(event)) return
+    event.preventDefault()
+    setIsFileDragActive(false)
+
+    const files = Array.from(event.dataTransfer.files)
+    if (files.length === 0) return
+
+    const paths = window.anvil?.files.getPaths(files) ?? []
+    if (paths.length === 0) {
+      setNotice('未能读取拖入文件的本地路径')
+      return
+    }
+
+    const promptPaths = paths.map(formatDroppedPath)
+    insertTextAtPromptCursor(promptPaths.join('\n'))
+    const outsideCount = displayWorkspace
+      ? promptPaths.filter((path) => !path.startsWith('./') && path !== '.').length
+      : paths.length
+    setNotice(
+      outsideCount > 0
+        ? `已插入 ${paths.length} 个路径，其中 ${outsideCount} 个在当前 workspace 外`
+        : `已插入 ${paths.length} 个路径`,
+    )
   }
 
   function editQueued() {
@@ -943,7 +1041,16 @@ export function App() {
           )}
 
           {/* Prompt Input */}
-          <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex flex-col gap-2 shrink-0">
+          <div
+            onDragOver={handlePromptDragOver}
+            onDragLeave={handlePromptDragLeave}
+            onDrop={handlePromptDrop}
+            className={`p-4 border-t bg-surface-container-lowest flex flex-col gap-2 shrink-0 transition-colors ${
+              isFileDragActive
+                ? 'border-[#4a9eff] bg-[#111827]'
+                : 'border-outline-variant'
+            }`}
+          >
             <div className="flex items-center gap-2 text-[10px] font-mono-label text-on-surface-variant">
               <FolderOpen size={12} className={displayWorkspace ? 'text-[#a0c4ff]' : 'text-on-surface-variant'} />
               <span className="uppercase shrink-0">
@@ -961,6 +1068,11 @@ export function App() {
                 </button>
               )}
             </div>
+            {isFileDragActive && (
+              <div className="border border-[#4a9eff]/50 bg-[#1f2a3a] px-3 py-2 text-[11px] font-mono-code text-[#a0c4ff]">
+                松开后插入文件路径
+              </div>
+            )}
             {queuedPrompt && (
               <div className="border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex items-center gap-2">
                 <span className="font-mono-label text-[10px] text-[#4a9eff] uppercase tracking-wider shrink-0">

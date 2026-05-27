@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { AnvilSettings, PublicSettings } from '../shared/settings'
 import type { AgentEventEnvelope } from '../shared/events'
 import type { SessionMeta, ApprovalDecision, QueryRequest } from '../shared/session'
@@ -62,6 +62,11 @@ const anvil = {
       ipcRenderer.on('updates:status', listener)
       return () => ipcRenderer.off('updates:status', listener)
     },
+  },
+
+  files: {
+    getPaths: (files: File[]): string[] =>
+      files.map((file) => webUtils.getPathForFile(file)).filter((path) => path.length > 0),
   },
 
   onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => {
