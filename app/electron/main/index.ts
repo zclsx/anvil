@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, dialog, ipcMain, nativeImage } from 'electron'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
@@ -168,7 +169,11 @@ function describeFailure(source: FailureSource, normalized?: NormalizedError): s
 }
 
 function normalizeWorkspacePath(workspacePath: string) {
-  return path.resolve(workspacePath.trim())
+  let trimmed = workspacePath.trim()
+  if (trimmed === '~' || trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
+    trimmed = path.join(os.homedir(), trimmed.slice(1))
+  }
+  return path.resolve(trimmed)
 }
 
 function resolveExistingDirectory(dirPath: unknown): string | null {
@@ -350,7 +355,10 @@ ipcMain.handle(
       return { canceled: true, path: null }
     }
     const selectedPath = result.filePaths[0]
-    return { canceled: false, path: selectedPath ? normalizeWorkspacePath(selectedPath) : null }
+    return {
+      canceled: false,
+      path: selectedPath ? resolveExistingDirectory(selectedPath) : null,
+    }
   },
 )
 

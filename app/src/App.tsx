@@ -188,6 +188,8 @@ export function App() {
   const loadingAnchorRef = useRef<HTMLDivElement | null>(null)
   const conversationEndRef = useRef<HTMLDivElement | null>(null)
   const lastConsumedTurnIdRef = useRef<string | null>(null)
+  const activeSessionIdRef = useRef<string | null>(null)
+  const autoConsumingRef = useRef(false)
   const autoScrollStateRef = useRef({
     awaitingFirstItem: false,
     lastItemId: null as string | null | undefined,
@@ -268,6 +270,7 @@ export function App() {
   }, [settings, refreshSessions])
 
   useEffect(() => {
+    activeSessionIdRef.current = activeSessionId
     if (sessionId && sessionId !== activeSessionId) {
       setActiveSessionId(sessionId)
     }
@@ -312,15 +315,24 @@ export function App() {
         return
       }
       void (async () => {
-        const ready = await ensureWorkspaceForRequest(req)
-        if (!ready) {
+        autoConsumingRef.current = true
+        try {
+          const ready = await ensureWorkspaceForRequest(req)
+          if (!ready) {
+            mergeTextIntoPrompt(q)
+            setNotice('Workspace 不可用，待发消息已合并回输入框')
+            return
+          }
+          if (!fireDirect(req)) {
+            mergeTextIntoPrompt(q)
+            setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
+          }
+        } catch (error: unknown) {
           mergeTextIntoPrompt(q)
-          setNotice('Workspace 不可用，待发消息已合并回输入框')
-          return
-        }
-        if (!fireDirect(req)) {
-          mergeTextIntoPrompt(q)
-          setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
+          pushError(error instanceof Error ? error.message : String(error))
+          setNotice('发送排队消息失败，已合并回输入框')
+        } finally {
+          autoConsumingRef.current = false
         }
       })()
       return
@@ -394,6 +406,7 @@ export function App() {
 
   function fireDirect(req: QueryRequest) {
     if (submittingRef.current) return false
+    if (req.mode === 'resume' && activeSessionIdRef.current !== req.sessionId) return false
     submittingRef.current = true
     setPendingPrompt(req.prompt)
     executeQuery(req)
@@ -444,11 +457,19 @@ export function App() {
 
   async function chooseWorkspaceForNewSession() {
     if (!window.anvil || running) return
+    if (autoConsumingRef.current) {
+      setNotice('正在发送排队消息，请稍后再切换 workspace')
+      return
+    }
     const result = await window.anvil.dialog.pickDirectory({
       defaultPath: displayWorkspace || settings?.workspacePath,
       title: '选择新会话的 workspace',
     })
-    if (result.canceled || !result.path) return
+    if (result.canceled) return
+    if (!result.path) {
+      setNotice('选择的目录不可用，请重新选择')
+      return
+    }
 
     reset()
     setActiveSessionId(null)
@@ -473,8 +494,7 @@ export function App() {
       return false
     }
 
-    const sessionForRequest = sessions.find((s) => s.id === req.sessionId)
-      ?? (activeSession?.id === req.sessionId ? activeSession : null)
+    const sessionForRequest = sessions.find((s) => s.id === req.sessionId) ?? null
     if (!sessionForRequest) {
       setNotice('Session 不存在，请从左侧重新选择')
       return false
@@ -499,8 +519,12 @@ export function App() {
       defaultPath: settings?.workspacePath,
       title: '重新指定 session workspace',
     })
-    if (picked.canceled || !picked.path) {
+    if (picked.canceled) {
       setNotice('已取消发送，请重新指定 workspace 或选择其他 session')
+      return false
+    }
+    if (!picked.path) {
+      setNotice('选择的目录不可用，请重新指定 workspace')
       return false
     }
 
@@ -577,6 +601,10 @@ export function App() {
 
   async function openSession(s: SessionMeta) {
     if (!window.anvil) return
+    if (autoConsumingRef.current) {
+      setNotice('正在发送排队消息，请稍后再切换 session')
+      return
+    }
     if (running) {
       setNotice('请先取消当前任务或等待结束后再切换 session')
       return
@@ -594,6 +622,10 @@ export function App() {
   async function deleteSession(s: SessionMeta, e: React.MouseEvent) {
     e.stopPropagation()
     if (!window.anvil) return
+    if (autoConsumingRef.current) {
+      setNotice('正在发送排队消息，请稍后再删除 session')
+      return
+    }
     if (running) {
       setNotice('请先取消当前任务或等待结束后再删除 session')
       return

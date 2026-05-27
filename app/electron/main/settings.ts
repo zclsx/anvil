@@ -1,5 +1,6 @@
 import Store from 'electron-store'
 import { app } from 'electron'
+import os from 'node:os'
 import path from 'node:path'
 import type { AnvilSettings, PublicSettings } from '../shared/settings'
 
@@ -31,7 +32,7 @@ const store = new Store<StoreSchema>({
 })
 
 function resolveWorkspacePath(stored: string): string {
-  if (stored && stored.length > 0) return stored
+  if (stored && stored.length > 0) return normalizeWorkspacePathValue(stored)
   try {
     return app.getPath('home')
   } catch {
@@ -40,8 +41,12 @@ function resolveWorkspacePath(stored: string): string {
 }
 
 function normalizeWorkspacePathValue(value: string): string {
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? path.resolve(trimmed) : ''
+  let trimmed = value.trim()
+  if (!trimmed) return ''
+  if (trimmed === '~' || trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
+    trimmed = path.join(os.homedir(), trimmed.slice(1))
+  }
+  return path.resolve(trimmed)
 }
 
 function getRawSettings(): AnvilSettings {
