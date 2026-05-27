@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage } from 'electron'
+import { app, BrowserWindow, Menu, dialog, ipcMain, nativeImage } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -174,8 +174,10 @@ function createWindow() {
     },
     titleBarStyle: 'hiddenInset',
     title: APP_NAME,
+    autoHideMenuBar: true,
     ...(icon ? { icon } : {}),
   })
+  mainWindow.setMenuBarVisibility(false)
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -186,6 +188,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null)
   initDb()
 
   if (process.platform === 'darwin' && app.dock) {
