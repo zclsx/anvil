@@ -214,7 +214,7 @@ export function App() {
   const hasAnvil = typeof window !== 'undefined' && !!window.anvil
   const trimmedPrompt = prompt.trim()
   const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) ?? null : null
-  const displayWorkspace = activeSession?.workspacePath ?? pendingWorkspace ?? settings?.workspacePath ?? ''
+  const displayWorkspace = activeSession?.workspacePath ?? pendingWorkspace ?? ''
   const isDraftWorkspace = !!pendingWorkspace && !activeSession
   const hasRunnableWorkspace = !!activeSession || !!pendingWorkspace
   const canChooseWorkspace = !running
@@ -306,14 +306,27 @@ export function App() {
 
     if (lastTurn.status === 'completed') {
       const req = currentSessionRequest(q)
-      if (!req || !fireDirect(req)) {
-        setPrompt((prev) => (prev.trim().length === 0 ? q : `${prev}\n\n${q}`))
+      if (!req) {
+        mergeTextIntoPrompt(q)
         setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
+        return
       }
+      void (async () => {
+        const ready = await ensureWorkspaceForRequest(req)
+        if (!ready) {
+          mergeTextIntoPrompt(q)
+          setNotice('Workspace 不可用，待发消息已合并回输入框')
+          return
+        }
+        if (!fireDirect(req)) {
+          mergeTextIntoPrompt(q)
+          setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
+        }
+      })()
       return
     }
 
-    setPrompt((prev) => (prev.trim().length === 0 ? q : `${prev}\n\n${q}`))
+    mergeTextIntoPrompt(q)
     setNotice(
       lastTurn.status === 'failed'
         ? '上一轮失败，待发消息已合并回输入框，请确认后重发'
@@ -393,14 +406,14 @@ export function App() {
       enqueueNext()
       return
     }
-    if (mode === 'send') {
-      const ready = await ensureActiveWorkspaceAvailable()
-      if (!ready) return
-    }
     const req = currentSessionRequest(trimmedPrompt)
     if (!req) {
       setNotice('请先点 New 选择 workspace 目录')
       return
+    }
+    if (mode === 'send') {
+      const ready = await ensureWorkspaceForRequest(req)
+      if (!ready) return
     }
     if (!fireDirect(req)) return
     setPrompt('')
@@ -414,11 +427,13 @@ export function App() {
     setNotice(replacing ? '已替换排队消息' : '已排队，将在当前任务完成后自动发送')
   }
 
+  function mergeTextIntoPrompt(text: string) {
+    setPrompt((prev) => (prev.trim().length === 0 ? text : `${prev}\n\n${text}`))
+  }
+
   function editQueued() {
     if (!queuedPrompt) return
-    setPrompt((prev) =>
-      prev.trim().length === 0 ? queuedPrompt : `${prev}\n\n${queuedPrompt}`,
-    )
+    mergeTextIntoPrompt(queuedPrompt)
     setQueuedPrompt(null)
   }
 
@@ -448,34 +463,52 @@ export function App() {
     requestAnimationFrame(() => promptInputRef.current?.focus())
   }
 
-  async function ensureActiveWorkspaceAvailable() {
-    if (!window.anvil || !activeSession) return true
-    const result = await window.anvil.sessions.workspaceExists(activeSession.workspacePath)
+  async function ensureWorkspaceForRequest(req: QueryRequest) {
+    if (!window.anvil) return false
+
+    if (req.mode === 'new') {
+      const result = await window.anvil.sessions.workspaceExists(req.workspacePath)
+      if (result.exists) return true
+      setNotice('Draft workspace 不存在，请点 New 重新选择目录')
+      return false
+    }
+
+    const sessionForRequest = sessions.find((s) => s.id === req.sessionId)
+      ?? (activeSession?.id === req.sessionId ? activeSession : null)
+    if (!sessionForRequest) {
+      setNotice('Session 不存在，请从左侧重新选择')
+      return false
+    }
+
+    const result = await window.anvil.sessions.workspaceExists(sessionForRequest.workspacePath)
     if (result.exists) return true
 
     const { confirmed } = await window.anvil.dialog.confirm({
       title: 'Workspace 不存在',
-      message: `找不到 session 的 workspace：${activeSession.workspacePath}`,
+      message: `找不到 session 的 workspace：${sessionForRequest.workspacePath}`,
       detail: '请重新指定该 session 的项目目录，取消则不会发送这条消息。',
       confirmLabel: '重新指定',
       cancelLabel: '取消',
     })
-    if (!confirmed) return false
+    if (!confirmed) {
+      setNotice('已取消发送，请重新指定 workspace 或选择其他 session')
+      return false
+    }
 
     const picked = await window.anvil.dialog.pickDirectory({
       defaultPath: settings?.workspacePath,
       title: '重新指定 session workspace',
     })
-    if (picked.canceled || !picked.path) return false
+    if (picked.canceled || !picked.path) {
+      setNotice('已取消发送，请重新指定 workspace 或选择其他 session')
+      return false
+    }
 
-    const updated = await window.anvil.sessions.setWorkspace(activeSession.id, picked.path)
+    const updated = await window.anvil.sessions.setWorkspace(sessionForRequest.id, picked.path)
     if (!updated.ok) {
       pushError(updated.error ?? '更新 session workspace 失败')
       return false
     }
-    const fresh = await window.anvil.settings.set({ workspacePath: picked.path })
-    setSettingsState(fresh)
-    setDraftWorkspacePath(fresh.workspacePath || '')
     await refreshSessions()
     setNotice(`已更新 session workspace：${formatWorkspaceShort(picked.path)}`)
     return true
@@ -544,6 +577,10 @@ export function App() {
 
   async function openSession(s: SessionMeta) {
     if (!window.anvil) return
+    if (running) {
+      setNotice('请先取消当前任务或等待结束后再切换 session')
+      return
+    }
     setQueuedPrompt(null)
     setPendingPrompt(null)
     setPendingWorkspace(null)
@@ -557,6 +594,10 @@ export function App() {
   async function deleteSession(s: SessionMeta, e: React.MouseEvent) {
     e.stopPropagation()
     if (!window.anvil) return
+    if (running) {
+      setNotice('请先取消当前任务或等待结束后再删除 session')
+      return
+    }
     const { confirmed } = await window.anvil.dialog.confirm({
       title: '删除 session？',
       message: `确定删除 session "${s.title || s.id.slice(0, 12)}"？`,
@@ -802,8 +843,8 @@ export function App() {
                 <FileSearch size={28} />
                 <div>
                   {pendingWorkspace
-                    ? `Workspace ready: ${formatWorkspaceShort(pendingWorkspace)}`
-                    : '选择 workspace 开始新对话或从左侧选择历史 session'}
+                    ? `Workspace 已就绪：${formatWorkspaceShort(pendingWorkspace)}，请在下方输入指令`
+                    : '点 New 选择 workspace 开始新对话，或从左侧选择历史 session'}
                 </div>
               </div>
             )}
@@ -879,6 +920,14 @@ export function App() {
               <span className="font-mono-code truncate flex-1">
                 {displayWorkspace ? formatWorkspaceShort(displayWorkspace) : 'none selected'}
               </span>
+              {isDraftWorkspace && !running && (
+                <button
+                  onClick={runNew}
+                  className="text-[10px] font-mono-label text-[#a0c4ff] hover:text-primary cursor-pointer px-2"
+                >
+                  更改
+                </button>
+              )}
             </div>
             {queuedPrompt && (
               <div className="border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex items-center gap-2">
@@ -931,7 +980,15 @@ export function App() {
                   disabled={!canChooseWorkspace}
                   className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed border border-outline-variant text-on-surface text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
                 >
-                  <Plus size={11} /> New
+                  {isDraftWorkspace ? (
+                    <>
+                      <FolderOpen size={11} /> 更改目录
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={11} /> New
+                    </>
+                  )}
                 </button>
                 {running ? (
                   <>

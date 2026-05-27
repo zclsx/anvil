@@ -141,10 +141,11 @@ export function deleteSession(sessionId: string): void {
   getDb().prepare(`DELETE FROM sessions WHERE id = ?`).run(sessionId)
 }
 
-export function updateSessionWorkspace(sessionId: string, workspacePath: string): void {
-  getDb()
+export function updateSessionWorkspace(sessionId: string, workspacePath: string): boolean {
+  const result = getDb()
     .prepare(`UPDATE sessions SET workspace_path = ?, updated_at = ? WHERE id = ?`)
     .run(workspacePath, new Date().toISOString(), sessionId)
+  return result.changes > 0
 }
 
 export function getDbPath(): string {

@@ -1,5 +1,6 @@
 import Store from 'electron-store'
 import { app } from 'electron'
+import path from 'node:path'
 import type { AnvilSettings, PublicSettings } from '../shared/settings'
 
 export type { AnvilSettings, PublicSettings }
@@ -38,6 +39,11 @@ function resolveWorkspacePath(stored: string): string {
   }
 }
 
+function normalizeWorkspacePathValue(value: string): string {
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? path.resolve(trimmed) : ''
+}
+
 function getRawSettings(): AnvilSettings {
   return {
     baseUrl: store.get('baseUrl'),
@@ -68,7 +74,11 @@ export function getPublicSettings(): PublicSettings {
 
 export function setSettings(patch: Partial<AnvilSettings>): PublicSettings {
   for (const [k, v] of Object.entries(patch)) {
-    if (v !== undefined) store.set(k as keyof AnvilSettings, v)
+    if (v === undefined) continue
+    const value = k === 'workspacePath' && typeof v === 'string'
+      ? normalizeWorkspacePathValue(v)
+      : v
+    store.set(k as keyof AnvilSettings, value)
   }
   store.set('hasUserConfigured', true)
   return getPublicSettings()
@@ -89,7 +99,7 @@ export function bootstrapFromEnv() {
   if (envApiKey) { store.set('apiKey', envApiKey); applied.push('apiKey') }
   if (envModel) { store.set('model', envModel); applied.push('model') }
   if (envStitchProjectId) { store.set('stitchProjectId', envStitchProjectId); applied.push('stitchProjectId') }
-  if (envWorkspace) { store.set('workspacePath', envWorkspace); applied.push('workspacePath') }
+  if (envWorkspace) { store.set('workspacePath', normalizeWorkspacePathValue(envWorkspace)); applied.push('workspacePath') }
 
   if (applied.length > 0) {
     console.log('[settings] bootstrapped from .env.local:', applied.join(', '))

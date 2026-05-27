@@ -167,24 +167,36 @@ function describeFailure(source: FailureSource, normalized?: NormalizedError): s
   }
 }
 
-function isExistingDirectory(dirPath: string) {
+function normalizeWorkspacePath(workspacePath: string) {
+  return path.resolve(workspacePath.trim())
+}
+
+function resolveExistingDirectory(dirPath: unknown): string | null {
+  if (typeof dirPath !== 'string') return null
+  const trimmed = dirPath.trim()
+  if (!trimmed) return null
+  const normalized = normalizeWorkspacePath(trimmed)
   try {
-    return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()
+    return fs.existsSync(normalized) && fs.statSync(normalized).isDirectory()
+      ? normalized
+      : null
   } catch {
-    return false
+    return null
   }
 }
 
-function resolveQueryWorkspace(req: QueryRequest, settings: AnvilSettings) {
-  const fallbackWorkspace = settings.workspacePath
+function isExistingDirectory(dirPath: unknown) {
+  return resolveExistingDirectory(dirPath) !== null
+}
 
+function resolveQueryWorkspace(req: QueryRequest) {
   if (req.mode === 'new') {
-    const workspacePath = req.workspacePath.trim()
-    if (!workspacePath) {
+    if (!req.workspacePath.trim()) {
       throw new Error('新会话需要先选择 workspace 目录')
     }
-    if (!isExistingDirectory(workspacePath)) {
-      throw new Error(`Workspace 不存在或不是目录：${workspacePath}`)
+    const workspacePath = resolveExistingDirectory(req.workspacePath)
+    if (!workspacePath) {
+      throw new Error(`Workspace 不存在或不是目录：${req.workspacePath}`)
     }
     return workspacePath
   }
@@ -194,12 +206,13 @@ function resolveQueryWorkspace(req: QueryRequest, settings: AnvilSettings) {
     throw new Error(`Session 不存在：${req.sessionId}`)
   }
 
-  const workspacePath = session.workspacePath || fallbackWorkspace
-  if (!workspacePath) {
-    throw new Error('该 session 没有可用 workspace，请重新指定目录')
+  const storedWorkspace = typeof session.workspacePath === 'string' ? session.workspacePath : ''
+  if (!storedWorkspace.trim()) {
+    throw new Error('该 session 没有 workspace 记录，请重新指定目录')
   }
-  if (!isExistingDirectory(workspacePath)) {
-    throw new Error(`Workspace 不存在或不是目录：${workspacePath}`)
+  const workspacePath = resolveExistingDirectory(storedWorkspace)
+  if (!workspacePath) {
+    throw new Error(`Workspace 不存在或不是目录：${storedWorkspace}`)
   }
   return workspacePath
 }
@@ -279,10 +292,18 @@ ipcMain.handle('sessions:workspace-exists', (_e, workspacePath: string) => ({
   exists: isExistingDirectory(workspacePath),
 }))
 ipcMain.handle('sessions:set-workspace', (_e, sessionId: string, workspacePath: string) => {
-  if (!isExistingDirectory(workspacePath)) {
+  const session = getSession(sessionId)
+  if (!session) {
+    return { ok: false, error: 'Session 不存在' }
+  }
+  const normalizedWorkspace = resolveExistingDirectory(workspacePath)
+  if (!normalizedWorkspace) {
     return { ok: false, error: `Workspace 不存在或不是目录：${workspacePath}` }
   }
-  updateSessionWorkspace(sessionId, workspacePath)
+  const updated = updateSessionWorkspace(sessionId, normalizedWorkspace)
+  if (!updated) {
+    return { ok: false, error: '更新 session workspace 失败' }
+  }
   return { ok: true }
 })
 
@@ -328,7 +349,8 @@ ipcMain.handle(
     if (result.canceled || result.filePaths.length === 0) {
       return { canceled: true, path: null }
     }
-    return { canceled: false, path: result.filePaths[0] ?? null }
+    const selectedPath = result.filePaths[0]
+    return { canceled: false, path: selectedPath ? normalizeWorkspacePath(selectedPath) : null }
   },
 )
 
@@ -359,7 +381,7 @@ ipcMain.handle('agent:query', async (_event, req: QueryRequest) => {
 async function runAgentQuery(req: QueryRequest) {
   const { query } = await import('@anthropic-ai/claude-agent-sdk')
   const settings = getSettings()
-  const workspacePath = resolveQueryWorkspace(req, settings)
+  const workspacePath = resolveQueryWorkspace(req)
 
   if (!settings.apiKey) {
     throw new Error('API Key 未配置，请在 Settings 里填写')
