@@ -174,10 +174,12 @@ function createWindow() {
     },
     titleBarStyle: 'hiddenInset',
     title: APP_NAME,
-    autoHideMenuBar: true,
+    ...(process.platform !== 'darwin' ? { autoHideMenuBar: true } : {}),
     ...(icon ? { icon } : {}),
   })
-  mainWindow.setMenuBarVisibility(false)
+  if (process.platform !== 'darwin') {
+    mainWindow.setMenuBarVisibility(false)
+  }
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -188,7 +190,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(null)
+  if (process.platform !== 'darwin') {
+    Menu.setApplicationMenu(null)
+  }
   initDb()
 
   if (process.platform === 'darwin' && app.dock) {
