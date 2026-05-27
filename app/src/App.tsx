@@ -2,7 +2,19 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
-import { History, FileSearch, Plus, RotateCw, Shield, AlertCircle, Trash2, FolderOpen } from 'lucide-react'
+import {
+  History,
+  FileSearch,
+  Plus,
+  RotateCw,
+  Shield,
+  AlertCircle,
+  Trash2,
+  FolderOpen,
+  File as FileIcon,
+  Image as ImageIcon,
+  X,
+} from 'lucide-react'
 import { useAgentStore, type Item, type PendingApproval } from './store'
 import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
 import type { AgentEventEnvelope } from '../electron/shared/events'
@@ -19,6 +31,14 @@ import logoUrl from './assets/logo.svg'
 const LogoIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <img src={logoUrl} className={className} alt="Anvil Logo" />
 )
+
+type FileReference = {
+  path: string
+  promptPath: string
+  label: string
+  isImage: boolean
+  isOutsideWorkspace: boolean
+}
 
 function UpdateActionButton({
   snapshot,
@@ -184,6 +204,8 @@ export function App() {
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const [pendingWorkspace, setPendingWorkspace] = useState<string | null>(null)
   const [queuedPrompt, setQueuedPrompt] = useState<string | null>(null)
+  const [fileReferences, setFileReferences] = useState<FileReference[]>([])
+  const [queuedFileReferences, setQueuedFileReferences] = useState<FileReference[]>([])
   const [notice, setNotice] = useState<string | null>(null)
   const [isFileDragActive, setIsFileDragActive] = useState(false)
   const [updateSnapshot, setUpdateSnapshot] = useState<UpdateSnapshot | null>(null)
@@ -326,12 +348,14 @@ export function App() {
     lastConsumedTurnIdRef.current = lastTurn.id
 
     const q = queuedPrompt
+    const refs = queuedFileReferences
     setQueuedPrompt(null)
+    setQueuedFileReferences([])
 
     if (lastTurn.status === 'completed') {
-      const req = currentSessionRequest(q)
+      const req = currentSessionRequest(q, refs)
       if (!req) {
-        mergeTextIntoPrompt(q)
+        restoreDraft(q, refs)
         setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
         return
       }
@@ -340,16 +364,16 @@ export function App() {
         try {
           const ready = await ensureWorkspaceForRequest(req)
           if (!ready) {
-            mergeTextIntoPrompt(q)
+            restoreDraft(q, refs)
             setNotice('Workspace 不可用，待发消息已合并回输入框')
             return
           }
           if (!fireDirect(req)) {
-            mergeTextIntoPrompt(q)
+            restoreDraft(q, refs)
             setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
           }
         } catch (error: unknown) {
-          mergeTextIntoPrompt(q)
+          restoreDraft(q, refs)
           pushError(error instanceof Error ? error.message : String(error))
           setNotice('发送排队消息失败，已合并回输入框')
         } finally {
@@ -359,14 +383,14 @@ export function App() {
       return
     }
 
-    mergeTextIntoPrompt(q)
+    restoreDraft(q, refs)
     setNotice(
       lastTurn.status === 'failed'
         ? '上一轮失败，待发消息已合并回输入框，请确认后重发'
         : '已取消，待发消息已合并回输入框，请确认后重发',
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, turns, queuedPrompt])
+  }, [running, turns, queuedPrompt, queuedFileReferences])
 
   async function saveSettings() {
     if (!window.anvil) return
@@ -415,12 +439,13 @@ export function App() {
     }
   }
 
-  function currentSessionRequest(text: string): QueryRequest | null {
+  function currentSessionRequest(text: string, references: FileReference[] = fileReferences): QueryRequest | null {
+    const promptText = buildPromptWithFileReferences(text, references)
     if (activeSessionId) {
-      return { mode: 'resume', sessionId: activeSessionId, prompt: text }
+      return { mode: 'resume', sessionId: activeSessionId, prompt: promptText }
     }
     if (pendingWorkspace) {
-      return { mode: 'new', prompt: text, workspacePath: pendingWorkspace }
+      return { mode: 'new', prompt: promptText, workspacePath: pendingWorkspace }
     }
     return null
   }
@@ -440,7 +465,8 @@ export function App() {
       enqueueNext()
       return
     }
-    const req = currentSessionRequest(trimmedPrompt)
+    const refs = fileReferences
+    const req = currentSessionRequest(trimmedPrompt, refs)
     if (!req) {
       setNotice('请先点 New 选择 workspace 目录')
       return
@@ -451,13 +477,16 @@ export function App() {
     }
     if (!fireDirect(req)) return
     setPrompt('')
+    setFileReferences([])
   }
 
   function enqueueNext() {
     if (trimmedPrompt.length === 0) return
     const replacing = !!queuedPrompt
     setQueuedPrompt(trimmedPrompt)
+    setQueuedFileReferences(fileReferences)
     setPrompt('')
+    setFileReferences([])
     setNotice(replacing ? '已替换排队消息' : '已排队，将在当前任务完成后自动发送')
   }
 
@@ -465,27 +494,9 @@ export function App() {
     setPrompt((prev) => (prev.trim().length === 0 ? text : `${prev}\n\n${text}`))
   }
 
-  function insertTextAtPromptCursor(text: string) {
-    const input = promptInputRef.current
-    if (!input) {
-      mergeTextIntoPrompt(text)
-      return
-    }
-
-    const start = input.selectionStart ?? prompt.length
-    const end = input.selectionEnd ?? start
-    const before = prompt.slice(0, start)
-    const after = prompt.slice(end)
-    const prefix = before.length === 0 || before.endsWith('\n') ? '' : '\n'
-    const suffix = after.length === 0 || after.startsWith('\n') ? '' : '\n'
-    const nextPrompt = `${before}${prefix}${text}${suffix}${after}`
-    const nextCursor = before.length + prefix.length + text.length
-
-    setPrompt(nextPrompt)
-    requestAnimationFrame(() => {
-      input.focus()
-      input.setSelectionRange(nextCursor, nextCursor)
-    })
+  function restoreDraft(text: string, references: FileReference[]) {
+    mergeTextIntoPrompt(text)
+    setFileReferences((prev) => mergeFileReferences(prev, references))
   }
 
   function formatPathLiteral(pathLiteral: string) {
@@ -495,15 +506,53 @@ export function App() {
     return `${fence}${padding}${pathLiteral}${padding}${fence}`
   }
 
-  function getDroppedPathInfo(filePath: string) {
+  function buildPromptWithFileReferences(text: string, references: FileReference[]) {
+    const promptText = text.trim()
+    if (references.length === 0) return promptText
+
+    const referencedFiles = references
+      .map((reference, index) => `${index + 1}. ${reference.promptPath}`)
+      .join('\n')
+
+    return `${promptText}\n\nReferenced files:\n${referencedFiles}`
+  }
+
+  function mergeFileReferences(current: FileReference[], incoming: FileReference[]) {
+    const seen = new Set(current.map((reference) => getComparablePath(normalizePathForCompare(reference.path))))
+    const next = [...current]
+    for (const reference of incoming) {
+      const key = getComparablePath(normalizePathForCompare(reference.path))
+      if (seen.has(key)) continue
+      seen.add(key)
+      next.push(reference)
+    }
+    return next
+  }
+
+  function createFileReference(filePath: string): FileReference {
     const renderedPath = displayWorkspace
       ? (getWorkspaceRelativePath(filePath, displayWorkspace) ?? filePath)
       : filePath
 
     return {
+      path: filePath,
       promptPath: formatPathLiteral(renderedPath),
+      label: formatFileReferenceLabel(renderedPath),
+      isImage: isImagePath(filePath),
       isOutsideWorkspace: !!displayWorkspace && renderedPath !== '.' && !renderedPath.startsWith('./'),
     }
+  }
+
+  function formatFileReferenceLabel(pathLiteral: string) {
+    const parts = normalizePathForCompare(pathLiteral)
+      .split('/')
+      .filter((part) => part.length > 0 && part !== '.')
+    if (parts.length === 0) return pathLiteral
+    return parts.slice(-2).join('/')
+  }
+
+  function isImagePath(filePath: string) {
+    return /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|tiff?|webp)$/i.test(filePath)
   }
 
   function getWorkspaceRelativePath(filePath: string, workspacePath: string): string | null {
@@ -563,32 +612,59 @@ export function App() {
       return
     }
 
-    const pathInfos = paths.map(getDroppedPathInfo)
-    const promptPaths = pathInfos.map((info) => info.promptPath)
-    insertTextAtPromptCursor(promptPaths.join('\n'))
-    const outsideCount = pathInfos.filter((info) => info.isOutsideWorkspace).length
+    const incomingReferences = paths.map(createFileReference)
+    const existingKeys = new Set(fileReferences.map((reference) => getComparablePath(normalizePathForCompare(reference.path))))
+    const referencesToAdd = incomingReferences.filter((reference) => {
+      const key = getComparablePath(normalizePathForCompare(reference.path))
+      if (existingKeys.has(key)) return false
+      existingKeys.add(key)
+      return true
+    })
+    const duplicateCount = incomingReferences.length - referencesToAdd.length
 
-    let nextNotice = displayWorkspace
-      ? `已插入 ${paths.length} 个路径`
-      : `已插入 ${paths.length} 个绝对路径（未选 workspace）`
+    if (referencesToAdd.length > 0) {
+      setFileReferences((prev) => mergeFileReferences(prev, referencesToAdd))
+    }
+
+    const outsideCount = referencesToAdd.filter((reference) => reference.isOutsideWorkspace).length
+
+    let nextNotice =
+      referencesToAdd.length === 0
+        ? '文件引用已存在'
+        : displayWorkspace
+          ? `已添加 ${referencesToAdd.length} 个文件引用`
+          : `已添加 ${referencesToAdd.length} 个文件引用（未选 workspace，发送时使用绝对路径）`
     if (outsideCount > 0) {
-      nextNotice = `已插入 ${paths.length} 个路径，其中 ${outsideCount} 个在当前 workspace 外`
+      nextNotice = `已添加 ${referencesToAdd.length} 个文件引用，其中 ${outsideCount} 个在当前 workspace 外`
+    }
+    if (duplicateCount > 0) {
+      nextNotice = `${nextNotice}；${duplicateCount} 个重复引用已忽略`
     }
     if (ignoredCount > 0) {
       nextNotice = `${nextNotice}；${ignoredCount} 个无本地路径已忽略`
     }
     setNotice(nextNotice)
+    requestAnimationFrame(() => promptInputRef.current?.focus())
   }
 
   function editQueued() {
     if (!queuedPrompt) return
-    mergeTextIntoPrompt(queuedPrompt)
+    restoreDraft(queuedPrompt, queuedFileReferences)
     setQueuedPrompt(null)
+    setQueuedFileReferences([])
   }
 
   function clearQueued() {
     setQueuedPrompt(null)
+    setQueuedFileReferences([])
     setNotice('已取消排队消息')
+  }
+
+  function removeFileReference(pathToRemove: string) {
+    const keyToRemove = getComparablePath(normalizePathForCompare(pathToRemove))
+    setFileReferences((prev) =>
+      prev.filter((reference) => getComparablePath(normalizePathForCompare(reference.path)) !== keyToRemove),
+    )
   }
 
   async function chooseWorkspaceForNewSession() {
@@ -610,6 +686,8 @@ export function App() {
     reset()
     setActiveSessionId(null)
     setQueuedPrompt(null)
+    setQueuedFileReferences([])
+    setFileReferences([])
     setPendingPrompt(null)
     lastConsumedTurnIdRef.current = null
     setPendingWorkspace(result.path)
@@ -746,6 +824,8 @@ export function App() {
       return
     }
     setQueuedPrompt(null)
+    setQueuedFileReferences([])
+    setFileReferences([])
     setPendingPrompt(null)
     setPendingWorkspace(null)
     lastConsumedTurnIdRef.current = null
@@ -780,6 +860,7 @@ export function App() {
       reset()
       setActiveSessionId(null)
       setPendingWorkspace(null)
+      setFileReferences([])
     }
     await refreshSessions()
   }
@@ -1108,7 +1189,45 @@ export function App() {
             </div>
             {isFileDragActive && (
               <div className="border border-[#4a9eff]/50 bg-[#1f2a3a] px-3 py-2 text-[11px] font-mono-code text-[#a0c4ff]">
-                {running ? '松开后插入到草稿（不会自动发送）' : '松开后插入文件路径'}
+                {running ? '松开后添加到草稿引用（不会自动发送）' : '松开后添加文件引用'}
+              </div>
+            )}
+            {fileReferences.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 border border-outline-variant bg-surface-container px-3 py-2">
+                <span className="font-mono-label text-[10px] text-on-surface-variant uppercase tracking-wider">
+                  引用
+                </span>
+                {fileReferences.map((reference, index) => {
+                  const Icon = reference.isImage ? ImageIcon : FileIcon
+                  return (
+                    <span
+                      key={reference.path}
+                      title={reference.path}
+                      className="inline-flex max-w-full items-center gap-1.5 border border-[#4a9eff]/35 bg-[#1f2a3a] px-2 py-1 text-[11px] text-[#d8e7ff]"
+                    >
+                      <Icon size={12} className={reference.isImage ? 'text-[#b7a7ff]' : 'text-[#a0c4ff]'} />
+                      <span className="font-mono-label text-[9px] text-[#7fb2f0]">
+                        {index + 1}
+                      </span>
+                      <span className="font-mono-code truncate max-w-[180px]">
+                        {reference.label}
+                      </span>
+                      {reference.isOutsideWorkspace && (
+                        <span className="font-mono-label text-[9px] text-[#f59e0b]">
+                          外部
+                        </span>
+                      )}
+                      <button
+                        onClick={() => removeFileReference(reference.path)}
+                        className="text-on-surface-variant hover:text-[#ffffff] cursor-pointer"
+                        aria-label={`移除文件引用 ${reference.label}`}
+                        title="移除"
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )
+                })}
               </div>
             )}
             {queuedPrompt && (
@@ -1119,6 +1238,11 @@ export function App() {
                 <div className="flex-1 text-[12px] text-on-surface truncate font-mono-code">
                   {queuedPrompt}
                 </div>
+                {queuedFileReferences.length > 0 && (
+                  <span className="font-mono-label text-[10px] text-[#a0c4ff] shrink-0">
+                    +{queuedFileReferences.length} refs
+                  </span>
+                )}
                 <button
                   onClick={editQueued}
                   className="text-[10px] font-mono-label text-on-surface-variant hover:text-primary cursor-pointer px-2"
