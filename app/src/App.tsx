@@ -42,6 +42,10 @@ type FileReference = {
   isOutsideWorkspace: boolean
 }
 
+type ExecuteQueryOptions = {
+  onFail?: () => void
+}
+
 function UpdateActionButton({
   snapshot,
   onCheck,
@@ -250,6 +254,7 @@ export function App() {
   const hasRunnableWorkspace = !!activeSession || !!pendingWorkspace
   const canChooseWorkspace = !running
   const canSendPrompt = !!settings?.hasApiKey && !running && trimmedPrompt.length > 0 && hasRunnableWorkspace
+  const hasFileReferencesWithoutPrompt = fileReferences.length > 0 && trimmedPrompt.length === 0
 
   const refreshSessions = useCallback(async () => {
     if (!window.anvil) return
@@ -411,10 +416,16 @@ export function App() {
     setTimeout(() => setSaved(false), 1500)
   }
 
-  async function executeQuery(req: QueryRequest) {
+  async function executeQuery(req: QueryRequest, options?: ExecuteQueryOptions) {
     if (!window.anvil) {
       submittingRef.current = false
       return
+    }
+    let failed = false
+    const notifyFailed = () => {
+      if (failed) return
+      failed = true
+      options?.onFail?.()
     }
     if (req.mode === 'new') {
       reset()
@@ -427,6 +438,7 @@ export function App() {
       const result = await window.anvil.query(req)
       if (result && !result.ok && result.error) {
         pushError(result.error)
+        notifyFailed()
       }
       if (result?.sessionId) {
         setActiveSessionId(result.sessionId)
@@ -435,6 +447,7 @@ export function App() {
       await refreshSessions()
     } catch (e: any) {
       pushError(e?.message ?? String(e))
+      notifyFailed()
     } finally {
       submittingRef.current = false
       setPendingPrompt(null)
@@ -453,17 +466,23 @@ export function App() {
     return null
   }
 
-  function fireDirect(req: QueryRequest) {
+  function fireDirect(req: QueryRequest, options?: ExecuteQueryOptions) {
     if (submittingRef.current) return false
     if (req.mode === 'resume' && activeSessionIdRef.current !== req.sessionId) return false
     submittingRef.current = true
     setPendingPrompt(req.prompt)
-    executeQuery(req)
+    void executeQuery(req, options)
     return true
   }
 
   async function submitPrompt(mode: PromptMode) {
-    if (!settings?.hasApiKey || trimmedPrompt.length === 0) return
+    if (!settings?.hasApiKey) return
+    if (trimmedPrompt.length === 0) {
+      if (fileReferences.length > 0) {
+        setNotice('请先输入指令，再发送文件引用')
+      }
+      return
+    }
     if (running) {
       enqueueNext()
       return
@@ -478,21 +497,34 @@ export function App() {
       const ready = await ensureWorkspaceForRequest(req)
       if (!ready) return
     }
-    if (!fireDirect(req)) return
+    const textSnapshot = trimmedPrompt
+    const refsSnapshot = refs
+    if (!fireDirect(req, { onFail: () => restoreDraft(textSnapshot, refsSnapshot) })) return
     setPrompt('')
     setFileReferences([])
     setShowFileReferencePaths(false)
   }
 
   function enqueueNext() {
-    if (trimmedPrompt.length === 0) return
+    if (trimmedPrompt.length === 0) {
+      if (fileReferences.length > 0) {
+        setNotice('请先输入指令，再排队文件引用')
+      }
+      return
+    }
     const replacing = !!queuedPrompt
+    const replacedReferenceCount = queuedFileReferences.length
+    const queuedReferenceCount = fileReferences.length
     setQueuedPrompt(trimmedPrompt)
     setQueuedFileReferences(fileReferences)
     setPrompt('')
     setFileReferences([])
     setShowFileReferencePaths(false)
-    setNotice(replacing ? '已替换排队消息' : '已排队，将在当前任务完成后自动发送')
+    setNotice(
+      replacing
+        ? `已替换排队消息${queuedReferenceCount > 0 ? `（含 ${queuedReferenceCount} 个文件引用）` : ''}${replacedReferenceCount > 0 ? '，旧文件引用已一并替换' : ''}`
+        : `已排队，将在当前任务完成后自动发送${queuedReferenceCount > 0 ? `（含 ${queuedReferenceCount} 个文件引用）` : ''}`,
+    )
   }
 
   function mergeTextIntoPrompt(text: string) {
@@ -520,6 +552,12 @@ export function App() {
       .join('\n')
 
     return `${promptText}\n\nReferenced files:\n${referencedFiles}`
+  }
+
+  function getPromptPathDisplay(reference: FileReference) {
+    return reference.promptPath
+      .replace(/^`+ ?/, '')
+      .replace(/ ?`+$/, '')
   }
 
   function mergeFileReferences(current: FileReference[], incoming: FileReference[]) {
@@ -774,7 +812,12 @@ export function App() {
     if (e.nativeEvent.isComposing) return
     if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault()
-      if (trimmedPrompt.length === 0) return
+      if (trimmedPrompt.length === 0) {
+        if (fileReferences.length > 0) {
+          setNotice('请先输入指令，再发送文件引用')
+        }
+        return
+      }
       if (running) enqueueNext()
       else void submitPrompt('send')
     }
@@ -871,6 +914,8 @@ export function App() {
       reset()
       setActiveSessionId(null)
       setPendingWorkspace(null)
+      setQueuedPrompt(null)
+      setQueuedFileReferences([])
       setFileReferences([])
       setShowFileReferencePaths(false)
     }
@@ -1210,7 +1255,7 @@ export function App() {
                   <span className="font-mono-label text-[10px] text-on-surface-variant uppercase tracking-wider">
                     引用
                   </span>
-                  {fileReferences.map((reference, index) => {
+                  {fileReferences.map((reference) => {
                     const Icon = reference.isImage ? ImageIcon : FileIcon
                     return (
                       <span
@@ -1219,9 +1264,6 @@ export function App() {
                         className="inline-flex max-w-full items-center gap-1.5 border border-[#4a9eff]/35 bg-[#1f2a3a] px-2 py-1 text-[11px] text-[#d8e7ff]"
                       >
                         <Icon size={12} className={reference.isImage ? 'text-[#b7a7ff]' : 'text-[#a0c4ff]'} />
-                        <span className="font-mono-label text-[9px] text-[#7fb2f0]">
-                          {index + 1}
-                        </span>
                         <span className="font-mono-code truncate max-w-[140px]">
                           {reference.label}
                         </span>
@@ -1253,16 +1295,31 @@ export function App() {
                 </div>
                 {showFileReferencePaths && (
                   <div className="border-t border-outline-variant pt-2 flex flex-col gap-1">
-                    {fileReferences.map((reference, index) => (
-                      <div key={reference.path} className="grid grid-cols-[24px_1fr] gap-2 text-[11px]">
-                        <span className="font-mono-label text-[#7fb2f0] text-right">
-                          {index + 1}
-                        </span>
-                        <span className="font-mono-code text-on-surface-variant break-all">
-                          {reference.path}
-                        </span>
-                      </div>
-                    ))}
+                    {fileReferences.map((reference, index) => {
+                      const promptPathDisplay = getPromptPathDisplay(reference)
+                      return (
+                        <div key={reference.path} className="grid grid-cols-[24px_1fr] gap-2 text-[11px]">
+                          <span className="font-mono-label text-[#7fb2f0] text-right">
+                            {index + 1}
+                          </span>
+                          <div className="font-mono-code text-on-surface-variant break-all">
+                            <div>
+                              {promptPathDisplay}
+                            </div>
+                            {reference.path !== promptPathDisplay && (
+                              <div className="text-[10px] opacity-70">
+                                本地路径：{reference.path}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {hasFileReferencesWithoutPrompt && (
+                  <div className="border-t border-outline-variant pt-2 text-[11px] font-mono-code text-on-surface-variant">
+                    请先输入指令，再发送这些文件引用
                   </div>
                 )}
               </div>
