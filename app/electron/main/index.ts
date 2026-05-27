@@ -15,6 +15,7 @@ import type { QueryRequest, SessionMeta, ApprovalDecision } from '../shared/sess
 import type { ConfirmRequest, ConfirmResponse } from '../shared/dialog'
 import type { AgentEventEnvelope, ApprovalRequest, AgentEvent } from '../shared/events'
 import { createAdapter } from './sdkAdapter'
+import { bindUpdateWindow, registerUpdateIpc } from './updater'
 import {
   initDb,
   appendEvent,
@@ -180,6 +181,7 @@ function createWindow() {
   if (process.platform !== 'darwin') {
     mainWindow.setMenuBarVisibility(false)
   }
+  bindUpdateWindow(mainWindow)
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -220,6 +222,7 @@ app.on('window-all-closed', () => {
 
 ipcMain.handle('settings:get', () => getPublicSettings())
 ipcMain.handle('settings:set', (_e, patch: Partial<AnvilSettings>) => setSettings(patch))
+registerUpdateIpc()
 
 ipcMain.handle('sessions:list', (_e, workspacePath?: string) => listSessions(workspacePath))
 ipcMain.handle('sessions:get', (_e, sessionId: string) => getSession(sessionId))

@@ -1,7 +1,7 @@
 {
   "name": "anvil",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Anvil — AI Agent Workbench",
   "main": "dist-electron/main/index.js",
   "type": "module",
@@ -20,6 +20,7 @@
     "better-sqlite3": "^12.10.0",
     "dotenv": "^17.4.2",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^1.16.0",
     "monaco-editor": "^0.54.0",
     "react": "^19.2.0",
@@ -52,6 +53,12 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://github.com/zclsx/anvil/releases/latest/download/"
+      }
+    ],
     "mac": {
       "icon": "build/icon.icns",
       "target": [

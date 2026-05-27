@@ -39,7 +39,7 @@ Windows-friendly testing, and future spec-aware automation.
 ---
 
 > [!NOTE]
-> Current version: `0.0.1` closed alpha. No auto-update yet. Builds are not signed or notarized yet.
+> Current version: `0.0.2` closed alpha. Windows builds include a manual update checker. Builds are not signed or notarized yet.
 
 ## The Idea
 
@@ -77,6 +77,7 @@ and safer desktop automation.
 | **Queue next** | Draft the next prompt while the current turn is running. |
 | **Resume workflow** | Continue from the selected Anvil session. |
 | **Windows alpha** | Native Windows artifacts are built on GitHub Actions. |
+| **Manual updater** | Windows packaged builds can check GitHub Releases for newer versions. |
 
 ---
 
@@ -94,6 +95,7 @@ and safer desktop automation.
 - macOS and Windows desktop shell
 - Settings drawer for API key, base URL, model, workspace path, and Stitch project ID
 - Windows installer and portable build through GitHub Actions
+- Windows update check/download/restart flow through GitHub Releases
 
 </td>
 <td valign="top">
@@ -133,7 +135,7 @@ Anvil is still early, but the shape is intentional:
 ## Current Limits
 
 > [!WARNING]
-> - No auto-update yet.
+> - Windows update checks are manual and require a published GitHub Release with `latest.yml`.
 > - Builds are not code-signed or notarized yet.
 > - Windows may show SmartScreen warnings.
 > - macOS may show standard unidentified developer warnings for unsigned builds.
@@ -157,8 +159,9 @@ be packaged on a Windows runner.
 2. Download `Artifacts -> anvil-windows`.
 3. Extract the artifact.
 4. Run one of:
-   - `Anvil Setup 0.0.1.exe` for the installer.
-   - `Anvil 0.0.1.exe` for the portable build.
+   - `Anvil Setup 0.0.2.exe` for the installer.
+   - `Anvil 0.0.2.exe` for the portable build.
+   - Newer builds should use the version printed in the artifact filename.
 
 The workflow verifies that the Windows Claude Agent SDK native binary is present
 before uploading artifacts.
@@ -275,6 +278,27 @@ npm run build:win
 
 For shared alpha packages, prefer the GitHub Actions Windows build.
 
+### Publish a Windows Update
+
+Windows auto-update reads the generic feed at:
+
+```text
+https://github.com/zclsx/anvil/releases/latest/download/
+```
+
+To publish a new Windows update, bump `app/package.json` version, merge the
+change, then push a matching tag:
+
+```bash
+git tag v0.0.2
+git push origin v0.0.2
+```
+
+The `Windows Release` workflow builds on `windows-latest` and uploads the
+installer, portable executable, blockmap, and `latest.yml` to the GitHub
+Release. The app will only offer the update when the release version is newer
+than the installed version.
+
 ### Native Module Notes
 
 This project uses native dependencies such as `better-sqlite3` and the platform
@@ -314,6 +338,13 @@ ANVIL_DEV_MODEL=
 
 Packaged builds do not load these development env files. Users configure their
 own settings in the app UI.
+
+Packaged Windows builds use GitHub Releases as the update feed by default. The
+feed can be overridden for private testing with:
+
+```text
+ANVIL_UPDATE_FEED_URL=
+```
 
 ---
 

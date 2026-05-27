@@ -8,11 +8,64 @@ import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
 import type { AgentEventEnvelope } from '../electron/shared/events'
 import type { SessionMeta, QueryRequest } from '../electron/shared/session'
 import type { ConfirmRequest, ConfirmResponse } from '../electron/shared/dialog'
+import type { UpdateSnapshot } from '../electron/shared/updates'
 import logoUrl from './assets/logo.svg'
 
 const LogoIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <img src={logoUrl} className={className} alt="Anvil Logo" />
 )
+
+function UpdateActionButton({
+  snapshot,
+  onCheck,
+  onDownload,
+  onInstall,
+}: {
+  snapshot: UpdateSnapshot
+  onCheck: () => void
+  onDownload: () => void
+  onInstall: () => void
+}) {
+  const version = snapshot.version ? ` ${snapshot.version}` : ''
+  const percent = snapshot.percent == null ? 0 : Math.floor(snapshot.percent)
+  const disabled = snapshot.status === 'checking' || snapshot.status === 'downloading'
+
+  let label = 'Check updates'
+  let title = snapshot.message || `Current version ${snapshot.currentVersion}`
+  let action = onCheck
+  let className = 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+
+  if (snapshot.status === 'checking') {
+    label = 'Checking...'
+  } else if (snapshot.status === 'available') {
+    label = `Download${version}`
+    action = onDownload
+    className = 'border-[#4a9eff]/50 text-[#a0c4ff] hover:bg-[#1f2a3a]'
+  } else if (snapshot.status === 'downloading') {
+    label = `Downloading ${percent}%`
+  } else if (snapshot.status === 'downloaded') {
+    label = 'Restart to update'
+    action = onInstall
+    className = 'border-[#6fbf6f]/50 text-[#9ce29c] hover:bg-[#1f3a1f]'
+  } else if (snapshot.status === 'not-available') {
+    label = 'Up to date'
+  } else if (snapshot.status === 'error') {
+    label = 'Update error'
+    title = snapshot.message || 'Update check failed'
+    className = 'border-[#ff8080]/50 text-[#ffb4ab] hover:bg-[#3a1f1f]'
+  }
+
+  return (
+    <button
+      onClick={action}
+      disabled={disabled}
+      title={title}
+      className={`px-2 py-0.5 text-[10px] font-mono-label bg-surface-container border disabled:opacity-70 disabled:cursor-wait cursor-pointer ${className}`}
+    >
+      {label}
+    </button>
+  )
+}
 
 const markdownComponents: Components = {
   p: ({ node: _node, ...props }) => (
@@ -89,6 +142,13 @@ declare global {
       dialog: {
         confirm: (req: ConfirmRequest) => Promise<ConfirmResponse>
       }
+      updates: {
+        get: () => Promise<UpdateSnapshot>
+        check: () => Promise<UpdateSnapshot>
+        download: () => Promise<UpdateSnapshot>
+        install: () => Promise<{ ok: boolean; error?: string }>
+        onStatus: (callback: (snapshot: UpdateSnapshot) => void) => () => void
+      }
       onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => () => void
     }
   }
@@ -113,6 +173,7 @@ export function App() {
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const [queuedPrompt, setQueuedPrompt] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [updateSnapshot, setUpdateSnapshot] = useState<UpdateSnapshot | null>(null)
   const submittingRef = useRef(false)
   const loadingAnchorRef = useRef<HTMLDivElement | null>(null)
   const conversationEndRef = useRef<HTMLDivElement | null>(null)
@@ -167,6 +228,25 @@ export function App() {
     })
     return off
   }, [ingest, autoFollow])
+
+  useEffect(() => {
+    if (!window.anvil?.updates) return
+    let mounted = true
+    window.anvil.updates.get()
+      .then((snapshot) => {
+        if (mounted) setUpdateSnapshot(snapshot)
+      })
+      .catch((error: unknown) => {
+        pushError(error instanceof Error ? error.message : String(error))
+      })
+    const off = window.anvil.updates.onStatus((snapshot) => {
+      setUpdateSnapshot(snapshot)
+    })
+    return () => {
+      mounted = false
+      off()
+    }
+  }, [pushError])
 
   useEffect(() => {
     if (settings) refreshSessions()
@@ -342,6 +422,44 @@ export function App() {
     await window.anvil.cancel()
   }
 
+  async function checkForUpdates() {
+    if (!window.anvil?.updates) return
+    try {
+      const snapshot = await window.anvil.updates.check()
+      setUpdateSnapshot(snapshot)
+      if (snapshot.status === 'not-available') {
+        setNotice('当前已是最新版本')
+      } else if (snapshot.status === 'error' && snapshot.message) {
+        pushError(snapshot.message)
+      }
+    } catch (error: unknown) {
+      pushError(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  async function downloadUpdate() {
+    if (!window.anvil?.updates) return
+    try {
+      const snapshot = await window.anvil.updates.download()
+      setUpdateSnapshot(snapshot)
+      if (snapshot.status === 'error' && snapshot.message) {
+        pushError(snapshot.message)
+      }
+    } catch (error: unknown) {
+      pushError(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  async function installUpdate() {
+    if (!window.anvil?.updates) return
+    try {
+      const result = await window.anvil.updates.install()
+      if (!result.ok && result.error) pushError(result.error)
+    } catch (error: unknown) {
+      pushError(error instanceof Error ? error.message : String(error))
+    }
+  }
+
   async function openSession(s: SessionMeta) {
     if (!window.anvil) return
     setQueuedPrompt(null)
@@ -453,6 +571,14 @@ export function App() {
           }`}>
             {hasAnvil ? 'connected' : 'disconnected'}
           </span>
+          {updateSnapshot?.enabled && (
+            <UpdateActionButton
+              snapshot={updateSnapshot}
+              onCheck={checkForUpdates}
+              onDownload={downloadUpdate}
+              onInstall={installUpdate}
+            />
+          )}
           <button
             onClick={() => setShowSettings((v) => !v)}
             className="px-2 py-0.5 text-[10px] font-mono-label bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface-variant cursor-pointer"

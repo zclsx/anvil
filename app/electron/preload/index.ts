@@ -3,6 +3,7 @@ import type { AnvilSettings, PublicSettings } from '../shared/settings'
 import type { AgentEventEnvelope } from '../shared/events'
 import type { SessionMeta, ApprovalDecision, QueryRequest } from '../shared/session'
 import type { ConfirmRequest, ConfirmResponse } from '../shared/dialog'
+import type { UpdateSnapshot } from '../shared/updates'
 
 const anvil = {
   settings: {
@@ -37,6 +38,19 @@ const anvil = {
   dialog: {
     confirm: (req: ConfirmRequest): Promise<ConfirmResponse> =>
       ipcRenderer.invoke('dialog:confirm', req),
+  },
+
+  updates: {
+    get: (): Promise<UpdateSnapshot> => ipcRenderer.invoke('updates:get'),
+    check: (): Promise<UpdateSnapshot> => ipcRenderer.invoke('updates:check'),
+    download: (): Promise<UpdateSnapshot> => ipcRenderer.invoke('updates:download'),
+    install: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('updates:install'),
+    onStatus: (callback: (snapshot: UpdateSnapshot) => void) => {
+      const listener = (_e: unknown, snapshot: UpdateSnapshot) => callback(snapshot)
+      ipcRenderer.on('updates:status', listener)
+      return () => ipcRenderer.off('updates:status', listener)
+    },
   },
 
   onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => {
