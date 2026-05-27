@@ -12,12 +12,7 @@ import {
 } from './settings'
 import type { AnvilSettings } from '../shared/settings'
 import type { QueryRequest, SessionMeta, ApprovalDecision } from '../shared/session'
-import type {
-  ConfirmRequest,
-  ConfirmResponse,
-  PickDirectoryRequest,
-  PickDirectoryResponse,
-} from '../shared/dialog'
+import type { ConfirmRequest, ConfirmResponse } from '../shared/dialog'
 import type { AgentEventEnvelope, ApprovalRequest, AgentEvent } from '../shared/events'
 import { createAdapter } from './sdkAdapter'
 import { bindUpdateWindow, registerUpdateIpc } from './updater'
@@ -30,7 +25,6 @@ import {
   getLatestSession,
   getSessionEvents,
   deleteSession,
-  updateSessionWorkspace,
 } from './db'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -167,43 +161,6 @@ function describeFailure(source: FailureSource, normalized?: NormalizedError): s
   }
 }
 
-function isExistingDirectory(dirPath: string) {
-  try {
-    return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()
-  } catch {
-    return false
-  }
-}
-
-function resolveQueryWorkspace(req: QueryRequest, settings: AnvilSettings) {
-  const fallbackWorkspace = settings.workspacePath
-
-  if (req.mode === 'new') {
-    const workspacePath = req.workspacePath.trim()
-    if (!workspacePath) {
-      throw new Error('新会话需要先选择 workspace 目录')
-    }
-    if (!isExistingDirectory(workspacePath)) {
-      throw new Error(`Workspace 不存在或不是目录：${workspacePath}`)
-    }
-    return workspacePath
-  }
-
-  const session = getSession(req.sessionId)
-  if (!session) {
-    throw new Error(`Session 不存在：${req.sessionId}`)
-  }
-
-  const workspacePath = session.workspacePath || fallbackWorkspace
-  if (!workspacePath) {
-    throw new Error('该 session 没有可用 workspace，请重新指定目录')
-  }
-  if (!isExistingDirectory(workspacePath)) {
-    throw new Error(`Workspace 不存在或不是目录：${workspacePath}`)
-  }
-  return workspacePath
-}
-
 function createWindow() {
   const iconPath = path.join(projectRoot, 'build', 'icon.png')
   const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined
@@ -275,16 +232,6 @@ ipcMain.handle('sessions:delete', (_e, sessionId: string) => {
   deleteSession(sessionId)
   return { ok: true }
 })
-ipcMain.handle('sessions:workspace-exists', (_e, workspacePath: string) => ({
-  exists: isExistingDirectory(workspacePath),
-}))
-ipcMain.handle('sessions:set-workspace', (_e, sessionId: string, workspacePath: string) => {
-  if (!isExistingDirectory(workspacePath)) {
-    return { ok: false, error: `Workspace 不存在或不是目录：${workspacePath}` }
-  }
-  updateSessionWorkspace(sessionId, workspacePath)
-  return { ok: true }
-})
 
 ipcMain.handle('agent:cancel', () => {
   if (activeQuery) {
@@ -311,24 +258,6 @@ ipcMain.handle(
       ? await dialog.showMessageBox(mainWindow, options)
       : await dialog.showMessageBox(options)
     return { confirmed: result.response === 0 }
-  },
-)
-
-ipcMain.handle(
-  'dialog:pickDirectory',
-  async (_e, req?: PickDirectoryRequest): Promise<PickDirectoryResponse> => {
-    const options: Electron.OpenDialogOptions = {
-      title: req?.title ?? '选择 workspace 目录',
-      properties: ['openDirectory', 'createDirectory'],
-      defaultPath: req?.defaultPath,
-    }
-    const result = mainWindow
-      ? await dialog.showOpenDialog(mainWindow, options)
-      : await dialog.showOpenDialog(options)
-    if (result.canceled || result.filePaths.length === 0) {
-      return { canceled: true, path: null }
-    }
-    return { canceled: false, path: result.filePaths[0] ?? null }
   },
 )
 
@@ -359,7 +288,6 @@ ipcMain.handle('agent:query', async (_event, req: QueryRequest) => {
 async function runAgentQuery(req: QueryRequest) {
   const { query } = await import('@anthropic-ai/claude-agent-sdk')
   const settings = getSettings()
-  const workspacePath = resolveQueryWorkspace(req, settings)
 
   if (!settings.apiKey) {
     throw new Error('API Key 未配置，请在 Settings 里填写')
@@ -385,7 +313,7 @@ async function runAgentQuery(req: QueryRequest) {
         if (!existing) {
           upsertSession({
             id: sessionId,
-            workspacePath,
+            workspacePath: settings.workspacePath,
             title: req.prompt.slice(0, 60) || 'untitled',
             firstPrompt: req.prompt,
             createdAt: now,
@@ -473,7 +401,7 @@ async function runAgentQuery(req: QueryRequest) {
   }, HARD_TIMEOUT_MS)
 
   const options: any = {
-    cwd: workspacePath,
+    cwd: settings.workspacePath,
     abortController,
     canUseTool: async (toolName: string, input: any) => {
       const approvalId = randomUUID()
@@ -589,7 +517,7 @@ async function runAgentQuery(req: QueryRequest) {
           }
         : {
             id: sessionId,
-            workspacePath,
+            workspacePath: settings.workspacePath,
             title: req.prompt.slice(0, 60),
             firstPrompt: req.prompt,
             createdAt: now,

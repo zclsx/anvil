@@ -10,13 +10,3 @@ export interface ConfirmRequest {
 export interface ConfirmResponse {
   confirmed: boolean
 }
-
-export interface PickDirectoryRequest {
-  defaultPath?: string
-  title?: string
-}
-
-export interface PickDirectoryResponse {
-  canceled: boolean
-  path: string | null
-}

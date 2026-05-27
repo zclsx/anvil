@@ -2,12 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AnvilSettings, PublicSettings } from '../shared/settings'
 import type { AgentEventEnvelope } from '../shared/events'
 import type { SessionMeta, ApprovalDecision, QueryRequest } from '../shared/session'
-import type {
-  ConfirmRequest,
-  ConfirmResponse,
-  PickDirectoryRequest,
-  PickDirectoryResponse,
-} from '../shared/dialog'
+import type { ConfirmRequest, ConfirmResponse } from '../shared/dialog'
 import type { UpdateSnapshot } from '../shared/updates'
 
 const anvil = {
@@ -28,10 +23,6 @@ const anvil = {
       ipcRenderer.invoke('sessions:events', sessionId),
     delete: (sessionId: string): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('sessions:delete', sessionId),
-    workspaceExists: (workspacePath: string): Promise<{ exists: boolean }> =>
-      ipcRenderer.invoke('sessions:workspace-exists', workspacePath),
-    setWorkspace: (sessionId: string, workspacePath: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke('sessions:set-workspace', sessionId, workspacePath),
   },
 
   query: (req: QueryRequest): Promise<{ ok: boolean; sessionId?: string | null; error?: string }> =>
@@ -47,8 +38,6 @@ const anvil = {
   dialog: {
     confirm: (req: ConfirmRequest): Promise<ConfirmResponse> =>
       ipcRenderer.invoke('dialog:confirm', req),
-    pickDirectory: (req?: PickDirectoryRequest): Promise<PickDirectoryResponse> =>
-      ipcRenderer.invoke('dialog:pickDirectory', req),
   },
 
   updates: {

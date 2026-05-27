@@ -2,17 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
-import { History, FileSearch, Plus, RotateCw, Shield, AlertCircle, Trash2, FolderOpen } from 'lucide-react'
+import { History, FileSearch, Plus, RotateCw, Shield, AlertCircle, Trash2 } from 'lucide-react'
 import { useAgentStore, type Item, type PendingApproval } from './store'
 import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
 import type { AgentEventEnvelope } from '../electron/shared/events'
 import type { SessionMeta, QueryRequest } from '../electron/shared/session'
-import type {
-  ConfirmRequest,
-  ConfirmResponse,
-  PickDirectoryRequest,
-  PickDirectoryResponse,
-} from '../electron/shared/dialog'
+import type { ConfirmRequest, ConfirmResponse } from '../electron/shared/dialog'
 import type { UpdateSnapshot } from '../electron/shared/updates'
 import logoUrl from './assets/logo.svg'
 
@@ -134,8 +129,6 @@ declare global {
         latest: (workspacePath?: string) => Promise<SessionMeta | null>
         events: (sessionId: string) => Promise<AgentEventEnvelope[]>
         delete: (sessionId: string) => Promise<{ ok: boolean }>
-        workspaceExists: (workspacePath: string) => Promise<{ exists: boolean }>
-        setWorkspace: (sessionId: string, workspacePath: string) => Promise<{ ok: boolean; error?: string }>
       }
       query: (req: QueryRequest) => Promise<{ ok: boolean; sessionId?: string | null; error?: string }>
       cancel: () => Promise<{ ok: boolean; error?: string }>
@@ -148,7 +141,6 @@ declare global {
       }
       dialog: {
         confirm: (req: ConfirmRequest) => Promise<ConfirmResponse>
-        pickDirectory: (req?: PickDirectoryRequest) => Promise<PickDirectoryResponse>
       }
       updates: {
         get: () => Promise<UpdateSnapshot>
@@ -179,12 +171,10 @@ export function App() {
   const [dismissedErrorCount, setDismissedErrorCount] = useState(0)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
-  const [pendingWorkspace, setPendingWorkspace] = useState<string | null>(null)
   const [queuedPrompt, setQueuedPrompt] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [updateSnapshot, setUpdateSnapshot] = useState<UpdateSnapshot | null>(null)
   const submittingRef = useRef(false)
-  const promptInputRef = useRef<HTMLTextAreaElement | null>(null)
   const loadingAnchorRef = useRef<HTMLDivElement | null>(null)
   const conversationEndRef = useRef<HTMLDivElement | null>(null)
   const lastConsumedTurnIdRef = useRef<string | null>(null)
@@ -213,18 +203,13 @@ export function App() {
 
   const hasAnvil = typeof window !== 'undefined' && !!window.anvil
   const trimmedPrompt = prompt.trim()
-  const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) ?? null : null
-  const displayWorkspace = activeSession?.workspacePath ?? pendingWorkspace ?? settings?.workspacePath ?? ''
-  const isDraftWorkspace = !!pendingWorkspace && !activeSession
-  const hasRunnableWorkspace = !!activeSession || !!pendingWorkspace
-  const canChooseWorkspace = !running
-  const canSendPrompt = !!settings?.hasApiKey && !running && trimmedPrompt.length > 0 && hasRunnableWorkspace
+  const canSubmitPrompt = !!settings?.hasApiKey && !running && trimmedPrompt.length > 0
 
   const refreshSessions = useCallback(async () => {
-    if (!window.anvil) return
-    const list = await window.anvil.sessions.list()
+    if (!window.anvil || !settings) return
+    const list = await window.anvil.sessions.list(settings.workspacePath)
     setSessions(list)
-  }, [setSessions])
+  }, [setSessions, settings])
 
   useEffect(() => {
     if (!window.anvil) return
@@ -305,8 +290,7 @@ export function App() {
     setQueuedPrompt(null)
 
     if (lastTurn.status === 'completed') {
-      const req = currentSessionRequest(q)
-      if (!req || !fireDirect(req)) {
+      if (!fireDirect(currentSessionRequest(q))) {
         setPrompt((prev) => (prev.trim().length === 0 ? q : `${prev}\n\n${q}`))
         setNotice('上一轮完成但发送被并发任务抢占，已合并回输入框')
       }
@@ -355,10 +339,7 @@ export function App() {
       if (result && !result.ok && result.error) {
         pushError(result.error)
       }
-      if (result?.sessionId) {
-        setActiveSessionId(result.sessionId)
-        setPendingWorkspace(null)
-      }
+      if (result?.sessionId) setActiveSessionId(result.sessionId)
       await refreshSessions()
     } catch (e: any) {
       pushError(e?.message ?? String(e))
@@ -369,14 +350,10 @@ export function App() {
     }
   }
 
-  function currentSessionRequest(text: string): QueryRequest | null {
-    if (activeSessionId) {
-      return { mode: 'resume', sessionId: activeSessionId, prompt: text }
-    }
-    if (pendingWorkspace) {
-      return { mode: 'new', prompt: text, workspacePath: pendingWorkspace }
-    }
-    return null
+  function currentSessionRequest(text: string): QueryRequest {
+    return activeSessionId
+      ? { mode: 'resume', sessionId: activeSessionId, prompt: text }
+      : { mode: 'new', prompt: text }
   }
 
   function fireDirect(req: QueryRequest) {
@@ -387,21 +364,16 @@ export function App() {
     return true
   }
 
-  async function submitPrompt(mode: PromptMode) {
+  function submitPrompt(mode: PromptMode) {
     if (!settings?.hasApiKey || trimmedPrompt.length === 0) return
     if (running) {
       enqueueNext()
       return
     }
-    if (mode === 'send') {
-      const ready = await ensureActiveWorkspaceAvailable()
-      if (!ready) return
-    }
-    const req = currentSessionRequest(trimmedPrompt)
-    if (!req) {
-      setNotice('请先点 New 选择 workspace 目录')
-      return
-    }
+    const req: QueryRequest =
+      mode === 'new'
+        ? { mode: 'new', prompt: trimmedPrompt }
+        : currentSessionRequest(trimmedPrompt)
     if (!fireDirect(req)) return
     setPrompt('')
   }
@@ -427,66 +399,12 @@ export function App() {
     setNotice('已取消排队消息')
   }
 
-  async function chooseWorkspaceForNewSession() {
-    if (!window.anvil || running) return
-    const result = await window.anvil.dialog.pickDirectory({
-      defaultPath: displayWorkspace || settings?.workspacePath,
-      title: '选择新会话的 workspace',
-    })
-    if (result.canceled || !result.path) return
-
-    reset()
-    setActiveSessionId(null)
-    setQueuedPrompt(null)
-    setPendingPrompt(null)
-    lastConsumedTurnIdRef.current = null
-    setPendingWorkspace(result.path)
-    const fresh = await window.anvil.settings.set({ workspacePath: result.path })
-    setSettingsState(fresh)
-    setDraftWorkspacePath(fresh.workspacePath || '')
-    setNotice(`已选择 workspace：${formatWorkspaceShort(result.path)}`)
-    requestAnimationFrame(() => promptInputRef.current?.focus())
-  }
-
-  async function ensureActiveWorkspaceAvailable() {
-    if (!window.anvil || !activeSession) return true
-    const result = await window.anvil.sessions.workspaceExists(activeSession.workspacePath)
-    if (result.exists) return true
-
-    const { confirmed } = await window.anvil.dialog.confirm({
-      title: 'Workspace 不存在',
-      message: `找不到 session 的 workspace：${activeSession.workspacePath}`,
-      detail: '请重新指定该 session 的项目目录，取消则不会发送这条消息。',
-      confirmLabel: '重新指定',
-      cancelLabel: '取消',
-    })
-    if (!confirmed) return false
-
-    const picked = await window.anvil.dialog.pickDirectory({
-      defaultPath: settings?.workspacePath,
-      title: '重新指定 session workspace',
-    })
-    if (picked.canceled || !picked.path) return false
-
-    const updated = await window.anvil.sessions.setWorkspace(activeSession.id, picked.path)
-    if (!updated.ok) {
-      pushError(updated.error ?? '更新 session workspace 失败')
-      return false
-    }
-    const fresh = await window.anvil.settings.set({ workspacePath: picked.path })
-    setSettingsState(fresh)
-    setDraftWorkspacePath(fresh.workspacePath || '')
-    await refreshSessions()
-    setNotice(`已更新 session workspace：${formatWorkspaceShort(picked.path)}`)
-    return true
-  }
-
   function runNew() {
-    void chooseWorkspaceForNewSession()
+    submitPrompt('new')
   }
 
   function runSend() {
-    void submitPrompt('send')
+    submitPrompt('send')
   }
 
   function handlePromptKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -495,7 +413,7 @@ export function App() {
       e.preventDefault()
       if (trimmedPrompt.length === 0) return
       if (running) enqueueNext()
-      else void submitPrompt('send')
+      else runSend()
     }
   }
 
@@ -546,7 +464,6 @@ export function App() {
     if (!window.anvil) return
     setQueuedPrompt(null)
     setPendingPrompt(null)
-    setPendingWorkspace(null)
     lastConsumedTurnIdRef.current = null
     setActiveSessionId(s.id)
     const events = await window.anvil.sessions.events(s.id)
@@ -570,7 +487,6 @@ export function App() {
     if (activeSessionId === s.id) {
       reset()
       setActiveSessionId(null)
-      setPendingWorkspace(null)
     }
     await refreshSessions()
   }
@@ -640,9 +556,9 @@ export function App() {
         </div>
         <div className="flex-grow" />
         <div className="flex items-center gap-2 no-drag">
-          {(settings || displayWorkspace) && (
+          {settings && (
             <span className="bg-[#1c1b1d] border border-outline-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono-code">
-              {displayWorkspace ? `📁 ${truncatePath(displayWorkspace)}${isDraftWorkspace ? ' (draft)' : ''}` : 'no workspace'}
+              {settings.workspacePath ? '📁 ' + truncatePath(settings.workspacePath) : 'no workspace'}
             </span>
           )}
           {settings && (
@@ -784,9 +700,6 @@ export function App() {
                   </span>
                   <span>{formatRelative(s.updatedAt)}</span>
                 </div>
-                <div className="font-mono-code text-[9px] text-on-surface-variant truncate">
-                  {formatWorkspaceShort(s.workspacePath)}
-                </div>
               </div>
             ))}
           </div>
@@ -800,11 +713,7 @@ export function App() {
             {turns.length === 0 && !running && (
               <div className="text-center text-on-surface-variant italic text-[12px] opacity-75 py-12 flex flex-col items-center gap-2">
                 <FileSearch size={28} />
-                <div>
-                  {pendingWorkspace
-                    ? `Workspace ready: ${formatWorkspaceShort(pendingWorkspace)}`
-                    : '选择 workspace 开始新对话或从左侧选择历史 session'}
-                </div>
+                <div>开始一个新对话或从左侧选择历史 session</div>
               </div>
             )}
             {turns.map((turn) => {
@@ -871,15 +780,6 @@ export function App() {
 
           {/* Prompt Input */}
           <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex flex-col gap-2 shrink-0">
-            <div className="flex items-center gap-2 text-[10px] font-mono-label text-on-surface-variant">
-              <FolderOpen size={12} className={displayWorkspace ? 'text-[#a0c4ff]' : 'text-on-surface-variant'} />
-              <span className="uppercase shrink-0">
-                {activeSession ? 'session workspace' : pendingWorkspace ? 'draft workspace' : 'workspace'}
-              </span>
-              <span className="font-mono-code truncate flex-1">
-                {displayWorkspace ? formatWorkspaceShort(displayWorkspace) : 'none selected'}
-              </span>
-            </div>
             {queuedPrompt && (
               <div className="border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex items-center gap-2">
                 <span className="font-mono-label text-[10px] text-[#4a9eff] uppercase tracking-wider shrink-0">
@@ -904,7 +804,6 @@ export function App() {
               </div>
             )}
             <textarea
-              ref={promptInputRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handlePromptKeyDown}
@@ -915,9 +814,7 @@ export function App() {
                   ? queuedPrompt
                     ? '输入并回车将替换已排队消息...'
                     : '运行中，输入并回车将在当前任务结束后自动发送...'
-                  : hasRunnableWorkspace
-                    ? '输入指令...'
-                    : '先点 New 选择 workspace 目录...'
+                  : '输入指令...'
               }
             />
             <div className="flex justify-between items-center gap-2">
@@ -928,7 +825,7 @@ export function App() {
               <div className="flex gap-2">
                 <button
                   onClick={runNew}
-                  disabled={!canChooseWorkspace}
+                  disabled={!canSubmitPrompt}
                   className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed border border-outline-variant text-on-surface text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
                 >
                   <Plus size={11} /> New
@@ -953,7 +850,7 @@ export function App() {
                 ) : (
                   <button
                     onClick={runSend}
-                    disabled={!canSendPrompt}
+                    disabled={!canSubmitPrompt}
                     className="px-4 py-1.5 bg-[#ffffff] hover:bg-zinc-200 disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed text-[#000000] font-semibold text-[11px] transition-colors cursor-pointer"
                   >
                     发送
@@ -1257,7 +1154,7 @@ function SettingsDrawer(props: {
         <button onClick={props.onClose} className="text-on-surface-variant hover:text-primary text-[12px]">✕</button>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <SettingField label="Default Workspace Path" value={props.draftWorkspacePath} placeholder="/path/to/project" onChange={props.onChangeWorkspace} />
+        <SettingField label="Workspace Path" value={props.draftWorkspacePath} placeholder="/path/to/project" onChange={props.onChangeWorkspace} />
         <SettingField label="Base URL" value={props.draftBaseUrl} placeholder="https://..." onChange={props.onChangeBaseUrl} />
         <SettingField
           label="API Key"
@@ -1299,12 +1196,8 @@ function SettingField({ label, value, onChange, placeholder, type }: {
 
 function truncatePath(p: string): string {
   if (p.length < 30) return p
-  return formatWorkspaceShort(p)
-}
-
-function formatWorkspaceShort(p: string): string {
-  const parts = p.split(/[\\/]+/).filter(Boolean)
-  if (parts.length <= 2) return p
+  const parts = p.split('/')
+  if (parts.length <= 3) return p
   return `…/${parts.slice(-2).join('/')}`
 }
 

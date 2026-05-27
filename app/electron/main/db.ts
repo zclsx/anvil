@@ -141,12 +141,6 @@ export function deleteSession(sessionId: string): void {
   getDb().prepare(`DELETE FROM sessions WHERE id = ?`).run(sessionId)
 }
 
-export function updateSessionWorkspace(sessionId: string, workspacePath: string): void {
-  getDb()
-    .prepare(`UPDATE sessions SET workspace_path = ?, updated_at = ? WHERE id = ?`)
-    .run(workspacePath, new Date().toISOString(), sessionId)
-}
-
 export function getDbPath(): string {
   return path.join(app.getPath('userData'), 'anvil.db')
 }
