@@ -48,6 +48,7 @@ type ExecuteQueryOptions = {
 
 type ChooseWorkspaceOptions = {
   forcePicker?: boolean
+  keepDraft?: boolean
 }
 
 function UpdateActionButton({
@@ -203,6 +204,7 @@ export function App() {
   const [draftModel, setDraftModel] = useState('')
   const [draftStitchProjectId, setDraftStitchProjectId] = useState('')
   const [draftWorkspacePath, setDraftWorkspacePath] = useState('')
+  const [isDraftWorkspacePathDirty, setIsDraftWorkspacePathDirty] = useState(false)
   const [running, setRunning] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
@@ -275,6 +277,7 @@ export function App() {
       setDraftModel(s.model)
       setDraftStitchProjectId(s.stitchProjectId || '')
       setDraftWorkspacePath(s.workspacePath || '')
+      setIsDraftWorkspacePathDirty(false)
     })
     const off = window.anvil.onAgentEvent((env) => {
       ingest(env)
@@ -441,11 +444,13 @@ export function App() {
       baseUrl: draftBaseUrl,
       model: draftModel,
       stitchProjectId: draftStitchProjectId,
-      workspacePath: draftWorkspacePath,
     }
+    if (isDraftWorkspacePathDirty) patch.workspacePath = draftWorkspacePath
     if (draftKey) patch.apiKey = draftKey
     const fresh = await window.anvil.settings.set(patch)
     setSettingsState(fresh)
+    setDraftWorkspacePath(fresh.workspacePath || '')
+    setIsDraftWorkspacePathDirty(false)
     setDraftKey('')
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
@@ -782,19 +787,31 @@ export function App() {
       workspacePath = result.path
     }
 
-    reset()
-    setActiveSessionId(null)
-    setQueuedPrompt(null)
-    setQueuedFileReferences([])
-    setFileReferences([])
-    setShowFileReferencePaths(false)
-    setPendingPrompt(null)
-    lastConsumedTurnIdRef.current = null
     setPendingWorkspace(workspacePath)
 
-    if (usedDefaultWorkspace) {
-      setNotice(`已使用默认 workspace：${formatWorkspaceShort(workspacePath)}`)
+    if (options.keepDraft) {
+      const hadFileReferences = fileReferences.length > 0
+      setFileReferences([])
+      setShowFileReferencePaths(false)
+      setNotice(
+        hadFileReferences
+          ? `workspace 已更新为 ${formatWorkspaceShort(workspacePath)}（文件引用已清空，请重新拖入）`
+          : `workspace 已更新为 ${formatWorkspaceShort(workspacePath)}`,
+      )
     } else {
+      reset()
+      setActiveSessionId(null)
+      setQueuedPrompt(null)
+      setQueuedFileReferences([])
+      setFileReferences([])
+      setShowFileReferencePaths(false)
+      setPendingPrompt(null)
+      lastConsumedTurnIdRef.current = null
+    }
+
+    if (!options.keepDraft && usedDefaultWorkspace) {
+      setNotice(`已使用默认 workspace：${formatWorkspaceShort(workspacePath)}`)
+    } else if (!options.keepDraft) {
       setNotice(`已选择 workspace：${formatWorkspaceShort(workspacePath)}`)
     }
     requestAnimationFrame(() => promptInputRef.current?.focus())
@@ -859,7 +876,12 @@ export function App() {
   }
 
   function runChangeDraftWorkspace() {
-    void chooseWorkspaceForNewSession({ forcePicker: true })
+    void chooseWorkspaceForNewSession({ forcePicker: true, keepDraft: true })
+  }
+
+  function updateDraftWorkspacePath(value: string) {
+    setDraftWorkspacePath(value)
+    setIsDraftWorkspacePathDirty(true)
   }
 
   function runSend() {
@@ -1128,7 +1150,7 @@ export function App() {
           onChangeKey={setDraftKey}
           onChangeModel={setDraftModel}
           onChangeStitch={setDraftStitchProjectId}
-          onChangeWorkspace={setDraftWorkspacePath}
+          onChangeWorkspace={updateDraftWorkspacePath}
           onSave={saveSettings}
           onClose={() => setShowSettings(false)}
         />
