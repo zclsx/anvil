@@ -274,7 +274,7 @@ export function App() {
       setDraftBaseUrl(s.baseUrl)
       setDraftModel(s.model)
       setDraftStitchProjectId(s.stitchProjectId || '')
-      setDraftWorkspacePath(s.hasWorkspacePath ? s.workspacePath : '')
+      setDraftWorkspacePath(s.workspacePath || '')
     })
     const off = window.anvil.onAgentEvent((env) => {
       ingest(env)
@@ -326,7 +326,7 @@ export function App() {
   }, [settings, refreshSessions])
 
   useEffect(() => {
-    if (!window.anvil || !settings?.hasWorkspacePath || !settings.workspacePath) return
+    if (!window.anvil || !settings?.workspacePath) return
     if (running || activeSessionId || pendingWorkspace) return
     if (autoDraftWorkspaceRef.current === settings.workspacePath) return
 
@@ -759,7 +759,7 @@ export function App() {
     let workspacePath: string | null = null
     let usedDefaultWorkspace = false
 
-    if (!options.forcePicker && settings?.hasWorkspacePath && settings.workspacePath) {
+    if (!options.forcePicker && settings?.workspacePath) {
       const result = await window.anvil.sessions.workspaceExists(settings.workspacePath)
       if (result.exists) {
         workspacePath = settings.workspacePath
@@ -795,9 +795,6 @@ export function App() {
     if (usedDefaultWorkspace) {
       setNotice(`已使用默认 workspace：${formatWorkspaceShort(workspacePath)}`)
     } else {
-      const fresh = await window.anvil.settings.set({ workspacePath })
-      setSettingsState(fresh)
-      setDraftWorkspacePath(fresh.hasWorkspacePath ? fresh.workspacePath : '')
       setNotice(`已选择 workspace：${formatWorkspaceShort(workspacePath)}`)
     }
     requestAnimationFrame(() => promptInputRef.current?.focus())

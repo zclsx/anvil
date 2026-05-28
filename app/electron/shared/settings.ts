@@ -13,6 +13,5 @@ export interface PublicSettings {
   model: string
   stitchProjectId: string
   workspacePath: string
-  hasWorkspacePath: boolean
   source: 'user' | 'env' | 'default'
 }
