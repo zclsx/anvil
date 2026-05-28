@@ -34,18 +34,16 @@ import {
 } from './lib/pathUtils'
 import { formatRelative } from './lib/timeUtils'
 import { formatFileReferenceLabel, isImagePath } from './lib/fileUtils'
-import { LogoIcon } from './components/LogoIcon'
-import { UpdateActionButton } from './components/UpdateActionButton'
-import { UserEchoCard } from './components/Conversation/UserEchoCard'
-import { ThinkingIndicator } from './components/Conversation/ThinkingIndicator'
-import { MainItemView } from './components/Conversation/MainItemView'
 import { InspectorPanel } from './components/InspectorPanel'
 import { ApprovalsPanel } from './components/Approvals/ApprovalsPanel'
 import { ErrorBanner } from './components/ErrorBanner'
 import { NoticeBanner } from './components/NoticeBanner'
 import { Footer } from './components/Footer'
 import { DebugPanel } from './components/DebugPanel'
-import { SettingField } from './components/SettingsDrawer/SettingField'
+import { Header } from './components/Header'
+import { Sidebar } from './components/Sidebar'
+import { SettingsDrawer } from './components/SettingsDrawer'
+import { Conversation } from './components/Conversation'
 
 type FileReference = {
   path: string
@@ -927,47 +925,17 @@ export function App() {
   return (
     <div className="h-screen overflow-hidden flex flex-col font-body-sm bg-background text-on-surface select-none relative">
 
-      {/* Header */}
-      <header className="flex items-center pl-[80px] pr-4 w-full bg-surface text-primary border-b border-outline-variant h-12 app-header shrink-0 z-10 relative">
-        <div className="flex items-center gap-2 mr-6 no-drag">
-          <LogoIcon className="h-[22px] w-[22px] shrink-0" />
-          <span className="font-headline text-[16px] text-primary tracking-tight font-semibold">Anvil</span>
-          <span className="text-outline-variant text-[14px]">/</span>
-          <span className="text-on-surface-variant font-semibold text-[12px]">Workbench</span>
-        </div>
-        <div className="flex-grow" />
-        <div className="flex items-center gap-2 no-drag">
-          {(settings || displayWorkspace) && (
-            <span className="bg-[#1c1b1d] border border-outline-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono-code">
-              {displayWorkspace ? `📁 ${truncatePath(displayWorkspace)}${isDraftWorkspace ? ' (draft)' : ''}` : 'no workspace'}
-            </span>
-          )}
-          {settings && (
-            <span className="bg-[#1c1b1d] border border-outline-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono-code">
-              {settings.model}
-            </span>
-          )}
-          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
-            hasAnvil ? 'bg-[#1f3a1f] text-[#6fbf6f]' : 'bg-[#3a1f1f] text-[#ff8080]'
-          }`}>
-            {hasAnvil ? 'connected' : 'disconnected'}
-          </span>
-          {updateSnapshot?.enabled && (
-            <UpdateActionButton
-              snapshot={updateSnapshot}
-              onCheck={checkForUpdates}
-              onDownload={downloadUpdate}
-              onInstall={installUpdate}
-            />
-          )}
-          <button
-            onClick={() => setShowSettings((v) => !v)}
-            className="px-2 py-0.5 text-[10px] font-mono-label bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface-variant cursor-pointer"
-          >
-            ⚙ Settings
-          </button>
-        </div>
-      </header>
+      <Header
+        settings={settings}
+        displayWorkspace={displayWorkspace}
+        isDraftWorkspace={isDraftWorkspace}
+        hasAnvil={hasAnvil}
+        updateSnapshot={updateSnapshot}
+        onCheckUpdate={checkForUpdates}
+        onDownloadUpdate={downloadUpdate}
+        onInstallUpdate={installUpdate}
+        onToggleSettings={() => setShowSettings((v) => !v)}
+      />
 
       {visibleErrors.length > 0 && (
         <ErrorBanner
@@ -1000,126 +968,30 @@ export function App() {
 
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Sidebar — Sessions */}
-        <nav className="flex flex-col bg-surface-container text-primary w-[260px] border-r border-outline-variant shrink-0 z-0 no-drag">
-          <div className="p-3 border-b border-outline-variant flex flex-col gap-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold flex items-center gap-1">
-                <History size={11} /> Sessions ({sessions.length})
-              </span>
-              <button
-                onClick={refreshSessions}
-                className="text-on-surface-variant hover:text-primary p-0.5 cursor-pointer"
-                title="刷新"
-              >
-                <RotateCw size={11} />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
-            {sessions.length === 0 && (
-              <div className="text-on-surface-variant italic text-[11px] p-2">还没有 session</div>
-            )}
-            {sessions.map((s) => (
-              <div
-                key={s.id}
-                onClick={() => openSession(s)}
-                className={`group p-2 cursor-pointer text-[11px] border-l-2 transition-colors flex flex-col gap-0.5 ${
-                  activeSessionId === s.id
-                    ? 'bg-surface-container-high border-primary'
-                    : 'border-transparent hover:bg-surface-container-high'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-on-surface truncate flex-1 font-body-sm font-medium">
-                    {s.title || s.id.slice(0, 12)}
-                  </span>
-                  <button
-                    onClick={(e) => deleteSession(s, e)}
-                    className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-[#ff8080] p-0.5"
-                  >
-                    <Trash2 size={10} />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 font-mono-label text-[9px] text-on-surface-variant">
-                  <span>{s.turnCount}t</span>
-                  <span className={
-                    s.lastStatus === 'failed' ? 'text-[#ff8080]' :
-                    s.lastStatus === 'running' ? 'text-[#4a9eff]' :
-                    'text-[#6fbf6f]'
-                  }>
-                    {s.lastStatus}
-                  </span>
-                  <span>{formatRelative(s.updatedAt)}</span>
-                </div>
-                <div className="font-mono-code text-[9px] text-on-surface-variant truncate">
-                  {formatWorkspaceShort(s.workspacePath)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </nav>
+        <Sidebar
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onRefresh={refreshSessions}
+          onOpenSession={openSession}
+          onDeleteSession={deleteSession}
+        />
 
         {/* Main — Conversation */}
         <main className="flex-1 flex flex-col bg-background overflow-hidden no-drag">
 
-          {/* Conversation scroll */}
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-            {turns.length === 0 && !running && (
-              <div className="text-center text-on-surface-variant italic text-[12px] opacity-75 py-12 flex flex-col items-center gap-2">
-                <FileSearch size={28} />
-                <div>
-                  {pendingWorkspace
-                    ? `Workspace 已就绪：${formatWorkspaceShort(pendingWorkspace)}，请在下方输入指令`
-                    : '点 New 选择 workspace 开始新对话，或从左侧选择历史 session'}
-                </div>
-              </div>
-            )}
-            {turns.map((turn) => {
-              if (turn.status === 'running' && turn.itemIds.length === 0) return null
-              return (
-                <div key={turn.id} className="flex flex-col gap-2.5">
-                  {turn.itemIds.map((id) => {
-                    const item = items[id]
-                    if (!item) return null
-                    return (
-                      <MainItemView
-                        key={id}
-                        item={item}
-                        isSelected={selectedItemId === id}
-                        onSelect={() => setSelectedItemId(id)}
-                      />
-                    )
-                  })}
-                  {turn.status !== 'running' && turn.stats && (
-                    <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
-                      <span className={
-                        turn.status === 'failed' ? 'text-[#ff8080]' : 'text-[#6fbf6f]'
-                      }>{turn.status}</span>
-                      {turn.stats.durationMs && <span>{(turn.stats.durationMs / 1000).toFixed(1)}s</span>}
-                      {turn.stats.outputTokens != null && <span>{turn.stats.outputTokens} out</span>}
-                      {turn.stats.cacheReadTokens != null && turn.stats.cacheReadTokens > 0 && (
-                        <span>cache: {turn.stats.cacheReadTokens}</span>
-                      )}
-                      {turn.stats.costUsd != null && <span>${turn.stats.costUsd.toFixed(4)}</span>}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-            {awaitingFirstItem && (
-              <>
-                {pendingPrompt && <UserEchoCard prompt={pendingPrompt} />}
-                <ThinkingIndicator
-                  hasTurnStarted={turns.length > 0}
-                  anchorRef={loadingAnchorRef}
-                  autoFollow={autoFollow}
-                />
-              </>
-            )}
-            <div ref={conversationEndRef} aria-hidden="true" className="h-px shrink-0" />
-          </div>
+          <Conversation
+            turns={turns}
+            items={items}
+            running={running}
+            pendingWorkspace={pendingWorkspace}
+            pendingPrompt={pendingPrompt}
+            selectedItemId={selectedItemId}
+            autoFollow={autoFollow}
+            awaitingFirstItem={awaitingFirstItem}
+            loadingAnchorRef={loadingAnchorRef}
+            conversationEndRef={conversationEndRef}
+            onSelectItem={setSelectedItemId}
+          />
 
           <ApprovalsPanel approvals={pendingApprovals} onDecide={decideApproval} />
 
@@ -1344,46 +1216,5 @@ export function App() {
   )
 }
 
-function SettingsDrawer(props: {
-  settings: PublicSettings | null
-  draftBaseUrl: string
-  draftKey: string
-  draftModel: string
-  draftStitchProjectId: string
-  draftWorkspacePath: string
-  saved: boolean
-  onChangeBaseUrl: (v: string) => void
-  onChangeKey: (v: string) => void
-  onChangeModel: (v: string) => void
-  onChangeStitch: (v: string) => void
-  onChangeWorkspace: (v: string) => void
-  onSave: () => void
-  onClose: () => void
-}) {
-  return (
-    <div className="bg-surface-container border-b border-outline-variant px-4 py-3 grid gap-2 shrink-0 no-drag">
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-headline text-[12px] font-semibold text-primary">Settings</span>
-        <button onClick={props.onClose} className="text-on-surface-variant hover:text-primary text-[12px]">✕</button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <SettingField label="Default Workspace Path" value={props.draftWorkspacePath} placeholder="/path/to/project" onChange={props.onChangeWorkspace} />
-        <SettingField label="Base URL" value={props.draftBaseUrl} placeholder="https://..." onChange={props.onChangeBaseUrl} />
-        <SettingField
-          label="API Key"
-          value={props.draftKey}
-          type="password"
-          placeholder={props.settings?.hasApiKey ? '已配置 (保持不变)' : 'sk-... 或 tp-...'}
-          onChange={props.onChangeKey}
-        />
-        <SettingField label="Model" value={props.draftModel} placeholder="mimo-v2.5-pro" onChange={props.onChangeModel} />
-        <SettingField label="Stitch Project ID" value={props.draftStitchProjectId} placeholder="（可选）" onChange={props.onChangeStitch} />
-      </div>
-      <button onClick={props.onSave} className="self-end px-4 py-1 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface font-mono-label text-[11px] cursor-pointer">
-        {props.saved ? '✅ 已保存' : '保存配置'}
-      </button>
-    </div>
-  )
-}
 
 
