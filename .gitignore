@@ -32,3 +32,8 @@ anvil-settings.json
 .gemini/
 .agents/
 AGENTS.md
+
+REFACTOR_PLAN.md
+
+app/test-results/
+app/playwright-report/
