@@ -1,7 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkBreaks from 'remark-breaks'
-import remarkGfm from 'remark-gfm'
 import {
   History,
   FileSearch,
@@ -17,7 +14,7 @@ import {
   ChevronUp,
   X,
 } from 'lucide-react'
-import { useAgentStore, type Item, type PendingApproval } from './store'
+import { useAgentStore } from './store'
 import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
 import type { AgentEventEnvelope } from '../electron/shared/events'
 import type { SessionMeta, QueryRequest } from '../electron/shared/session'
@@ -28,7 +25,6 @@ import type {
   PickDirectoryResponse,
 } from '../electron/shared/dialog'
 import type { UpdateSnapshot } from '../electron/shared/updates'
-import logoUrl from './assets/logo.svg'
 import {
   formatPathLiteral,
   formatWorkspaceShort,
@@ -40,11 +36,14 @@ import {
 } from './lib/pathUtils'
 import { formatRelative } from './lib/timeUtils'
 import { formatFileReferenceLabel, isImagePath } from './lib/fileUtils'
-import { markdownComponents } from './lib/markdown'
-
-const LogoIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <img src={logoUrl} className={className} alt="Anvil Logo" />
-)
+import { LogoIcon } from './components/LogoIcon'
+import { UpdateActionButton } from './components/UpdateActionButton'
+import { UserEchoCard } from './components/Conversation/UserEchoCard'
+import { ThinkingIndicator } from './components/Conversation/ThinkingIndicator'
+import { MainItemView } from './components/Conversation/MainItemView'
+import { Inspector } from './components/Inspector'
+import { ApprovalCard } from './components/Approvals/ApprovalCard'
+import { SettingField } from './components/SettingsDrawer/SettingField'
 
 type FileReference = {
   path: string
@@ -62,59 +61,6 @@ type ChooseWorkspaceOptions = {
   forcePicker?: boolean
   keepDraft?: boolean
 }
-
-function UpdateActionButton({
-  snapshot,
-  onCheck,
-  onDownload,
-  onInstall,
-}: {
-  snapshot: UpdateSnapshot
-  onCheck: () => void
-  onDownload: () => void
-  onInstall: () => void
-}) {
-  const version = snapshot.version ? ` ${snapshot.version}` : ''
-  const percent = snapshot.percent == null ? 0 : Math.floor(snapshot.percent)
-  const disabled = snapshot.status === 'checking' || snapshot.status === 'downloading'
-
-  let label = 'Check updates'
-  let title = snapshot.message || `Current version ${snapshot.currentVersion}`
-  let action = onCheck
-  let className = 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
-
-  if (snapshot.status === 'checking') {
-    label = 'Checking...'
-  } else if (snapshot.status === 'available') {
-    label = `Download${version}`
-    action = onDownload
-    className = 'border-[#4a9eff]/50 text-[#a0c4ff] hover:bg-[#1f2a3a]'
-  } else if (snapshot.status === 'downloading') {
-    label = `Downloading ${percent}%`
-  } else if (snapshot.status === 'downloaded') {
-    label = 'Restart to update'
-    action = onInstall
-    className = 'border-[#6fbf6f]/50 text-[#9ce29c] hover:bg-[#1f3a1f]'
-  } else if (snapshot.status === 'not-available') {
-    label = 'Up to date'
-  } else if (snapshot.status === 'error') {
-    label = 'Update error'
-    title = snapshot.message || 'Update check failed'
-    className = 'border-[#ff8080]/50 text-[#ffb4ab] hover:bg-[#3a1f1f]'
-  }
-
-  return (
-    <button
-      onClick={action}
-      disabled={disabled}
-      title={title}
-      className={`px-2 py-0.5 text-[10px] font-mono-label bg-surface-container border disabled:opacity-70 disabled:cursor-wait cursor-pointer ${className}`}
-    >
-      {label}
-    </button>
-  )
-}
-
 
 type PromptMode = 'new' | 'send'
 
@@ -1469,230 +1415,6 @@ export function App() {
   )
 }
 
-function UserEchoCard({ prompt }: { prompt: string }) {
-  return (
-    <div className="font-mono-code text-[13px] text-on-surface flex gap-2 py-1 px-1 leading-relaxed">
-      <span className="text-[#6fbf6f] shrink-0">&gt;</span>
-      <span className="whitespace-pre-wrap break-words flex-1">{prompt}</span>
-    </div>
-  )
-}
-
-const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-const THINKING_VERBS = ['Thinking', 'Pondering', 'Reasoning', 'Computing']
-
-function ThinkingIndicator({
-  hasTurnStarted,
-  anchorRef,
-  autoFollow,
-}: {
-  hasTurnStarted: boolean
-  anchorRef: React.RefObject<HTMLDivElement | null>
-  autoFollow: boolean
-}) {
-  const [frame, setFrame] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
-  const [verbIndex, setVerbIndex] = useState(() => Math.floor(Math.random() * THINKING_VERBS.length))
-  const startRef = useRef(Date.now())
-
-  useEffect(() => {
-    startRef.current = Date.now()
-    setElapsed(0)
-  }, [hasTurnStarted])
-
-  useEffect(() => {
-    const spinnerTimer = setInterval(() => {
-      setFrame((f) => (f + 1) % SPINNER_FRAMES.length)
-    }, 80)
-    const elapsedTimer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
-    }, 1000)
-    const verbTimer = setInterval(() => {
-      setVerbIndex((i) => (i + 1) % THINKING_VERBS.length)
-    }, 9000)
-    return () => {
-      clearInterval(spinnerTimer)
-      clearInterval(elapsedTimer)
-      clearInterval(verbTimer)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (autoFollow && anchorRef.current) {
-      anchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    }
-  }, [autoFollow, hasTurnStarted, anchorRef])
-
-  const warnAt = hasTurnStarted ? 20 : 10
-  const dangerAt = hasTurnStarted ? 28 : 14
-  const elapsedColor =
-    elapsed >= dangerAt ? 'text-[#ff8080]' :
-    elapsed >= warnAt ? 'text-[#f59e0b]' :
-    'text-on-surface-variant opacity-70'
-
-  const phaseColor = hasTurnStarted ? 'text-[#e5e1e4]' : 'text-[#8e9192]'
-  const spinnerColor = hasTurnStarted ? 'text-[#4a9eff]' : 'text-[#8e9192]'
-  const label = hasTurnStarted ? THINKING_VERBS[verbIndex] : 'Connecting'
-
-  return (
-    <div
-      ref={anchorRef}
-      role="status"
-      aria-live="polite"
-      aria-atomic="false"
-      className="font-mono-code text-[13px] flex items-center gap-2 py-1 px-1 leading-relaxed"
-    >
-      <span aria-hidden="true" className={`${spinnerColor} text-[15px] w-4 inline-block`}>
-        {SPINNER_FRAMES[frame]}
-      </span>
-      <span className={phaseColor}>{label}…</span>
-      <span aria-hidden="true" className={`${elapsedColor} text-[11px]`}>
-        ({elapsed}s · Esc 或点击「取消」中断)
-      </span>
-    </div>
-  )
-}
-
-function MainItemView({ item, isSelected, onSelect }: { item: Item; isSelected: boolean; onSelect: () => void }) {
-  const baseClass = `p-3 border cursor-pointer transition-colors ${isSelected ? 'border-primary' : 'border-outline-variant hover:border-outline'}`
-
-  if (item.kind === 'text') {
-    return (
-      <div onClick={onSelect} className={`${baseClass} bg-surface-container-low`}>
-        <div className="font-mono-label text-[9px] text-on-surface-variant uppercase mb-1.5 tracking-wider">
-          {item.role === 'assistant' ? 'Assistant' : item.role}
-        </div>
-        <MarkdownText text={item.text || '...'} />
-      </div>
-    )
-  }
-
-  if (item.kind === 'thinking') {
-    return (
-      <details onClick={onSelect} className={`${baseClass} bg-surface-container-low`}>
-        <summary className="font-mono-label text-[9px] text-on-surface-variant uppercase cursor-pointer">
-          Thinking ({item.text.length} chars)
-        </summary>
-        <div className="text-on-surface-variant text-[12px] mt-2 italic whitespace-pre-wrap">{item.text}</div>
-      </details>
-    )
-  }
-
-  if (item.kind === 'tool_use') {
-    const decisionLabel =
-      item.approvalDecision === 'allow' ? '✓ allowed' :
-      item.approvalDecision === 'deny' ? '✕ denied' :
-      item.approvalId ? '⏳ awaiting approval' : null
-
-    return (
-      <div onClick={onSelect} className={`${baseClass} bg-surface-container-low`}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono-label text-[9px] text-[#f59e0b] uppercase tracking-wider">🔧 {item.toolName}</span>
-          {item.approvalRisk && (
-            <span className={`text-[9px] font-mono-label uppercase ${
-              item.approvalRisk === 'high' ? 'text-[#ff8080]' :
-              item.approvalRisk === 'medium' ? 'text-[#f59e0b]' :
-              'text-on-surface-variant'
-            }`}>{item.approvalRisk} risk</span>
-          )}
-          {decisionLabel && (
-            <span className={`text-[9px] font-mono-label uppercase ${
-              item.approvalDecision === 'deny' ? 'text-[#ff8080]' :
-              item.approvalDecision === 'allow' ? 'text-[#6fbf6f]' :
-              'text-[#f59e0b]'
-            }`}>{decisionLabel}</span>
-          )}
-          {item.toolOutput == null && (
-            <span className="text-[9px] font-mono-label text-[#4a9eff] uppercase">running</span>
-          )}
-          {item.toolIsError && (
-            <span className="text-[9px] font-mono-label text-[#ff8080] uppercase">error</span>
-          )}
-        </div>
-        <div className="font-mono-code text-[11px] text-on-surface-variant truncate">
-          {typeof item.toolInput === 'string' ? item.toolInput : JSON.stringify(item.toolInput || {}).slice(0, 200)}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div onClick={onSelect} className={`${baseClass} bg-surface-container-low opacity-75`}>
-      <div className="font-mono-label text-[9px] text-on-surface-variant uppercase">{item.role} · {item.kind}</div>
-      <div className="text-on-surface text-[11px] whitespace-pre-wrap">{item.text}</div>
-    </div>
-  )
-}
-
-function MarkdownText({ text }: { text: string }) {
-  return (
-    <div className="text-on-surface text-[13px] leading-relaxed break-words">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
-        components={markdownComponents}
-      >
-        {text}
-      </ReactMarkdown>
-    </div>
-  )
-}
-
-function Inspector({ item }: { item: Item }) {
-  return (
-    <>
-      <div className="flex items-center px-4 py-2 border-b border-outline-variant bg-surface-container-low shrink-0">
-        <span className="font-mono-code text-[11px] text-on-surface-variant uppercase flex-1">
-          Inspector: {item.kind === 'tool_use' ? item.toolName : item.kind}
-        </span>
-        <button
-          onClick={() => navigator.clipboard.writeText(JSON.stringify(item, null, 2))}
-          className="px-3 py-1 text-[10px] font-mono-label bg-surface border border-outline-variant text-on-surface hover:text-primary cursor-pointer"
-        >
-          复制 JSON
-        </button>
-      </div>
-      <div className="flex-1 overflow-auto p-4 font-mono-code text-[11px] leading-relaxed text-[#ccc]">
-        <pre className="whitespace-pre-wrap">
-          {JSON.stringify(item, null, 2)}
-        </pre>
-      </div>
-    </>
-  )
-}
-
-function ApprovalCard({ approval, onDecide }: { approval: PendingApproval; onDecide: (id: string, d: 'allow' | 'deny') => void }) {
-  const riskColor =
-    approval.risk === 'high' ? 'text-[#ff8080]' :
-    approval.risk === 'medium' ? 'text-[#f59e0b]' :
-    'text-on-surface-variant'
-
-  return (
-    <div className="bg-surface-container border border-outline-variant p-2.5 flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span className="font-mono-label text-[10px] text-on-surface uppercase">{approval.toolName}</span>
-        <span className={`font-mono-label text-[9px] uppercase ${riskColor}`}>{approval.risk} risk</span>
-      </div>
-      <pre className="font-mono-code text-[10px] text-on-surface-variant max-h-32 overflow-auto bg-[#0d0d0f] p-2 rounded">
-        {typeof approval.input === 'string' ? approval.input : JSON.stringify(approval.input, null, 2).slice(0, 400)}
-      </pre>
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={() => onDecide(approval.approvalId, 'deny')}
-          className="px-3 py-1 bg-[#3a1f1f] hover:bg-[#5a2f2f] text-[#ff8080] text-[10px] font-mono-label cursor-pointer"
-        >
-          Deny
-        </button>
-        <button
-          onClick={() => onDecide(approval.approvalId, 'allow')}
-          className="px-3 py-1 bg-[#1f3a1f] hover:bg-[#2f5a2f] text-[#6fbf6f] text-[10px] font-mono-label cursor-pointer"
-        >
-          Allow once
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function SettingsDrawer(props: {
   settings: PublicSettings | null
   draftBaseUrl: string
@@ -1735,24 +1457,4 @@ function SettingsDrawer(props: {
   )
 }
 
-function SettingField({ label, value, onChange, placeholder, type }: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  type?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="font-mono-label text-[9px] text-on-surface-variant uppercase">{label}</span>
-      <input
-        type={type ?? 'text'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="bg-background border border-outline-variant text-on-surface font-mono-code text-[11px] px-2 py-1 focus:border-primary focus:outline-none"
-      />
-    </label>
-  )
-}
 
