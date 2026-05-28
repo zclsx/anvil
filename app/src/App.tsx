@@ -1,17 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import {
-  History,
-  FileSearch,
-  Plus,
-  RotateCw,
-  Trash2,
-  FolderOpen,
-  File as FileIcon,
-  Image as ImageIcon,
-  ChevronDown,
-  ChevronUp,
-  X,
-} from 'lucide-react'
 import { useAgentStore } from './store'
 import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
 import type { AgentEventEnvelope } from '../electron/shared/events'
@@ -44,6 +31,7 @@ import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { SettingsDrawer } from './components/SettingsDrawer'
 import { Conversation } from './components/Conversation'
+import { PromptInput } from './components/PromptInput'
 
 type FileReference = {
   path: string
@@ -995,209 +983,41 @@ export function App() {
 
           <ApprovalsPanel approvals={pendingApprovals} onDecide={decideApproval} />
 
-          {/* Prompt Input */}
-          <div
+          <PromptInput
+            prompt={prompt}
+            trimmedPrompt={trimmedPrompt}
+            promptInputRef={promptInputRef}
+            isFileDragActive={isFileDragActive}
+            running={running}
+            hasRunnableWorkspace={hasRunnableWorkspace}
+            canChooseWorkspace={canChooseWorkspace}
+            canSendPrompt={canSendPrompt}
+            isDraftWorkspace={isDraftWorkspace}
+            displayWorkspace={displayWorkspace}
+            activeSession={activeSession}
+            pendingWorkspace={pendingWorkspace}
+            fileReferences={fileReferences}
+            showFileReferencePaths={showFileReferencePaths}
+            hasFileReferencesWithoutPrompt={hasFileReferencesWithoutPrompt}
+            queuedPrompt={queuedPrompt}
+            queuedFileReferencesCount={queuedFileReferences.length}
+            autoFollow={autoFollow}
+            onPromptChange={setPrompt}
+            onPromptKeyDown={handlePromptKeyDown}
             onDragOver={handlePromptDragOver}
             onDragLeave={handlePromptDragLeave}
             onDrop={handlePromptDrop}
-            className={`p-4 border-t bg-surface-container-lowest flex flex-col gap-2 shrink-0 transition-colors ${
-              isFileDragActive
-                ? 'border-[#4a9eff] bg-[#111827]'
-                : 'border-outline-variant'
-            }`}
-          >
-            <div className="flex items-center gap-2 text-[10px] font-mono-label text-on-surface-variant">
-              <FolderOpen size={12} className={displayWorkspace ? 'text-[#a0c4ff]' : 'text-on-surface-variant'} />
-              <span className="uppercase shrink-0">
-                {activeSession ? 'session workspace' : pendingWorkspace ? 'draft workspace' : 'workspace'}
-              </span>
-              <span className="font-mono-code truncate flex-1">
-                {displayWorkspace ? formatWorkspaceShort(displayWorkspace) : 'none selected'}
-              </span>
-              {isDraftWorkspace && !running && (
-                <button
-                  onClick={runChangeDraftWorkspace}
-                  className="text-[10px] font-mono-label text-[#a0c4ff] hover:text-primary cursor-pointer px-2"
-                >
-                  更改
-                </button>
-              )}
-            </div>
-            {isFileDragActive && (
-              <div className="border border-[#4a9eff]/50 bg-[#1f2a3a] px-3 py-2 text-[11px] font-mono-code text-[#a0c4ff]">
-                {running ? '松开后添加到草稿引用（不会自动发送）' : '松开后添加文件引用'}
-              </div>
-            )}
-            {fileReferences.length > 0 && (
-              <div className="flex flex-col gap-2 border border-outline-variant bg-surface-container px-3 py-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono-label text-[10px] text-on-surface-variant uppercase tracking-wider">
-                    引用
-                  </span>
-                  {fileReferences.map((reference) => {
-                    const Icon = reference.isImage ? ImageIcon : FileIcon
-                    return (
-                      <span
-                        key={reference.path}
-                        title={reference.path}
-                        className="inline-flex max-w-full items-center gap-1.5 border border-[#4a9eff]/35 bg-[#1f2a3a] px-2 py-1 text-[11px] text-[#d8e7ff]"
-                      >
-                        <Icon size={12} className={reference.isImage ? 'text-[#b7a7ff]' : 'text-[#a0c4ff]'} />
-                        <span className="font-mono-code truncate max-w-[140px]">
-                          {reference.label}
-                        </span>
-                        {reference.isOutsideWorkspace && (
-                          <span className="font-mono-label text-[9px] text-[#f59e0b]">
-                            外部
-                          </span>
-                        )}
-                        <button
-                          onClick={() => removeFileReference(reference.path)}
-                          className="text-on-surface-variant hover:text-[#ffffff] cursor-pointer"
-                          aria-label={`移除文件引用 ${reference.label}`}
-                          title="移除"
-                        >
-                          <X size={11} />
-                        </button>
-                      </span>
-                    )
-                  })}
-                  <button
-                    onClick={() => setShowFileReferencePaths((open) => !open)}
-                    className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono-label text-on-surface-variant hover:text-primary cursor-pointer"
-                    aria-expanded={showFileReferencePaths}
-                    title={showFileReferencePaths ? '收起完整路径' : '查看完整路径'}
-                  >
-                    {showFileReferencePaths ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    路径
-                  </button>
-                </div>
-                {showFileReferencePaths && (
-                  <div className="border-t border-outline-variant pt-2 flex flex-col gap-1">
-                    {fileReferences.map((reference, index) => {
-                      const promptPathDisplay = getPromptPathDisplay(reference.promptPath)
-                      return (
-                        <div key={reference.path} className="grid grid-cols-[24px_1fr] gap-2 text-[11px]">
-                          <span className="font-mono-label text-[#7fb2f0] text-right">
-                            {index + 1}
-                          </span>
-                          <div className="font-mono-code text-on-surface-variant break-all">
-                            <div>
-                              {promptPathDisplay}
-                            </div>
-                            {reference.path !== promptPathDisplay && (
-                              <div className="text-[10px] opacity-70">
-                                本地路径：{reference.path}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-                {hasFileReferencesWithoutPrompt && (
-                  <div className="border-t border-outline-variant pt-2 text-[11px] font-mono-code text-on-surface-variant">
-                    请先输入指令，再发送这些文件引用
-                  </div>
-                )}
-              </div>
-            )}
-            {queuedPrompt && (
-              <div className="border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex items-center gap-2">
-                <span className="font-mono-label text-[10px] text-[#4a9eff] uppercase tracking-wider shrink-0">
-                  📩 Queued next
-                </span>
-                <div className="flex-1 text-[12px] text-on-surface truncate font-mono-code">
-                  {queuedPrompt}
-                </div>
-                {queuedFileReferences.length > 0 && (
-                  <span className="font-mono-label text-[10px] text-[#a0c4ff] shrink-0">
-                    +{queuedFileReferences.length} refs
-                  </span>
-                )}
-                <button
-                  onClick={editQueued}
-                  className="text-[10px] font-mono-label text-on-surface-variant hover:text-primary cursor-pointer px-2"
-                >
-                  编辑
-                </button>
-                <button
-                  onClick={clearQueued}
-                  className="text-[10px] font-mono-label text-[#ff8080] hover:text-[#ffffff] cursor-pointer px-2"
-                  aria-label="取消排队消息"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-            <textarea
-              ref={promptInputRef}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={handlePromptKeyDown}
-              className="w-full bg-background border border-outline-variant text-on-surface text-[12px] p-2 focus:border-primary focus:outline-none resize-none font-mono-code leading-normal"
-              rows={3}
-              placeholder={
-                running
-                  ? queuedPrompt
-                    ? '输入并回车将替换已排队消息...'
-                    : '运行中，输入并回车将在当前任务结束后自动发送...'
-                  : hasRunnableWorkspace
-                    ? '输入指令...'
-                    : '先点 New 选择 workspace 目录...'
-              }
-            />
-            <div className="flex justify-between items-center gap-2">
-              <label className="flex items-center gap-1.5 font-mono-label text-[10px] text-on-surface-variant cursor-pointer">
-                <input type="checkbox" checked={autoFollow} onChange={(e) => setAutoFollow(e.target.checked)} />
-                auto-follow
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={isDraftWorkspace ? runChangeDraftWorkspace : runNew}
-                  disabled={!canChooseWorkspace}
-                  className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed border border-outline-variant text-on-surface text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  {isDraftWorkspace ? (
-                    <>
-                      <FolderOpen size={11} /> 更改目录
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={11} /> New
-                    </>
-                  )}
-                </button>
-                {running ? (
-                  <>
-                    {trimmedPrompt.length > 0 && (
-                      <button
-                        onClick={enqueueNext}
-                        className="px-3 py-1.5 bg-[#1f2a3a] hover:bg-[#2f4a5a] border border-[#4a9eff]/40 text-[#a0c4ff] text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        {queuedPrompt ? 'Replace queue' : 'Queue next'}
-                      </button>
-                    )}
-                    <button
-                      onClick={cancelRun}
-                      className="px-4 py-1.5 bg-[#3a1f1f] hover:bg-[#5a2f2f] text-[#ff8080] font-semibold text-[11px] transition-colors cursor-pointer"
-                    >
-                      取消
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={runSend}
-                    disabled={!canSendPrompt}
-                    className="px-4 py-1.5 bg-[#ffffff] hover:bg-zinc-200 disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed text-[#000000] font-semibold text-[11px] transition-colors cursor-pointer"
-                  >
-                    发送
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+            onRemoveFileReference={removeFileReference}
+            onToggleFileReferencePaths={() => setShowFileReferencePaths((open) => !open)}
+            onEditQueued={editQueued}
+            onClearQueued={clearQueued}
+            onAutoFollowChange={setAutoFollow}
+            onNew={runNew}
+            onChangeDraftWorkspace={runChangeDraftWorkspace}
+            onSend={runSend}
+            onEnqueueNext={enqueueNext}
+            onCancel={cancelRun}
+          />
         </main>
 
         <InspectorPanel item={selectedItem} />
