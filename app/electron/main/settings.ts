@@ -16,11 +16,12 @@ const defaults: AnvilSettings = {
 
 interface StoreSchema extends AnvilSettings {
   hasUserConfigured: boolean
+  hasWorkspacePathConfigured: boolean
 }
 
 const store = new Store<StoreSchema>({
   name: 'anvil-settings',
-  defaults: { ...defaults, hasUserConfigured: false },
+  defaults: { ...defaults, hasUserConfigured: false, hasWorkspacePathConfigured: false },
   schema: {
     baseUrl: { type: 'string' },
     apiKey: { type: 'string' },
@@ -28,6 +29,7 @@ const store = new Store<StoreSchema>({
     stitchProjectId: { type: 'string' },
     workspacePath: { type: 'string' },
     hasUserConfigured: { type: 'boolean' },
+    hasWorkspacePathConfigured: { type: 'boolean' },
   },
 })
 
@@ -50,12 +52,16 @@ function normalizeWorkspacePathValue(value: string): string {
 }
 
 function getRawSettings(): AnvilSettings {
+  const storedWorkspace = store.get('hasWorkspacePathConfigured')
+    ? store.get('workspacePath') || ''
+    : ''
+
   return {
     baseUrl: store.get('baseUrl'),
     apiKey: store.get('apiKey'),
     model: store.get('model'),
     stitchProjectId: store.get('stitchProjectId') || '',
-    workspacePath: resolveWorkspacePath(store.get('workspacePath') || ''),
+    workspacePath: resolveWorkspacePath(storedWorkspace),
   }
 }
 
@@ -84,6 +90,9 @@ export function setSettings(patch: Partial<AnvilSettings>): PublicSettings {
       ? normalizeWorkspacePathValue(v)
       : v
     store.set(k as keyof AnvilSettings, value)
+    if (k === 'workspacePath' && typeof v === 'string') {
+      store.set('hasWorkspacePathConfigured', v.trim().length > 0)
+    }
   }
   store.set('hasUserConfigured', true)
   return getPublicSettings()
@@ -104,7 +113,11 @@ export function bootstrapFromEnv() {
   if (envApiKey) { store.set('apiKey', envApiKey); applied.push('apiKey') }
   if (envModel) { store.set('model', envModel); applied.push('model') }
   if (envStitchProjectId) { store.set('stitchProjectId', envStitchProjectId); applied.push('stitchProjectId') }
-  if (envWorkspace) { store.set('workspacePath', normalizeWorkspacePathValue(envWorkspace)); applied.push('workspacePath') }
+  if (envWorkspace) {
+    store.set('workspacePath', normalizeWorkspacePathValue(envWorkspace))
+    store.set('hasWorkspacePathConfigured', true)
+    applied.push('workspacePath')
+  }
 
   if (applied.length > 0) {
     console.log('[settings] bootstrapped from .env.local:', applied.join(', '))
