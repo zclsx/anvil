@@ -445,7 +445,9 @@ export function App() {
       model: draftModel,
       stitchProjectId: draftStitchProjectId,
     }
-    if (isDraftWorkspacePathDirty) patch.workspacePath = draftWorkspacePath
+    if (isDraftWorkspacePathDirty && draftWorkspacePath !== (settings?.workspacePath || '')) {
+      patch.workspacePath = draftWorkspacePath
+    }
     if (draftKey) patch.apiKey = draftKey
     const fresh = await window.anvil.settings.set(patch)
     setSettingsState(fresh)
