@@ -46,6 +46,10 @@ type ExecuteQueryOptions = {
   onFail?: () => void
 }
 
+type ChooseWorkspaceOptions = {
+  forcePicker?: boolean
+}
+
 function UpdateActionButton({
   snapshot,
   onCheck,
@@ -223,6 +227,7 @@ export function App() {
   const lastConsumedTurnIdRef = useRef<string | null>(null)
   const activeSessionIdRef = useRef<string | null>(null)
   const autoConsumingRef = useRef(false)
+  const autoDraftWorkspaceRef = useRef<string | null>(null)
   const autoScrollStateRef = useRef({
     awaitingFirstItem: false,
     lastItemId: null as string | null | undefined,
@@ -269,7 +274,7 @@ export function App() {
       setDraftBaseUrl(s.baseUrl)
       setDraftModel(s.model)
       setDraftStitchProjectId(s.stitchProjectId || '')
-      setDraftWorkspacePath(s.workspacePath || '')
+      setDraftWorkspacePath(s.hasWorkspacePath ? s.workspacePath : '')
     })
     const off = window.anvil.onAgentEvent((env) => {
       ingest(env)
@@ -319,6 +324,36 @@ export function App() {
   useEffect(() => {
     if (settings) refreshSessions()
   }, [settings, refreshSessions])
+
+  useEffect(() => {
+    if (!window.anvil || !settings?.hasWorkspacePath || !settings.workspacePath) return
+    if (running || activeSessionId || pendingWorkspace) return
+    if (autoDraftWorkspaceRef.current === settings.workspacePath) return
+
+    let cancelled = false
+    const workspacePath = settings.workspacePath
+    autoDraftWorkspaceRef.current = workspacePath
+
+    window.anvil.sessions.workspaceExists(workspacePath)
+      .then((result) => {
+        if (cancelled || activeSessionIdRef.current) return
+        if (!result.exists) {
+          setNotice('默认 workspace 不可用，请点 New 重新选择')
+          return
+        }
+        reset()
+        setPendingWorkspace(workspacePath)
+        setNotice(`已使用默认 workspace：${formatWorkspaceShort(workspacePath)}`)
+        requestAnimationFrame(() => promptInputRef.current?.focus())
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) pushError(error instanceof Error ? error.message : String(error))
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeSessionId, pendingWorkspace, pushError, reset, running, settings])
 
   useEffect(() => {
     activeSessionIdRef.current = activeSessionId
@@ -714,20 +749,37 @@ export function App() {
     }
   }
 
-  async function chooseWorkspaceForNewSession() {
+  async function chooseWorkspaceForNewSession(options: ChooseWorkspaceOptions = {}) {
     if (!window.anvil || running) return
     if (autoConsumingRef.current) {
       setNotice('正在发送排队消息，请稍后再切换 workspace')
       return
     }
-    const result = await window.anvil.dialog.pickDirectory({
-      defaultPath: displayWorkspace || settings?.workspacePath,
-      title: '选择新会话的 workspace',
-    })
-    if (result.canceled) return
-    if (!result.path) {
-      setNotice('选择的目录不可用，请重新选择')
-      return
+
+    let workspacePath: string | null = null
+    let usedDefaultWorkspace = false
+
+    if (!options.forcePicker && settings?.hasWorkspacePath && settings.workspacePath) {
+      const result = await window.anvil.sessions.workspaceExists(settings.workspacePath)
+      if (result.exists) {
+        workspacePath = settings.workspacePath
+        usedDefaultWorkspace = true
+      } else {
+        setNotice('默认 workspace 不可用，请重新选择')
+      }
+    }
+
+    if (!workspacePath) {
+      const result = await window.anvil.dialog.pickDirectory({
+        defaultPath: displayWorkspace || settings?.workspacePath,
+        title: '选择新会话的 workspace',
+      })
+      if (result.canceled) return
+      if (!result.path) {
+        setNotice('选择的目录不可用，请重新选择')
+        return
+      }
+      workspacePath = result.path
     }
 
     reset()
@@ -738,11 +790,16 @@ export function App() {
     setShowFileReferencePaths(false)
     setPendingPrompt(null)
     lastConsumedTurnIdRef.current = null
-    setPendingWorkspace(result.path)
-    const fresh = await window.anvil.settings.set({ workspacePath: result.path })
-    setSettingsState(fresh)
-    setDraftWorkspacePath(fresh.workspacePath || '')
-    setNotice(`已选择 workspace：${formatWorkspaceShort(result.path)}`)
+    setPendingWorkspace(workspacePath)
+
+    if (usedDefaultWorkspace) {
+      setNotice(`已使用默认 workspace：${formatWorkspaceShort(workspacePath)}`)
+    } else {
+      const fresh = await window.anvil.settings.set({ workspacePath })
+      setSettingsState(fresh)
+      setDraftWorkspacePath(fresh.hasWorkspacePath ? fresh.workspacePath : '')
+      setNotice(`已选择 workspace：${formatWorkspaceShort(workspacePath)}`)
+    }
     requestAnimationFrame(() => promptInputRef.current?.focus())
   }
 
@@ -802,6 +859,10 @@ export function App() {
 
   function runNew() {
     void chooseWorkspaceForNewSession()
+  }
+
+  function runChangeDraftWorkspace() {
+    void chooseWorkspaceForNewSession({ forcePicker: true })
   }
 
   function runSend() {
@@ -1237,7 +1298,7 @@ export function App() {
               </span>
               {isDraftWorkspace && !running && (
                 <button
-                  onClick={runNew}
+                  onClick={runChangeDraftWorkspace}
                   className="text-[10px] font-mono-label text-[#a0c4ff] hover:text-primary cursor-pointer px-2"
                 >
                   更改
@@ -1376,7 +1437,7 @@ export function App() {
               </label>
               <div className="flex gap-2">
                 <button
-                  onClick={runNew}
+                  onClick={isDraftWorkspace ? runChangeDraftWorkspace : runNew}
                   disabled={!canChooseWorkspace}
                   className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed border border-outline-variant text-on-surface text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
                 >

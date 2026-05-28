@@ -64,6 +64,7 @@ export function getSettings(): AnvilSettings {
 }
 
 export function getPublicSettings(): PublicSettings {
+  const storedWorkspacePath = store.get('workspacePath') || ''
   const raw = getRawSettings()
   const apiKey = raw.apiKey
   return {
@@ -73,6 +74,7 @@ export function getPublicSettings(): PublicSettings {
     model: raw.model,
     stitchProjectId: raw.stitchProjectId,
     workspacePath: raw.workspacePath,
+    hasWorkspacePath: storedWorkspacePath.trim().length > 0,
     source: store.get('hasUserConfigured') ? 'user' : raw.apiKey ? 'env' : 'default',
   }
 }
