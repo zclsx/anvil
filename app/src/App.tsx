@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import ReactMarkdown, { type Components } from 'react-markdown'
+import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import {
@@ -29,6 +29,18 @@ import type {
 } from '../electron/shared/dialog'
 import type { UpdateSnapshot } from '../electron/shared/updates'
 import logoUrl from './assets/logo.svg'
+import {
+  formatPathLiteral,
+  formatWorkspaceShort,
+  getComparablePath,
+  getPromptPathDisplay,
+  getWorkspaceRelativePath,
+  normalizePathForCompare,
+  truncatePath,
+} from './lib/pathUtils'
+import { formatRelative } from './lib/timeUtils'
+import { formatFileReferenceLabel, isImagePath } from './lib/fileUtils'
+import { markdownComponents } from './lib/markdown'
 
 const LogoIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <img src={logoUrl} className={className} alt="Anvil Logo" />
@@ -103,52 +115,6 @@ function UpdateActionButton({
   )
 }
 
-const markdownComponents: Components = {
-  p: ({ node: _node, ...props }) => (
-    <p className="mb-2 last:mb-0" {...props} />
-  ),
-  strong: ({ node: _node, ...props }) => (
-    <strong className="font-semibold text-primary" {...props} />
-  ),
-  em: ({ node: _node, ...props }) => (
-    <em className="italic text-on-surface" {...props} />
-  ),
-  ul: ({ node: _node, ...props }) => (
-    <ul className="my-2 list-disc pl-5" {...props} />
-  ),
-  ol: ({ node: _node, ...props }) => (
-    <ol className="my-2 list-decimal pl-5" {...props} />
-  ),
-  li: ({ node: _node, ...props }) => (
-    <li className="my-1 pl-1" {...props} />
-  ),
-  a: ({ node: _node, ...props }) => (
-    <a className="text-[#8ab4ff] underline underline-offset-2 hover:text-primary" target="_blank" rel="noreferrer" {...props} />
-  ),
-  code: ({ node: _node, className, ...props }) => (
-    <code className={`font-mono-code text-[0.92em] bg-surface-container-high px-1 py-0.5 rounded ${className ?? ''}`} {...props} />
-  ),
-  pre: ({ node: _node, ...props }) => (
-    <pre className="my-2 overflow-x-auto border border-outline-variant bg-surface-container p-3 font-mono-code text-[11px] leading-relaxed" {...props} />
-  ),
-  blockquote: ({ node: _node, ...props }) => (
-    <blockquote className="my-2 border-l-2 border-outline-variant pl-3 text-on-surface-variant" {...props} />
-  ),
-  hr: ({ node: _node, ...props }) => (
-    <hr className="my-3 border-outline-variant" {...props} />
-  ),
-  table: ({ node: _node, ...props }) => (
-    <div className="my-2 overflow-x-auto">
-      <table className="w-full border-collapse text-[12px]" {...props} />
-    </div>
-  ),
-  th: ({ node: _node, ...props }) => (
-    <th className="border border-outline-variant bg-surface-container px-2 py-1 text-left font-semibold" {...props} />
-  ),
-  td: ({ node: _node, ...props }) => (
-    <td className="border border-outline-variant px-2 py-1 align-top" {...props} />
-  ),
-}
 
 type PromptMode = 'new' | 'send'
 
@@ -578,13 +544,6 @@ export function App() {
     setFileReferences((prev) => mergeFileReferences(prev, references))
   }
 
-  function formatPathLiteral(pathLiteral: string) {
-    const longestBacktickRun = Math.max(0, ...Array.from(pathLiteral.matchAll(/`+/g), (match) => match[0].length))
-    const fence = '`'.repeat(longestBacktickRun + 1)
-    const padding = longestBacktickRun > 0 ? ' ' : ''
-    return `${fence}${padding}${pathLiteral}${padding}${fence}`
-  }
-
   function buildPromptWithFileReferences(text: string, references: FileReference[]) {
     const promptText = text.trim()
     if (references.length === 0) return promptText
@@ -594,12 +553,6 @@ export function App() {
       .join('\n')
 
     return `${promptText}\n\nReferenced files:\n${referencedFiles}`
-  }
-
-  function getPromptPathDisplay(reference: FileReference) {
-    return reference.promptPath
-      .replace(/^`+ ?/, '')
-      .replace(/ ?`+$/, '')
   }
 
   function mergeFileReferences(current: FileReference[], incoming: FileReference[]) {
@@ -626,39 +579,6 @@ export function App() {
       isImage: isImagePath(filePath),
       isOutsideWorkspace: !!displayWorkspace && renderedPath !== '.' && !renderedPath.startsWith('./'),
     }
-  }
-
-  function formatFileReferenceLabel(pathLiteral: string) {
-    const parts = normalizePathForCompare(pathLiteral)
-      .split('/')
-      .filter((part) => part.length > 0 && part !== '.')
-    if (parts.length === 0) return pathLiteral
-    return parts[parts.length - 1] ?? pathLiteral
-  }
-
-  function isImagePath(filePath: string) {
-    return /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|tiff?|webp)$/i.test(filePath)
-  }
-
-  function getWorkspaceRelativePath(filePath: string, workspacePath: string): string | null {
-    const normalizedFile = normalizePathForCompare(filePath)
-    const normalizedWorkspace = normalizePathForCompare(workspacePath)
-    const comparableFile = getComparablePath(normalizedFile)
-    const comparableWorkspace = getComparablePath(normalizedWorkspace)
-
-    if (comparableFile === comparableWorkspace) return '.'
-    if (!comparableFile.startsWith(`${comparableWorkspace}/`)) return null
-
-    const relative = normalizedFile.slice(normalizedWorkspace.length + 1)
-    return relative.length > 0 ? `./${relative}` : '.'
-  }
-
-  function normalizePathForCompare(filePath: string) {
-    return filePath.replace(/\\/g, '/').replace(/\/+$/g, '')
-  }
-
-  function getComparablePath(filePath: string) {
-    return /^[A-Za-z]:\//.test(filePath) ? filePath.toLowerCase() : filePath
   }
 
   function isFileDrop(event: React.DragEvent) {
@@ -1378,7 +1298,7 @@ export function App() {
                 {showFileReferencePaths && (
                   <div className="border-t border-outline-variant pt-2 flex flex-col gap-1">
                     {fileReferences.map((reference, index) => {
-                      const promptPathDisplay = getPromptPathDisplay(reference)
+                      const promptPathDisplay = getPromptPathDisplay(reference.promptPath)
                       return (
                         <div key={reference.path} className="grid grid-cols-[24px_1fr] gap-2 text-[11px]">
                           <span className="font-mono-label text-[#7fb2f0] text-right">
@@ -1836,22 +1756,3 @@ function SettingField({ label, value, onChange, placeholder, type }: {
   )
 }
 
-function truncatePath(p: string): string {
-  if (p.length < 30) return p
-  return formatWorkspaceShort(p)
-}
-
-function formatWorkspaceShort(p: string): string {
-  const parts = p.split(/[\\/]+/).filter(Boolean)
-  if (parts.length <= 2) return p
-  return `…/${parts.slice(-2).join('/')}`
-}
-
-function formatRelative(iso: string): string {
-  const date = new Date(iso)
-  const diffMin = Math.floor((Date.now() - date.getTime()) / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  if (diffMin < 1440) return `${Math.floor(diffMin / 60)}h ago`
-  return date.toLocaleDateString()
-}
