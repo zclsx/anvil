@@ -4,8 +4,6 @@ import {
   FileSearch,
   Plus,
   RotateCw,
-  Shield,
-  AlertCircle,
   Trash2,
   FolderOpen,
   File as FileIcon,
@@ -41,8 +39,12 @@ import { UpdateActionButton } from './components/UpdateActionButton'
 import { UserEchoCard } from './components/Conversation/UserEchoCard'
 import { ThinkingIndicator } from './components/Conversation/ThinkingIndicator'
 import { MainItemView } from './components/Conversation/MainItemView'
-import { Inspector } from './components/Inspector'
-import { ApprovalCard } from './components/Approvals/ApprovalCard'
+import { InspectorPanel } from './components/InspectorPanel'
+import { ApprovalsPanel } from './components/Approvals/ApprovalsPanel'
+import { ErrorBanner } from './components/ErrorBanner'
+import { NoticeBanner } from './components/NoticeBanner'
+import { Footer } from './components/Footer'
+import { DebugPanel } from './components/DebugPanel'
 import { SettingField } from './components/SettingsDrawer/SettingField'
 
 type FileReference = {
@@ -967,42 +969,14 @@ export function App() {
         </div>
       </header>
 
-      {/* Error Banner */}
       {visibleErrors.length > 0 && (
-        <div className="bg-[#3a1f1f] border-b border-[#5a2f2f] px-4 py-2 flex items-center gap-3 no-drag shrink-0">
-          <AlertCircle size={14} className="text-[#ff8080] shrink-0" />
-          <div className="flex-1 text-[#ffb4ab] text-[12px] font-body-sm truncate">
-            {visibleErrors[visibleErrors.length - 1]}
-          </div>
-          <button
-            onClick={() => setDismissedErrorCount(errors.length)}
-            className="text-[#ff8080] hover:text-[#ffffff] text-[12px] px-2 cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
+        <ErrorBanner
+          message={visibleErrors[visibleErrors.length - 1]}
+          onDismiss={() => setDismissedErrorCount(errors.length)}
+        />
       )}
 
-      {/* Notice Banner */}
-      {notice && (
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className="bg-[#1f2a3a] border-b border-[#2f4a5a] px-4 py-2 flex items-center gap-3 no-drag shrink-0"
-        >
-          <div className="flex-1 text-[#a0c4ff] text-[12px] font-body-sm truncate">
-            {notice}
-          </div>
-          <button
-            onClick={() => setNotice(null)}
-            aria-label="关闭提示"
-            className="text-[#a0c4ff] hover:text-[#ffffff] text-[12px] px-2 cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {notice && <NoticeBanner message={notice} onDismiss={() => setNotice(null)} />}
 
       {/* Settings drawer */}
       {showSettings && (
@@ -1147,22 +1121,7 @@ export function App() {
             <div ref={conversationEndRef} aria-hidden="true" className="h-px shrink-0" />
           </div>
 
-          {/* Pending Approvals Panel */}
-          {pendingApprovals.length > 0 && (
-            <div className="border-t border-[#f59e0b] bg-[#2a1f0f] p-3 shrink-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield size={14} className="text-[#f59e0b]" />
-                <span className="font-mono-label text-[10px] text-[#f59e0b] uppercase tracking-wider">
-                  Awaiting Approval ({pendingApprovals.length})
-                </span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {pendingApprovals.map((p) => (
-                  <ApprovalCard key={p.approvalId} approval={p} onDecide={decideApproval} />
-                ))}
-              </div>
-            </div>
-          )}
+          <ApprovalsPanel approvals={pendingApprovals} onDecide={decideApproval} />
 
           {/* Prompt Input */}
           <div
@@ -1369,48 +1328,18 @@ export function App() {
           </div>
         </main>
 
-        {/* Inspector */}
-        <aside className="w-[400px] border-l border-outline-variant bg-[#0d0d0f] overflow-hidden no-drag flex flex-col">
-          {selectedItem ? (
-            <Inspector item={selectedItem} />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant italic text-[11px] opacity-75 p-4 text-center">
-              <FileSearch size={24} className="mb-2 opacity-40" />
-              点击左侧 conversation item 查看详情
-            </div>
-          )}
-        </aside>
+        <InspectorPanel item={selectedItem} />
       </div>
 
-      <footer className="flex justify-between items-center px-4 w-full bg-surface-container-lowest text-on-surface-variant font-mono-code text-[10px] h-8 border-t border-outline-variant shrink-0 z-10 relative">
-        <div className="flex gap-4">
-          <span className="uppercase">session: {sessionId?.slice(0, 8) || 'none'}</span>
-          {turns.length > 0 && turns[turns.length - 1].stats && (
-            <>
-              <span className="uppercase">tokens: {turns[turns.length - 1].stats?.outputTokens || 0}</span>
-              <span className="uppercase">latency: {turns[turns.length - 1].stats?.durationMs ? `${turns[turns.length - 1].stats?.durationMs}ms` : '-'}</span>
-            </>
-          )}
-        </div>
-        <div className="flex gap-4 items-center">
-          <button onClick={() => setShowDebug(!showDebug)} className="hover:text-primary cursor-pointer uppercase">
-            {showDebug ? '隐藏' : '显示'} debug ({rawEvents.length})
-          </button>
-          <span>v0.0.3 · dev</span>
-        </div>
-      </footer>
+      <Footer
+        sessionId={sessionId}
+        lastTurn={turns[turns.length - 1]}
+        showDebug={showDebug}
+        rawEventsCount={rawEvents.length}
+        onToggleDebug={() => setShowDebug(!showDebug)}
+      />
 
-      {showDebug && (
-        <div className="absolute right-4 bottom-12 w-[320px] max-h-[300px] bg-surface-container-lowest border border-outline-variant p-4 z-50 overflow-y-auto shadow-lg rounded">
-          <div className="flex justify-between items-center border-b border-outline-variant pb-2 mb-2">
-            <span className="font-mono-label text-[10px] text-primary uppercase">Raw Events ({rawEvents.length})</span>
-            <button onClick={() => setShowDebug(false)} className="text-on-surface-variant hover:text-primary">✕</button>
-          </div>
-          <pre className="font-mono-code text-[10px] text-outline-variant leading-relaxed">
-            {rawEvents.map((e, i) => `${i}: ${e.event.type}\n`).join('') || 'No events.'}
-          </pre>
-        </div>
-      )}
+      {showDebug && <DebugPanel rawEvents={rawEvents} onClose={() => setShowDebug(false)} />}
     </div>
   )
 }
