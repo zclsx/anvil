@@ -32,6 +32,10 @@ import { Sidebar } from './components/Sidebar'
 import { SettingsDrawer } from './components/SettingsDrawer'
 import { Conversation } from './components/Conversation'
 import { PromptInput } from './components/PromptInput'
+import { useGlobalFileDropGuard } from './hooks/useGlobalFileDropGuard'
+import { useEscapeToCancel } from './hooks/useEscapeToCancel'
+import { useUpdates } from './hooks/useUpdates'
+import { useAutoScroll } from './hooks/useAutoScroll'
 
 type FileReference = {
   path: string
@@ -121,7 +125,6 @@ export function App() {
   const [showFileReferencePaths, setShowFileReferencePaths] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [isFileDragActive, setIsFileDragActive] = useState(false)
-  const [updateSnapshot, setUpdateSnapshot] = useState<UpdateSnapshot | null>(null)
   const submittingRef = useRef(false)
   const promptInputRef = useRef<HTMLTextAreaElement | null>(null)
   const loadingAnchorRef = useRef<HTMLDivElement | null>(null)
@@ -130,15 +133,6 @@ export function App() {
   const activeSessionIdRef = useRef<string | null>(null)
   const autoConsumingRef = useRef(false)
   const autoDraftWorkspaceRef = useRef<string | null>(null)
-  const autoScrollStateRef = useRef({
-    awaitingFirstItem: false,
-    lastItemId: null as string | null | undefined,
-    lastTurnId: undefined as string | undefined,
-    lastTurnStatus: undefined as string | undefined,
-    lastTurnItemCount: 0,
-    pendingApprovalCount: 0,
-    turnsLength: 0,
-  })
 
   const sessionId = useAgentStore((s) => s.sessionId)
   const turns = useAgentStore((s) => s.turns)
@@ -188,41 +182,14 @@ export function App() {
     return off
   }, [ingest, autoFollow])
 
-  useEffect(() => {
-    function preventFileNavigation(event: DragEvent) {
-      if (!Array.from(event.dataTransfer?.types ?? []).includes('Files')) return
-      event.preventDefault()
-      if (event.type === 'drop') {
-        setIsFileDragActive(false)
-      }
-    }
+  useGlobalFileDropGuard(() => setIsFileDragActive(false))
 
-    window.addEventListener('dragover', preventFileNavigation)
-    window.addEventListener('drop', preventFileNavigation)
-    return () => {
-      window.removeEventListener('dragover', preventFileNavigation)
-      window.removeEventListener('drop', preventFileNavigation)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!window.anvil?.updates) return
-    let mounted = true
-    window.anvil.updates.get()
-      .then((snapshot) => {
-        if (mounted) setUpdateSnapshot(snapshot)
-      })
-      .catch((error: unknown) => {
-        pushError(error instanceof Error ? error.message : String(error))
-      })
-    const off = window.anvil.updates.onStatus((snapshot) => {
-      setUpdateSnapshot(snapshot)
-    })
-    return () => {
-      mounted = false
-      off()
-    }
-  }, [pushError])
+  const {
+    snapshot: updateSnapshot,
+    check: checkForUpdates,
+    download: downloadUpdate,
+    install: installUpdate,
+  } = useUpdates({ onError: pushError, onNotice: setNotice })
 
   useEffect(() => {
     if (settings) refreshSessions()
@@ -265,20 +232,9 @@ export function App() {
     }
   }, [sessionId, activeSessionId])
 
-  useEffect(() => {
-    if (!running) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-        const target = e.target as HTMLElement | null
-        const tag = target?.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA') return
-        e.preventDefault()
-        window.anvil?.cancel()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [running])
+  useEscapeToCancel(running, () => {
+    window.anvil?.cancel()
+  })
 
   useEffect(() => {
     if (!notice) return
@@ -764,44 +720,6 @@ export function App() {
     await window.anvil.cancel()
   }
 
-  async function checkForUpdates() {
-    if (!window.anvil?.updates) return
-    try {
-      const snapshot = await window.anvil.updates.check()
-      setUpdateSnapshot(snapshot)
-      if (snapshot.status === 'not-available') {
-        setNotice('当前已是最新版本')
-      } else if (snapshot.status === 'error' && snapshot.message) {
-        pushError(snapshot.message)
-      }
-    } catch (error: unknown) {
-      pushError(error instanceof Error ? error.message : String(error))
-    }
-  }
-
-  async function downloadUpdate() {
-    if (!window.anvil?.updates) return
-    try {
-      const snapshot = await window.anvil.updates.download()
-      setUpdateSnapshot(snapshot)
-      if (snapshot.status === 'error' && snapshot.message) {
-        pushError(snapshot.message)
-      }
-    } catch (error: unknown) {
-      pushError(error instanceof Error ? error.message : String(error))
-    }
-  }
-
-  async function installUpdate() {
-    if (!window.anvil?.updates) return
-    try {
-      const result = await window.anvil.updates.install()
-      if (!result.ok && result.error) pushError(result.error)
-    } catch (error: unknown) {
-      pushError(error instanceof Error ? error.message : String(error))
-    }
-  }
-
   async function openSession(s: SessionMeta) {
     if (!window.anvil) return
     if (autoConsumingRef.current) {
@@ -866,49 +784,17 @@ export function App() {
   const selectedItem = selectedItemId ? items[selectedItemId] : null
   const visibleErrors = errors.slice(dismissedErrorCount)
   const lastTurn = turns[turns.length - 1]
-  const lastTurnItemCount = lastTurn?.itemIds.length ?? 0
-  const lastItemId = lastTurnItemCount > 0 ? lastTurn?.itemIds[lastTurnItemCount - 1] : null
-  const lastItemTextLength = lastItemId ? (items[lastItemId]?.text?.length ?? 0) : 0
   const awaitingFirstItem =
     running && (turns.length === 0 || !lastTurn || lastTurn.status !== 'running' || lastTurn.itemIds.length === 0)
 
-  useEffect(() => {
-    const nextAutoScrollState = {
-      awaitingFirstItem,
-      lastItemId,
-      lastTurnId: lastTurn?.id,
-      lastTurnStatus: lastTurn?.status,
-      lastTurnItemCount,
-      pendingApprovalCount: pendingApprovals.length,
-      turnsLength: turns.length,
-    }
-    const previous = autoScrollStateRef.current
-    const isStructuralChange =
-      previous.awaitingFirstItem !== nextAutoScrollState.awaitingFirstItem ||
-      previous.lastItemId !== nextAutoScrollState.lastItemId ||
-      previous.lastTurnId !== nextAutoScrollState.lastTurnId ||
-      previous.lastTurnStatus !== nextAutoScrollState.lastTurnStatus ||
-      previous.lastTurnItemCount !== nextAutoScrollState.lastTurnItemCount ||
-      previous.pendingApprovalCount !== nextAutoScrollState.pendingApprovalCount ||
-      previous.turnsLength !== nextAutoScrollState.turnsLength
-
-    autoScrollStateRef.current = nextAutoScrollState
-    if (!autoFollow) return
-    conversationEndRef.current?.scrollIntoView({
-      behavior: isStructuralChange ? 'smooth' : 'auto',
-      block: 'end',
-    })
-  }, [
+  useAutoScroll({
+    turns,
+    items,
+    pendingApprovalCount: pendingApprovals.length,
     autoFollow,
     awaitingFirstItem,
-    lastItemId,
-    lastItemTextLength,
-    lastTurn?.id,
-    lastTurn?.status,
-    lastTurnItemCount,
-    pendingApprovals.length,
-    turns.length,
-  ])
+    conversationEndRef,
+  })
 
   return (
     <div className="h-screen overflow-hidden flex flex-col font-body-sm bg-background text-on-surface select-none relative">
