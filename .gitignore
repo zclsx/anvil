@@ -1,39 +1,27 @@
+# Dependencies / build output
 node_modules
 dist
 dist-electron
 release
-.DS_Store
+
+# Logs
 *.log
 
+# Env / secrets
 .env
 .env.local
 .env.*.local
-
 *.local
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
+# Caches / temp / coverage
 .cache
 .tmp
 coverage
 
+# App runtime data
 anvil-settings.json
 .anvil-secrets
 
-.trellis/
-.claude/
-.codex/
-.gemini/
-.agents/
-AGENTS.md
-
-REFACTOR_PLAN.md
-
+# Test artifacts
 app/test-results/
 app/playwright-report/
