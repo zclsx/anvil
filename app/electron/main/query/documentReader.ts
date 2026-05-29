@@ -12,7 +12,7 @@ export interface PaginatedText {
 }
 
 export type ResolvedDocumentPath =
-  | { ok: true; absPath: string }
+  | { ok: true; absPath: string; source: 'workspace' | 'reference' }
   | { ok: false; error: string }
 
 /**
@@ -38,14 +38,23 @@ export function paginateText(full: string, offset = 0, maxChars = 12000): Pagina
 }
 
 /**
- * Resolve a model-supplied document path against the session workspace and
- * confirm it stays inside the workspace tree. The model may pass a
+ * Resolve a model-supplied document path. The model may pass a
  * workspace-relative path (`./report.docx`), an absolute path, or a value
- * wrapped in markdown backticks — all are normalized here. Reads outside the
- * workspace are rejected so a read-only tool can't be steered into reading
- * arbitrary files (SSH keys, etc.).
+ * wrapped in markdown backticks — all are normalized here.
+ *
+ * A path is allowed when it is either:
+ *   - inside the session workspace (same reach Bash/Read already have), or
+ *   - one of the absolute paths the user explicitly referenced this turn
+ *     (dropped via a file-reference chip), even if outside the workspace.
+ *
+ * Anything else (a path the model invented, e.g. an SSH key) is rejected,
+ * which matters because this read-only tool is auto-approved.
  */
-export function resolveDocumentPath(rawPath: string, workspacePath: string): ResolvedDocumentPath {
+export function resolveDocumentPath(
+  rawPath: string,
+  workspacePath: string,
+  allowedExternalPaths: string[] = [],
+): ResolvedDocumentPath {
   const cleaned = rawPath.trim().replace(/^`+/, '').replace(/`+$/, '').trim()
   if (!cleaned) return { ok: false, error: '未提供文档路径' }
   if (!workspacePath) return { ok: false, error: '当前没有可用的 workspace' }
@@ -57,11 +66,19 @@ export function resolveDocumentPath(rawPath: string, workspacePath: string): Res
 
   const rel = path.relative(workspaceAbs, absPath)
   const insideWorkspace = rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
-  if (!insideWorkspace) {
-    return { ok: false, error: `只能读取 workspace 内的文件：${cleaned}` }
+  if (insideWorkspace) {
+    return { ok: true, absPath, source: 'workspace' }
   }
 
-  return { ok: true, absPath }
+  const allowed = new Set(allowedExternalPaths.map((p) => path.resolve(p)))
+  if (allowed.has(absPath)) {
+    return { ok: true, absPath, source: 'reference' }
+  }
+
+  return {
+    ok: false,
+    error: `只能读取 workspace 内或本轮引用过的文件：${cleaned}`,
+  }
 }
 
 export function isSupportedDocument(filePath: string): boolean {

@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs'
+import path from 'node:path'
 import { tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
 import {
@@ -21,7 +22,24 @@ function errorResult(message: string) {
   return { content: [{ type: 'text' as const, text: message }], isError: true }
 }
 
-export function createReadDocumentTool(getWorkspacePath: () => string) {
+async function symlinkEscapesWorkspace(absPath: string, workspacePath: string): Promise<boolean> {
+  try {
+    const [realTarget, realWorkspace] = await Promise.all([
+      fs.realpath(absPath),
+      fs.realpath(workspacePath),
+    ])
+    const rel = path.relative(realWorkspace, realTarget)
+    return rel.startsWith('..') || path.isAbsolute(rel)
+  } catch {
+    // realpath failed (missing/broken) — treat as escape so we don't read it
+    return true
+  }
+}
+
+export function createReadDocumentTool(
+  getWorkspacePath: () => string,
+  getReferencedPaths: () => string[],
+) {
   return tool(
     'read_document',
     READ_DOCUMENT_DESCRIPTION,
@@ -45,7 +63,7 @@ export function createReadDocumentTool(getWorkspacePath: () => string) {
     },
     async ({ path: rawPath, offset = 0, maxChars = DEFAULT_MAX_CHARS }) => {
       const workspacePath = getWorkspacePath()
-      const resolved = resolveDocumentPath(rawPath, workspacePath)
+      const resolved = resolveDocumentPath(rawPath, workspacePath, getReferencedPaths())
       if (!resolved.ok) return errorResult(resolved.error)
 
       if (!isSupportedDocument(resolved.absPath)) {
@@ -56,6 +74,13 @@ export function createReadDocumentTool(getWorkspacePath: () => string) {
         await fs.access(resolved.absPath)
       } catch {
         return errorResult(`文件不存在：${rawPath}`)
+      }
+
+      // For workspace-scoped reads, re-check the *real* path: a symlink inside
+      // the workspace could otherwise point a read-only, auto-approved tool at
+      // a file outside it. Referenced paths are user-authorized, so skip.
+      if (resolved.source === 'workspace' && (await symlinkEscapesWorkspace(resolved.absPath, workspacePath))) {
+        return errorResult('该路径通过符号链接指向 workspace 外，已拒绝读取')
       }
 
       let fullText: string

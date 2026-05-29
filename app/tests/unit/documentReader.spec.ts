@@ -48,7 +48,8 @@ test.describe('paginateText', () => {
     const first = paginateText(full, 0, 10)
     expect(first.text).toBe('abcdefghij')
     expect(first.nextOffset).toBe(10)
-    const second = paginateText(full, first.nextOffset!, 10)
+    expect(first.nextOffset).not.toBeNull()
+    const second = paginateText(full, first.nextOffset ?? 0, 10)
     expect(second.text).toBe('klmnop')
     expect(second.hasMore).toBe(false)
     expect(first.text + second.text).toBe(full)
@@ -60,22 +61,32 @@ test.describe('resolveDocumentPath', () => {
 
   test('resolves a workspace-relative path', () => {
     const r = resolveDocumentPath('./src/a.docx', ws)
-    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/src/a.docx' })
+    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/src/a.docx', source: 'workspace' })
   })
 
   test('resolves a bare relative path', () => {
     const r = resolveDocumentPath('report.xlsx', ws)
-    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/report.xlsx' })
+    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/report.xlsx', source: 'workspace' })
   })
 
   test('accepts an absolute path inside the workspace', () => {
     const r = resolveDocumentPath('/Users/test/proj/deep/b.docx', ws)
-    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/deep/b.docx' })
+    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/deep/b.docx', source: 'workspace' })
   })
 
   test('strips markdown backticks', () => {
     const r = resolveDocumentPath('`./a.docx`', ws)
-    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/a.docx' })
+    expect(r).toEqual({ ok: true, absPath: '/Users/test/proj/a.docx', source: 'workspace' })
+  })
+
+  test('allows an external path referenced this turn', () => {
+    const r = resolveDocumentPath('/Users/other/x.docx', ws, ['/Users/other/x.docx'])
+    expect(r).toEqual({ ok: true, absPath: '/Users/other/x.docx', source: 'reference' })
+  })
+
+  test('rejects an external path that was not referenced', () => {
+    const r = resolveDocumentPath('/Users/other/x.docx', ws, ['/Users/other/allowed.docx'])
+    expect(r.ok).toBe(false)
   })
 
   test('rejects traversal outside the workspace', () => {

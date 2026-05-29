@@ -228,11 +228,12 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
     append: OFFICE_DOCUMENT_GUIDANCE,
   }
 
+  const referencedPaths = req.referencedPaths ?? []
   const mcpServers: Record<string, any> = {
     anvil: createSdkMcpServer({
       name: 'anvil',
       version: app.getVersion(),
-      tools: [createReadDocumentTool(() => workspacePath)],
+      tools: [createReadDocumentTool(() => workspacePath, () => referencedPaths)],
       alwaysLoad: true,
     }),
   }

@@ -355,11 +355,12 @@ export function App() {
 
   function currentSessionRequest(text: string, references: FileReference[] = fileReferences): QueryRequest | null {
     const promptText = buildPromptWithFileReferences(text, references)
+    const referencedPaths = references.map((r) => r.path)
     if (activeSessionId) {
-      return { mode: 'resume', sessionId: activeSessionId, prompt: promptText }
+      return { mode: 'resume', sessionId: activeSessionId, prompt: promptText, referencedPaths }
     }
     if (pendingWorkspace) {
-      return { mode: 'new', prompt: promptText, workspacePath: pendingWorkspace }
+      return { mode: 'new', prompt: promptText, workspacePath: pendingWorkspace, referencedPaths }
     }
     return null
   }
