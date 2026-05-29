@@ -29,6 +29,7 @@ export default defineConfig({
                     'zod',
                     'mammoth',
                     'exceljs',
+                    'docx',
                   ],
                 },
               },

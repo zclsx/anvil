@@ -8,6 +8,7 @@ import {
   paginateText,
   resolveDocumentPath,
 } from './documentReader'
+import { generateDocx, resolveWritePath } from './documentWriter'
 
 const DEFAULT_MAX_CHARS = 12000
 
@@ -105,6 +106,93 @@ export function createReadDocumentTool(
         title: 'Read Office document',
         readOnlyHint: true,
         openWorldHint: false,
+      },
+      alwaysLoad: true,
+    },
+  )
+}
+
+async function writeTargetEscapesWorkspace(absPath: string, workspacePath: string): Promise<boolean> {
+  try {
+    const realWorkspace = await fs.realpath(workspacePath)
+    const realParent = await fs.realpath(path.dirname(absPath)).catch(() => null)
+    if (realParent === null) {
+      // Parent doesn't exist yet; it will be created inside the (lexically
+      // validated) workspace path, so there's no symlink to escape through.
+      return false
+    }
+    const rel = path.relative(realWorkspace, realParent)
+    return rel.startsWith('..') || path.isAbsolute(rel)
+  } catch {
+    return true
+  }
+}
+
+const CREATE_DOCX_DESCRIPTION = [
+  'Create a Microsoft Word (.docx) document from markdown content and write it into the workspace.',
+  'Use this when the user asks you to generate/produce/export a Word document — do NOT use Bash, python, or pandoc.',
+  'Supports headings (#/##/###), paragraphs, bullet/numbered lists, and **bold**/*italic*.',
+  'Tables and images are not supported and will be flattened to text.',
+].join(' ')
+
+export function createWriteDocumentTool(getWorkspacePath: () => string) {
+  return tool(
+    'create_docx',
+    CREATE_DOCX_DESCRIPTION,
+    {
+      path: z
+        .string()
+        .describe('Output path for the .docx file, inside the workspace (e.g. ./outputs/report.docx).'),
+      markdown: z
+        .string()
+        .describe('Document body as markdown (headings, paragraphs, lists, bold/italic).'),
+      title: z.string().optional().describe('Optional document title rendered at the top.'),
+      overwrite: z
+        .boolean()
+        .optional()
+        .describe('Allow overwriting an existing file. Default false; set true to replace.'),
+    },
+    async ({ path: rawPath, markdown, title, overwrite = false }) => {
+      const workspacePath = getWorkspacePath()
+      const resolved = resolveWritePath(rawPath, workspacePath)
+      if (!resolved.ok) return errorResult(resolved.error)
+
+      if (await writeTargetEscapesWorkspace(resolved.absPath, workspacePath)) {
+        return errorResult('输出路径通过符号链接指向 workspace 外，已拒绝写入')
+      }
+
+      let exists = false
+      try {
+        await fs.access(resolved.absPath)
+        exists = true
+      } catch {
+        exists = false
+      }
+      if (exists && !overwrite) {
+        return errorResult(`文件已存在：${rawPath}（如需覆盖请设 overwrite=true）`)
+      }
+
+      try {
+        const blockCount = await generateDocx(resolved.absPath, markdown, title)
+        const overwriteNote = exists ? '（已覆盖原文件）' : ''
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `已生成 Word 文档：${resolved.absPath}\n包含 ${blockCount} 个内容块${overwriteNote}。`,
+            },
+          ],
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        return errorResult(`生成文档失败：${message}`)
+      }
+    },
+    {
+      annotations: {
+        title: 'Create Word document',
+        readOnlyHint: false,
+        destructiveHint: true,
       },
       alwaysLoad: true,
     },

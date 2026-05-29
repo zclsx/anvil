@@ -24,7 +24,9 @@ const READ_DOCUMENT_TOOL_NAME = 'mcp__anvil__read_document'
 const OFFICE_DOCUMENT_GUIDANCE =
   'When the user references Microsoft Office documents (.docx Word or .xlsx Excel files) by path, ' +
   'read their contents using the read_document tool from the "anvil" MCP server. ' +
-  'Do NOT use Bash, python, pip, or pandoc to parse Office documents.'
+  'When the user asks you to generate or export a Word document, use the create_docx tool ' +
+  'from the "anvil" MCP server. ' +
+  'Do NOT use Bash, python, pip, or pandoc to parse or produce Office documents.'
 
 export function registerAgentIpc(ipcMain: IpcMain, ctx: MainRuntimeContext): void {
   ipcMain.handle('agent:cancel', () => {
@@ -51,7 +53,7 @@ export function registerAgentIpc(ipcMain: IpcMain, ctx: MainRuntimeContext): voi
 
 async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   const { query, createSdkMcpServer } = await import('@anthropic-ai/claude-agent-sdk')
-  const { createReadDocumentTool } = await import('../query/documentTool')
+  const { createReadDocumentTool, createWriteDocumentTool } = await import('../query/documentTool')
   const settings = getSettings()
   const workspacePath = resolveQueryWorkspace(req)
 
@@ -233,7 +235,10 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
     anvil: createSdkMcpServer({
       name: 'anvil',
       version: app.getVersion(),
-      tools: [createReadDocumentTool(() => workspacePath, () => referencedPaths)],
+      tools: [
+        createReadDocumentTool(() => workspacePath, () => referencedPaths),
+        createWriteDocumentTool(() => workspacePath),
+      ],
       alwaysLoad: true,
     }),
   }
