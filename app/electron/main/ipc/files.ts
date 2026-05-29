@@ -19,10 +19,15 @@ function validateDocxPath(filePath: unknown): string | null {
   return filePath
 }
 
-async function ensureExists(filePath: string): Promise<boolean> {
+/**
+ * The IPC is an independent entry point, so harden it beyond "exists": the
+ * target must be a regular file (not a directory named `x.docx`) and not a
+ * symlink (which could point outside the workspace).
+ */
+async function isRegularDocxFile(filePath: string): Promise<boolean> {
   try {
-    await fs.access(filePath)
-    return true
+    const stat = await fs.lstat(filePath)
+    return stat.isFile() && !stat.isSymbolicLink()
   } catch {
     return false
   }
@@ -32,7 +37,7 @@ export function registerFilesIpc(ipcMain: IpcMain): void {
   ipcMain.handle('files:open-path', async (_e, filePath: unknown): Promise<FileActionResult> => {
     const valid = validateDocxPath(filePath)
     if (!valid) return { ok: false, error: '无效的文件路径' }
-    if (!(await ensureExists(valid))) return { ok: false, error: '文件不存在' }
+    if (!(await isRegularDocxFile(valid))) return { ok: false, error: '文件不存在或不是普通文件' }
     const error = await shell.openPath(valid)
     if (error) return { ok: false, error }
     return { ok: true }
@@ -41,7 +46,7 @@ export function registerFilesIpc(ipcMain: IpcMain): void {
   ipcMain.handle('files:show-in-folder', async (_e, filePath: unknown): Promise<FileActionResult> => {
     const valid = validateDocxPath(filePath)
     if (!valid) return { ok: false, error: '无效的文件路径' }
-    if (!(await ensureExists(valid))) return { ok: false, error: '文件不存在' }
+    if (!(await isRegularDocxFile(valid))) return { ok: false, error: '文件不存在或不是普通文件' }
     shell.showItemInFolder(valid)
     return { ok: true }
   })
