@@ -1035,6 +1035,3 @@ export function App() {
     </div>
   )
 }
-
-
-
