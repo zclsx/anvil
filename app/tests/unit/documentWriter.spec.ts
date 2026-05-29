@@ -7,6 +7,7 @@ import {
   parseMarkdownBlocks,
   resolveWritePath,
   generateDocx,
+  isWriteTargetWithinWorkspace,
 } from '../../electron/main/query/documentWriter'
 import { extractDocumentText } from '../../electron/main/query/documentReader'
 
@@ -89,5 +90,46 @@ test.describe('generateDocx round-trip', () => {
     expect(text).toContain('报告标题')
     expect(text).toContain('这是正文段落')
     expect(text).toContain('第一点')
+  })
+
+  test('refuses to overwrite without flag, allows with overwrite', async () => {
+    const file = path.join(tmpDir, 'dup.docx')
+    await generateDocx(file, 'first version')
+    await expect(generateDocx(file, 'second version')).rejects.toThrow()
+    await generateDocx(file, 'third version', undefined, { overwrite: true })
+    const text = await extractDocumentText(file)
+    expect(text).toContain('third version')
+  })
+})
+
+test.describe('isWriteTargetWithinWorkspace (symlink escape)', () => {
+  let wsDir = ''
+  let outsideDir = ''
+
+  test.beforeAll(async () => {
+    wsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'anvil-ws-'))
+    outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'anvil-out-'))
+    await fs.symlink(outsideDir, path.join(wsDir, 'link'))
+  })
+  test.afterAll(async () => {
+    if (wsDir) await fs.rm(wsDir, { recursive: true, force: true })
+    if (outsideDir) await fs.rm(outsideDir, { recursive: true, force: true })
+  })
+
+  test('allows a normal path inside the workspace', async () => {
+    expect(await isWriteTargetWithinWorkspace(path.join(wsDir, 'sub', 'a.docx'), wsDir)).toBe(true)
+  })
+
+  test('rejects writing through a symlinked ancestor (non-existent parent)', async () => {
+    const target = path.join(wsDir, 'link', 'nested', 'out.docx')
+    expect(await isWriteTargetWithinWorkspace(target, wsDir)).toBe(false)
+    // and nothing leaked outside
+    await expect(fs.access(path.join(outsideDir, 'nested', 'out.docx'))).rejects.toThrow()
+  })
+
+  test('rejects when the target itself is a symlink', async () => {
+    const linkFile = path.join(wsDir, 'evil.docx')
+    await fs.symlink(path.join(outsideDir, 'evil.docx'), linkFile)
+    expect(await isWriteTargetWithinWorkspace(linkFile, wsDir)).toBe(false)
   })
 })

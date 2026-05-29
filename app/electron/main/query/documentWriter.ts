@@ -103,14 +103,62 @@ export function resolveWritePath(rawPath: string, workspacePath: string): Resolv
 const NUMBERING_REFERENCE = 'anvil-numbered'
 
 /**
+ * Confirm a write target stays inside the workspace even when intermediate
+ * directories don't exist yet. A lexical check is not enough: `mkdir -p`
+ * follows an existing symlinked ancestor and would write outside. So we
+ * resolve the *nearest existing ancestor* (the dir mkdir will actually start
+ * from) and require its real path to be within the workspace, and reject when
+ * the target file itself already exists as a symlink.
+ */
+export async function isWriteTargetWithinWorkspace(
+  absPath: string,
+  workspacePath: string,
+): Promise<boolean> {
+  try {
+    const realWorkspace = await fs.realpath(workspacePath)
+
+    let probe = path.dirname(absPath)
+    let realAncestor: string | null = null
+    for (;;) {
+      try {
+        realAncestor = await fs.realpath(probe)
+        break
+      } catch {
+        const parent = path.dirname(probe)
+        if (parent === probe) break
+        probe = parent
+      }
+    }
+    if (!realAncestor) return false
+
+    const rel = path.relative(realWorkspace, realAncestor)
+    const ancestorInside = rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))
+    if (!ancestorInside) return false
+
+    try {
+      const stat = await fs.lstat(absPath)
+      if (stat.isSymbolicLink()) return false
+    } catch {
+      // target doesn't exist yet — fine
+    }
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Generate a .docx from markdown and write it. The `docx` library is loaded
  * lazily so the pure parsing/path functions stay test-friendly. Returns the
- * number of content blocks written.
+ * number of content blocks written. Without `overwrite`, the write is atomic
+ * (`wx`) and throws `EEXIST` rather than clobbering an existing file.
  */
 export async function generateDocx(
   absPath: string,
   markdown: string,
   title?: string,
+  options?: { overwrite?: boolean },
 ): Promise<number> {
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx')
 
@@ -161,6 +209,6 @@ export async function generateDocx(
 
   const buffer = await Packer.toBuffer(doc)
   await fs.mkdir(path.dirname(absPath), { recursive: true })
-  await fs.writeFile(absPath, buffer)
+  await fs.writeFile(absPath, buffer, { flag: options?.overwrite ? 'w' : 'wx' })
   return blocks.length
 }

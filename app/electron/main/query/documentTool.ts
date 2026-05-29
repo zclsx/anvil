@@ -8,7 +8,7 @@ import {
   paginateText,
   resolveDocumentPath,
 } from './documentReader'
-import { generateDocx, resolveWritePath } from './documentWriter'
+import { generateDocx, isWriteTargetWithinWorkspace, resolveWritePath } from './documentWriter'
 
 const DEFAULT_MAX_CHARS = 12000
 
@@ -112,22 +112,6 @@ export function createReadDocumentTool(
   )
 }
 
-async function writeTargetEscapesWorkspace(absPath: string, workspacePath: string): Promise<boolean> {
-  try {
-    const realWorkspace = await fs.realpath(workspacePath)
-    const realParent = await fs.realpath(path.dirname(absPath)).catch(() => null)
-    if (realParent === null) {
-      // Parent doesn't exist yet; it will be created inside the (lexically
-      // validated) workspace path, so there's no symlink to escape through.
-      return false
-    }
-    const rel = path.relative(realWorkspace, realParent)
-    return rel.startsWith('..') || path.isAbsolute(rel)
-  } catch {
-    return true
-  }
-}
-
 const CREATE_DOCX_DESCRIPTION = [
   'Create a Microsoft Word (.docx) document from markdown content and write it into the workspace.',
   'Use this when the user asks you to generate/produce/export a Word document — do NOT use Bash, python, or pandoc.',
@@ -157,33 +141,24 @@ export function createWriteDocumentTool(getWorkspacePath: () => string) {
       const resolved = resolveWritePath(rawPath, workspacePath)
       if (!resolved.ok) return errorResult(resolved.error)
 
-      if (await writeTargetEscapesWorkspace(resolved.absPath, workspacePath)) {
-        return errorResult('输出路径通过符号链接指向 workspace 外，已拒绝写入')
-      }
-
-      let exists = false
-      try {
-        await fs.access(resolved.absPath)
-        exists = true
-      } catch {
-        exists = false
-      }
-      if (exists && !overwrite) {
-        return errorResult(`文件已存在：${rawPath}（如需覆盖请设 overwrite=true）`)
+      if (!(await isWriteTargetWithinWorkspace(resolved.absPath, workspacePath))) {
+        return errorResult('输出路径越过 workspace 边界（可能经由符号链接），已拒绝写入')
       }
 
       try {
-        const blockCount = await generateDocx(resolved.absPath, markdown, title)
-        const overwriteNote = exists ? '（已覆盖原文件）' : ''
+        const blockCount = await generateDocx(resolved.absPath, markdown, title, { overwrite })
         return {
           content: [
             {
               type: 'text' as const,
-              text: `已生成 Word 文档：${resolved.absPath}\n包含 ${blockCount} 个内容块${overwriteNote}。`,
+              text: `已生成 Word 文档：${resolved.absPath}\n包含 ${blockCount} 个内容块。`,
             },
           ],
         }
       } catch (error: unknown) {
+        if ((error as NodeJS.ErrnoException)?.code === 'EEXIST') {
+          return errorResult(`文件已存在：${rawPath}（如需覆盖请设 overwrite=true）`)
+        }
         const message = error instanceof Error ? error.message : String(error)
         return errorResult(`生成文档失败：${message}`)
       }
