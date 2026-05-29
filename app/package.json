@@ -7,10 +7,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:web": "ANVIL_WEB_ONLY=1 vite",
     "build": "tsc -b && vite build && electron-builder",
     "build:win": "tsc -b && vite build && electron-builder --win --x64",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "NO_PROXY=* HTTP_PROXY= HTTPS_PROXY= playwright test"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.150",
@@ -31,6 +33,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.12.0",

@@ -1,23 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import ReactMarkdown, { type Components } from 'react-markdown'
-import remarkBreaks from 'remark-breaks'
-import remarkGfm from 'remark-gfm'
-import {
-  History,
-  FileSearch,
-  Plus,
-  RotateCw,
-  Shield,
-  AlertCircle,
-  Trash2,
-  FolderOpen,
-  File as FileIcon,
-  Image as ImageIcon,
-  ChevronDown,
-  ChevronUp,
-  X,
-} from 'lucide-react'
-import { useAgentStore, type Item, type PendingApproval } from './store'
+import { useAgentStore } from './store'
 import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
 import type { AgentEventEnvelope } from '../electron/shared/events'
 import type { SessionMeta, QueryRequest } from '../electron/shared/session'
@@ -28,11 +10,28 @@ import type {
   PickDirectoryResponse,
 } from '../electron/shared/dialog'
 import type { UpdateSnapshot } from '../electron/shared/updates'
-import logoUrl from './assets/logo.svg'
-
-const LogoIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <img src={logoUrl} className={className} alt="Anvil Logo" />
-)
+import {
+  formatPathLiteral,
+  formatWorkspaceShort,
+  getComparablePath,
+  getPromptPathDisplay,
+  getWorkspaceRelativePath,
+  normalizePathForCompare,
+  truncatePath,
+} from './lib/pathUtils'
+import { formatRelative } from './lib/timeUtils'
+import { formatFileReferenceLabel, isImagePath } from './lib/fileUtils'
+import { InspectorPanel } from './components/InspectorPanel'
+import { ApprovalsPanel } from './components/Approvals/ApprovalsPanel'
+import { ErrorBanner } from './components/ErrorBanner'
+import { NoticeBanner } from './components/NoticeBanner'
+import { Footer } from './components/Footer'
+import { DebugPanel } from './components/DebugPanel'
+import { Header } from './components/Header'
+import { Sidebar } from './components/Sidebar'
+import { SettingsDrawer } from './components/SettingsDrawer'
+import { Conversation } from './components/Conversation'
+import { PromptInput } from './components/PromptInput'
 
 type FileReference = {
   path: string
@@ -49,105 +48,6 @@ type ExecuteQueryOptions = {
 type ChooseWorkspaceOptions = {
   forcePicker?: boolean
   keepDraft?: boolean
-}
-
-function UpdateActionButton({
-  snapshot,
-  onCheck,
-  onDownload,
-  onInstall,
-}: {
-  snapshot: UpdateSnapshot
-  onCheck: () => void
-  onDownload: () => void
-  onInstall: () => void
-}) {
-  const version = snapshot.version ? ` ${snapshot.version}` : ''
-  const percent = snapshot.percent == null ? 0 : Math.floor(snapshot.percent)
-  const disabled = snapshot.status === 'checking' || snapshot.status === 'downloading'
-
-  let label = 'Check updates'
-  let title = snapshot.message || `Current version ${snapshot.currentVersion}`
-  let action = onCheck
-  let className = 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
-
-  if (snapshot.status === 'checking') {
-    label = 'Checking...'
-  } else if (snapshot.status === 'available') {
-    label = `Download${version}`
-    action = onDownload
-    className = 'border-[#4a9eff]/50 text-[#a0c4ff] hover:bg-[#1f2a3a]'
-  } else if (snapshot.status === 'downloading') {
-    label = `Downloading ${percent}%`
-  } else if (snapshot.status === 'downloaded') {
-    label = 'Restart to update'
-    action = onInstall
-    className = 'border-[#6fbf6f]/50 text-[#9ce29c] hover:bg-[#1f3a1f]'
-  } else if (snapshot.status === 'not-available') {
-    label = 'Up to date'
-  } else if (snapshot.status === 'error') {
-    label = 'Update error'
-    title = snapshot.message || 'Update check failed'
-    className = 'border-[#ff8080]/50 text-[#ffb4ab] hover:bg-[#3a1f1f]'
-  }
-
-  return (
-    <button
-      onClick={action}
-      disabled={disabled}
-      title={title}
-      className={`px-2 py-0.5 text-[10px] font-mono-label bg-surface-container border disabled:opacity-70 disabled:cursor-wait cursor-pointer ${className}`}
-    >
-      {label}
-    </button>
-  )
-}
-
-const markdownComponents: Components = {
-  p: ({ node: _node, ...props }) => (
-    <p className="mb-2 last:mb-0" {...props} />
-  ),
-  strong: ({ node: _node, ...props }) => (
-    <strong className="font-semibold text-primary" {...props} />
-  ),
-  em: ({ node: _node, ...props }) => (
-    <em className="italic text-on-surface" {...props} />
-  ),
-  ul: ({ node: _node, ...props }) => (
-    <ul className="my-2 list-disc pl-5" {...props} />
-  ),
-  ol: ({ node: _node, ...props }) => (
-    <ol className="my-2 list-decimal pl-5" {...props} />
-  ),
-  li: ({ node: _node, ...props }) => (
-    <li className="my-1 pl-1" {...props} />
-  ),
-  a: ({ node: _node, ...props }) => (
-    <a className="text-[#8ab4ff] underline underline-offset-2 hover:text-primary" target="_blank" rel="noreferrer" {...props} />
-  ),
-  code: ({ node: _node, className, ...props }) => (
-    <code className={`font-mono-code text-[0.92em] bg-surface-container-high px-1 py-0.5 rounded ${className ?? ''}`} {...props} />
-  ),
-  pre: ({ node: _node, ...props }) => (
-    <pre className="my-2 overflow-x-auto border border-outline-variant bg-surface-container p-3 font-mono-code text-[11px] leading-relaxed" {...props} />
-  ),
-  blockquote: ({ node: _node, ...props }) => (
-    <blockquote className="my-2 border-l-2 border-outline-variant pl-3 text-on-surface-variant" {...props} />
-  ),
-  hr: ({ node: _node, ...props }) => (
-    <hr className="my-3 border-outline-variant" {...props} />
-  ),
-  table: ({ node: _node, ...props }) => (
-    <div className="my-2 overflow-x-auto">
-      <table className="w-full border-collapse text-[12px]" {...props} />
-    </div>
-  ),
-  th: ({ node: _node, ...props }) => (
-    <th className="border border-outline-variant bg-surface-container px-2 py-1 text-left font-semibold" {...props} />
-  ),
-  td: ({ node: _node, ...props }) => (
-    <td className="border border-outline-variant px-2 py-1 align-top" {...props} />
-  ),
 }
 
 type PromptMode = 'new' | 'send'
@@ -578,13 +478,6 @@ export function App() {
     setFileReferences((prev) => mergeFileReferences(prev, references))
   }
 
-  function formatPathLiteral(pathLiteral: string) {
-    const longestBacktickRun = Math.max(0, ...Array.from(pathLiteral.matchAll(/`+/g), (match) => match[0].length))
-    const fence = '`'.repeat(longestBacktickRun + 1)
-    const padding = longestBacktickRun > 0 ? ' ' : ''
-    return `${fence}${padding}${pathLiteral}${padding}${fence}`
-  }
-
   function buildPromptWithFileReferences(text: string, references: FileReference[]) {
     const promptText = text.trim()
     if (references.length === 0) return promptText
@@ -594,12 +487,6 @@ export function App() {
       .join('\n')
 
     return `${promptText}\n\nReferenced files:\n${referencedFiles}`
-  }
-
-  function getPromptPathDisplay(reference: FileReference) {
-    return reference.promptPath
-      .replace(/^`+ ?/, '')
-      .replace(/ ?`+$/, '')
   }
 
   function mergeFileReferences(current: FileReference[], incoming: FileReference[]) {
@@ -626,39 +513,6 @@ export function App() {
       isImage: isImagePath(filePath),
       isOutsideWorkspace: !!displayWorkspace && renderedPath !== '.' && !renderedPath.startsWith('./'),
     }
-  }
-
-  function formatFileReferenceLabel(pathLiteral: string) {
-    const parts = normalizePathForCompare(pathLiteral)
-      .split('/')
-      .filter((part) => part.length > 0 && part !== '.')
-    if (parts.length === 0) return pathLiteral
-    return parts[parts.length - 1] ?? pathLiteral
-  }
-
-  function isImagePath(filePath: string) {
-    return /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|tiff?|webp)$/i.test(filePath)
-  }
-
-  function getWorkspaceRelativePath(filePath: string, workspacePath: string): string | null {
-    const normalizedFile = normalizePathForCompare(filePath)
-    const normalizedWorkspace = normalizePathForCompare(workspacePath)
-    const comparableFile = getComparablePath(normalizedFile)
-    const comparableWorkspace = getComparablePath(normalizedWorkspace)
-
-    if (comparableFile === comparableWorkspace) return '.'
-    if (!comparableFile.startsWith(`${comparableWorkspace}/`)) return null
-
-    const relative = normalizedFile.slice(normalizedWorkspace.length + 1)
-    return relative.length > 0 ? `./${relative}` : '.'
-  }
-
-  function normalizePathForCompare(filePath: string) {
-    return filePath.replace(/\\/g, '/').replace(/\/+$/g, '')
-  }
-
-  function getComparablePath(filePath: string) {
-    return /^[A-Za-z]:\//.test(filePath) ? filePath.toLowerCase() : filePath
   }
 
   function isFileDrop(event: React.DragEvent) {
@@ -1059,84 +913,26 @@ export function App() {
   return (
     <div className="h-screen overflow-hidden flex flex-col font-body-sm bg-background text-on-surface select-none relative">
 
-      {/* Header */}
-      <header className="flex items-center pl-[80px] pr-4 w-full bg-surface text-primary border-b border-outline-variant h-12 app-header shrink-0 z-10 relative">
-        <div className="flex items-center gap-2 mr-6 no-drag">
-          <LogoIcon className="h-[22px] w-[22px] shrink-0" />
-          <span className="font-headline text-[16px] text-primary tracking-tight font-semibold">Anvil</span>
-          <span className="text-outline-variant text-[14px]">/</span>
-          <span className="text-on-surface-variant font-semibold text-[12px]">Workbench</span>
-        </div>
-        <div className="flex-grow" />
-        <div className="flex items-center gap-2 no-drag">
-          {(settings || displayWorkspace) && (
-            <span className="bg-[#1c1b1d] border border-outline-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono-code">
-              {displayWorkspace ? `📁 ${truncatePath(displayWorkspace)}${isDraftWorkspace ? ' (draft)' : ''}` : 'no workspace'}
-            </span>
-          )}
-          {settings && (
-            <span className="bg-[#1c1b1d] border border-outline-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono-code">
-              {settings.model}
-            </span>
-          )}
-          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
-            hasAnvil ? 'bg-[#1f3a1f] text-[#6fbf6f]' : 'bg-[#3a1f1f] text-[#ff8080]'
-          }`}>
-            {hasAnvil ? 'connected' : 'disconnected'}
-          </span>
-          {updateSnapshot?.enabled && (
-            <UpdateActionButton
-              snapshot={updateSnapshot}
-              onCheck={checkForUpdates}
-              onDownload={downloadUpdate}
-              onInstall={installUpdate}
-            />
-          )}
-          <button
-            onClick={() => setShowSettings((v) => !v)}
-            className="px-2 py-0.5 text-[10px] font-mono-label bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface-variant cursor-pointer"
-          >
-            ⚙ Settings
-          </button>
-        </div>
-      </header>
+      <Header
+        settings={settings}
+        displayWorkspace={displayWorkspace}
+        isDraftWorkspace={isDraftWorkspace}
+        hasAnvil={hasAnvil}
+        updateSnapshot={updateSnapshot}
+        onCheckUpdate={checkForUpdates}
+        onDownloadUpdate={downloadUpdate}
+        onInstallUpdate={installUpdate}
+        onToggleSettings={() => setShowSettings((v) => !v)}
+      />
 
-      {/* Error Banner */}
       {visibleErrors.length > 0 && (
-        <div className="bg-[#3a1f1f] border-b border-[#5a2f2f] px-4 py-2 flex items-center gap-3 no-drag shrink-0">
-          <AlertCircle size={14} className="text-[#ff8080] shrink-0" />
-          <div className="flex-1 text-[#ffb4ab] text-[12px] font-body-sm truncate">
-            {visibleErrors[visibleErrors.length - 1]}
-          </div>
-          <button
-            onClick={() => setDismissedErrorCount(errors.length)}
-            className="text-[#ff8080] hover:text-[#ffffff] text-[12px] px-2 cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
+        <ErrorBanner
+          message={visibleErrors[visibleErrors.length - 1]}
+          onDismiss={() => setDismissedErrorCount(errors.length)}
+        />
       )}
 
-      {/* Notice Banner */}
-      {notice && (
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className="bg-[#1f2a3a] border-b border-[#2f4a5a] px-4 py-2 flex items-center gap-3 no-drag shrink-0"
-        >
-          <div className="flex-1 text-[#a0c4ff] text-[12px] font-body-sm truncate">
-            {notice}
-          </div>
-          <button
-            onClick={() => setNotice(null)}
-            aria-label="关闭提示"
-            className="text-[#a0c4ff] hover:text-[#ffffff] text-[12px] px-2 cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {notice && <NoticeBanner message={notice} onDismiss={() => setNotice(null)} />}
 
       {/* Settings drawer */}
       {showSettings && (
@@ -1160,698 +956,82 @@ export function App() {
 
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Sidebar — Sessions */}
-        <nav className="flex flex-col bg-surface-container text-primary w-[260px] border-r border-outline-variant shrink-0 z-0 no-drag">
-          <div className="p-3 border-b border-outline-variant flex flex-col gap-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold flex items-center gap-1">
-                <History size={11} /> Sessions ({sessions.length})
-              </span>
-              <button
-                onClick={refreshSessions}
-                className="text-on-surface-variant hover:text-primary p-0.5 cursor-pointer"
-                title="刷新"
-              >
-                <RotateCw size={11} />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
-            {sessions.length === 0 && (
-              <div className="text-on-surface-variant italic text-[11px] p-2">还没有 session</div>
-            )}
-            {sessions.map((s) => (
-              <div
-                key={s.id}
-                onClick={() => openSession(s)}
-                className={`group p-2 cursor-pointer text-[11px] border-l-2 transition-colors flex flex-col gap-0.5 ${
-                  activeSessionId === s.id
-                    ? 'bg-surface-container-high border-primary'
-                    : 'border-transparent hover:bg-surface-container-high'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-on-surface truncate flex-1 font-body-sm font-medium">
-                    {s.title || s.id.slice(0, 12)}
-                  </span>
-                  <button
-                    onClick={(e) => deleteSession(s, e)}
-                    className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-[#ff8080] p-0.5"
-                  >
-                    <Trash2 size={10} />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 font-mono-label text-[9px] text-on-surface-variant">
-                  <span>{s.turnCount}t</span>
-                  <span className={
-                    s.lastStatus === 'failed' ? 'text-[#ff8080]' :
-                    s.lastStatus === 'running' ? 'text-[#4a9eff]' :
-                    'text-[#6fbf6f]'
-                  }>
-                    {s.lastStatus}
-                  </span>
-                  <span>{formatRelative(s.updatedAt)}</span>
-                </div>
-                <div className="font-mono-code text-[9px] text-on-surface-variant truncate">
-                  {formatWorkspaceShort(s.workspacePath)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </nav>
+        <Sidebar
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onRefresh={refreshSessions}
+          onOpenSession={openSession}
+          onDeleteSession={deleteSession}
+        />
 
         {/* Main — Conversation */}
         <main className="flex-1 flex flex-col bg-background overflow-hidden no-drag">
 
-          {/* Conversation scroll */}
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-            {turns.length === 0 && !running && (
-              <div className="text-center text-on-surface-variant italic text-[12px] opacity-75 py-12 flex flex-col items-center gap-2">
-                <FileSearch size={28} />
-                <div>
-                  {pendingWorkspace
-                    ? `Workspace 已就绪：${formatWorkspaceShort(pendingWorkspace)}，请在下方输入指令`
-                    : '点 New 选择 workspace 开始新对话，或从左侧选择历史 session'}
-                </div>
-              </div>
-            )}
-            {turns.map((turn) => {
-              if (turn.status === 'running' && turn.itemIds.length === 0) return null
-              return (
-                <div key={turn.id} className="flex flex-col gap-2.5">
-                  {turn.itemIds.map((id) => {
-                    const item = items[id]
-                    if (!item) return null
-                    return (
-                      <MainItemView
-                        key={id}
-                        item={item}
-                        isSelected={selectedItemId === id}
-                        onSelect={() => setSelectedItemId(id)}
-                      />
-                    )
-                  })}
-                  {turn.status !== 'running' && turn.stats && (
-                    <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
-                      <span className={
-                        turn.status === 'failed' ? 'text-[#ff8080]' : 'text-[#6fbf6f]'
-                      }>{turn.status}</span>
-                      {turn.stats.durationMs && <span>{(turn.stats.durationMs / 1000).toFixed(1)}s</span>}
-                      {turn.stats.outputTokens != null && <span>{turn.stats.outputTokens} out</span>}
-                      {turn.stats.cacheReadTokens != null && turn.stats.cacheReadTokens > 0 && (
-                        <span>cache: {turn.stats.cacheReadTokens}</span>
-                      )}
-                      {turn.stats.costUsd != null && <span>${turn.stats.costUsd.toFixed(4)}</span>}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-            {awaitingFirstItem && (
-              <>
-                {pendingPrompt && <UserEchoCard prompt={pendingPrompt} />}
-                <ThinkingIndicator
-                  hasTurnStarted={turns.length > 0}
-                  anchorRef={loadingAnchorRef}
-                  autoFollow={autoFollow}
-                />
-              </>
-            )}
-            <div ref={conversationEndRef} aria-hidden="true" className="h-px shrink-0" />
-          </div>
+          <Conversation
+            turns={turns}
+            items={items}
+            running={running}
+            pendingWorkspace={pendingWorkspace}
+            pendingPrompt={pendingPrompt}
+            selectedItemId={selectedItemId}
+            autoFollow={autoFollow}
+            awaitingFirstItem={awaitingFirstItem}
+            loadingAnchorRef={loadingAnchorRef}
+            conversationEndRef={conversationEndRef}
+            onSelectItem={setSelectedItemId}
+          />
 
-          {/* Pending Approvals Panel */}
-          {pendingApprovals.length > 0 && (
-            <div className="border-t border-[#f59e0b] bg-[#2a1f0f] p-3 shrink-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield size={14} className="text-[#f59e0b]" />
-                <span className="font-mono-label text-[10px] text-[#f59e0b] uppercase tracking-wider">
-                  Awaiting Approval ({pendingApprovals.length})
-                </span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {pendingApprovals.map((p) => (
-                  <ApprovalCard key={p.approvalId} approval={p} onDecide={decideApproval} />
-                ))}
-              </div>
-            </div>
-          )}
+          <ApprovalsPanel approvals={pendingApprovals} onDecide={decideApproval} />
 
-          {/* Prompt Input */}
-          <div
+          <PromptInput
+            prompt={prompt}
+            trimmedPrompt={trimmedPrompt}
+            promptInputRef={promptInputRef}
+            isFileDragActive={isFileDragActive}
+            running={running}
+            hasRunnableWorkspace={hasRunnableWorkspace}
+            canChooseWorkspace={canChooseWorkspace}
+            canSendPrompt={canSendPrompt}
+            isDraftWorkspace={isDraftWorkspace}
+            displayWorkspace={displayWorkspace}
+            activeSession={activeSession}
+            pendingWorkspace={pendingWorkspace}
+            fileReferences={fileReferences}
+            showFileReferencePaths={showFileReferencePaths}
+            hasFileReferencesWithoutPrompt={hasFileReferencesWithoutPrompt}
+            queuedPrompt={queuedPrompt}
+            queuedFileReferencesCount={queuedFileReferences.length}
+            autoFollow={autoFollow}
+            onPromptChange={setPrompt}
+            onPromptKeyDown={handlePromptKeyDown}
             onDragOver={handlePromptDragOver}
             onDragLeave={handlePromptDragLeave}
             onDrop={handlePromptDrop}
-            className={`p-4 border-t bg-surface-container-lowest flex flex-col gap-2 shrink-0 transition-colors ${
-              isFileDragActive
-                ? 'border-[#4a9eff] bg-[#111827]'
-                : 'border-outline-variant'
-            }`}
-          >
-            <div className="flex items-center gap-2 text-[10px] font-mono-label text-on-surface-variant">
-              <FolderOpen size={12} className={displayWorkspace ? 'text-[#a0c4ff]' : 'text-on-surface-variant'} />
-              <span className="uppercase shrink-0">
-                {activeSession ? 'session workspace' : pendingWorkspace ? 'draft workspace' : 'workspace'}
-              </span>
-              <span className="font-mono-code truncate flex-1">
-                {displayWorkspace ? formatWorkspaceShort(displayWorkspace) : 'none selected'}
-              </span>
-              {isDraftWorkspace && !running && (
-                <button
-                  onClick={runChangeDraftWorkspace}
-                  className="text-[10px] font-mono-label text-[#a0c4ff] hover:text-primary cursor-pointer px-2"
-                >
-                  更改
-                </button>
-              )}
-            </div>
-            {isFileDragActive && (
-              <div className="border border-[#4a9eff]/50 bg-[#1f2a3a] px-3 py-2 text-[11px] font-mono-code text-[#a0c4ff]">
-                {running ? '松开后添加到草稿引用（不会自动发送）' : '松开后添加文件引用'}
-              </div>
-            )}
-            {fileReferences.length > 0 && (
-              <div className="flex flex-col gap-2 border border-outline-variant bg-surface-container px-3 py-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono-label text-[10px] text-on-surface-variant uppercase tracking-wider">
-                    引用
-                  </span>
-                  {fileReferences.map((reference) => {
-                    const Icon = reference.isImage ? ImageIcon : FileIcon
-                    return (
-                      <span
-                        key={reference.path}
-                        title={reference.path}
-                        className="inline-flex max-w-full items-center gap-1.5 border border-[#4a9eff]/35 bg-[#1f2a3a] px-2 py-1 text-[11px] text-[#d8e7ff]"
-                      >
-                        <Icon size={12} className={reference.isImage ? 'text-[#b7a7ff]' : 'text-[#a0c4ff]'} />
-                        <span className="font-mono-code truncate max-w-[140px]">
-                          {reference.label}
-                        </span>
-                        {reference.isOutsideWorkspace && (
-                          <span className="font-mono-label text-[9px] text-[#f59e0b]">
-                            外部
-                          </span>
-                        )}
-                        <button
-                          onClick={() => removeFileReference(reference.path)}
-                          className="text-on-surface-variant hover:text-[#ffffff] cursor-pointer"
-                          aria-label={`移除文件引用 ${reference.label}`}
-                          title="移除"
-                        >
-                          <X size={11} />
-                        </button>
-                      </span>
-                    )
-                  })}
-                  <button
-                    onClick={() => setShowFileReferencePaths((open) => !open)}
-                    className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono-label text-on-surface-variant hover:text-primary cursor-pointer"
-                    aria-expanded={showFileReferencePaths}
-                    title={showFileReferencePaths ? '收起完整路径' : '查看完整路径'}
-                  >
-                    {showFileReferencePaths ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    路径
-                  </button>
-                </div>
-                {showFileReferencePaths && (
-                  <div className="border-t border-outline-variant pt-2 flex flex-col gap-1">
-                    {fileReferences.map((reference, index) => {
-                      const promptPathDisplay = getPromptPathDisplay(reference)
-                      return (
-                        <div key={reference.path} className="grid grid-cols-[24px_1fr] gap-2 text-[11px]">
-                          <span className="font-mono-label text-[#7fb2f0] text-right">
-                            {index + 1}
-                          </span>
-                          <div className="font-mono-code text-on-surface-variant break-all">
-                            <div>
-                              {promptPathDisplay}
-                            </div>
-                            {reference.path !== promptPathDisplay && (
-                              <div className="text-[10px] opacity-70">
-                                本地路径：{reference.path}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-                {hasFileReferencesWithoutPrompt && (
-                  <div className="border-t border-outline-variant pt-2 text-[11px] font-mono-code text-on-surface-variant">
-                    请先输入指令，再发送这些文件引用
-                  </div>
-                )}
-              </div>
-            )}
-            {queuedPrompt && (
-              <div className="border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex items-center gap-2">
-                <span className="font-mono-label text-[10px] text-[#4a9eff] uppercase tracking-wider shrink-0">
-                  📩 Queued next
-                </span>
-                <div className="flex-1 text-[12px] text-on-surface truncate font-mono-code">
-                  {queuedPrompt}
-                </div>
-                {queuedFileReferences.length > 0 && (
-                  <span className="font-mono-label text-[10px] text-[#a0c4ff] shrink-0">
-                    +{queuedFileReferences.length} refs
-                  </span>
-                )}
-                <button
-                  onClick={editQueued}
-                  className="text-[10px] font-mono-label text-on-surface-variant hover:text-primary cursor-pointer px-2"
-                >
-                  编辑
-                </button>
-                <button
-                  onClick={clearQueued}
-                  className="text-[10px] font-mono-label text-[#ff8080] hover:text-[#ffffff] cursor-pointer px-2"
-                  aria-label="取消排队消息"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-            <textarea
-              ref={promptInputRef}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={handlePromptKeyDown}
-              className="w-full bg-background border border-outline-variant text-on-surface text-[12px] p-2 focus:border-primary focus:outline-none resize-none font-mono-code leading-normal"
-              rows={3}
-              placeholder={
-                running
-                  ? queuedPrompt
-                    ? '输入并回车将替换已排队消息...'
-                    : '运行中，输入并回车将在当前任务结束后自动发送...'
-                  : hasRunnableWorkspace
-                    ? '输入指令...'
-                    : '先点 New 选择 workspace 目录...'
-              }
-            />
-            <div className="flex justify-between items-center gap-2">
-              <label className="flex items-center gap-1.5 font-mono-label text-[10px] text-on-surface-variant cursor-pointer">
-                <input type="checkbox" checked={autoFollow} onChange={(e) => setAutoFollow(e.target.checked)} />
-                auto-follow
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={isDraftWorkspace ? runChangeDraftWorkspace : runNew}
-                  disabled={!canChooseWorkspace}
-                  className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed border border-outline-variant text-on-surface text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  {isDraftWorkspace ? (
-                    <>
-                      <FolderOpen size={11} /> 更改目录
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={11} /> New
-                    </>
-                  )}
-                </button>
-                {running ? (
-                  <>
-                    {trimmedPrompt.length > 0 && (
-                      <button
-                        onClick={enqueueNext}
-                        className="px-3 py-1.5 bg-[#1f2a3a] hover:bg-[#2f4a5a] border border-[#4a9eff]/40 text-[#a0c4ff] text-[11px] font-mono-label transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        {queuedPrompt ? 'Replace queue' : 'Queue next'}
-                      </button>
-                    )}
-                    <button
-                      onClick={cancelRun}
-                      className="px-4 py-1.5 bg-[#3a1f1f] hover:bg-[#5a2f2f] text-[#ff8080] font-semibold text-[11px] transition-colors cursor-pointer"
-                    >
-                      取消
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={runSend}
-                    disabled={!canSendPrompt}
-                    className="px-4 py-1.5 bg-[#ffffff] hover:bg-zinc-200 disabled:bg-[#252527] disabled:text-[#666668] disabled:cursor-not-allowed text-[#000000] font-semibold text-[11px] transition-colors cursor-pointer"
-                  >
-                    发送
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+            onRemoveFileReference={removeFileReference}
+            onToggleFileReferencePaths={() => setShowFileReferencePaths((open) => !open)}
+            onEditQueued={editQueued}
+            onClearQueued={clearQueued}
+            onAutoFollowChange={setAutoFollow}
+            onNew={runNew}
+            onChangeDraftWorkspace={runChangeDraftWorkspace}
+            onSend={runSend}
+            onEnqueueNext={enqueueNext}
+            onCancel={cancelRun}
+          />
         </main>
 
-        {/* Inspector */}
-        <aside className="w-[400px] border-l border-outline-variant bg-[#0d0d0f] overflow-hidden no-drag flex flex-col">
-          {selectedItem ? (
-            <Inspector item={selectedItem} />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant italic text-[11px] opacity-75 p-4 text-center">
-              <FileSearch size={24} className="mb-2 opacity-40" />
-              点击左侧 conversation item 查看详情
-            </div>
-          )}
-        </aside>
+        <InspectorPanel item={selectedItem} />
       </div>
 
-      <footer className="flex justify-between items-center px-4 w-full bg-surface-container-lowest text-on-surface-variant font-mono-code text-[10px] h-8 border-t border-outline-variant shrink-0 z-10 relative">
-        <div className="flex gap-4">
-          <span className="uppercase">session: {sessionId?.slice(0, 8) || 'none'}</span>
-          {turns.length > 0 && turns[turns.length - 1].stats && (
-            <>
-              <span className="uppercase">tokens: {turns[turns.length - 1].stats?.outputTokens || 0}</span>
-              <span className="uppercase">latency: {turns[turns.length - 1].stats?.durationMs ? `${turns[turns.length - 1].stats?.durationMs}ms` : '-'}</span>
-            </>
-          )}
-        </div>
-        <div className="flex gap-4 items-center">
-          <button onClick={() => setShowDebug(!showDebug)} className="hover:text-primary cursor-pointer uppercase">
-            {showDebug ? '隐藏' : '显示'} debug ({rawEvents.length})
-          </button>
-          <span>v0.0.3 · dev</span>
-        </div>
-      </footer>
-
-      {showDebug && (
-        <div className="absolute right-4 bottom-12 w-[320px] max-h-[300px] bg-surface-container-lowest border border-outline-variant p-4 z-50 overflow-y-auto shadow-lg rounded">
-          <div className="flex justify-between items-center border-b border-outline-variant pb-2 mb-2">
-            <span className="font-mono-label text-[10px] text-primary uppercase">Raw Events ({rawEvents.length})</span>
-            <button onClick={() => setShowDebug(false)} className="text-on-surface-variant hover:text-primary">✕</button>
-          </div>
-          <pre className="font-mono-code text-[10px] text-outline-variant leading-relaxed">
-            {rawEvents.map((e, i) => `${i}: ${e.event.type}\n`).join('') || 'No events.'}
-          </pre>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function UserEchoCard({ prompt }: { prompt: string }) {
-  return (
-    <div className="font-mono-code text-[13px] text-on-surface flex gap-2 py-1 px-1 leading-relaxed">
-      <span className="text-[#6fbf6f] shrink-0">&gt;</span>
-      <span className="whitespace-pre-wrap break-words flex-1">{prompt}</span>
-    </div>
-  )
-}
-
-const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-const THINKING_VERBS = ['Thinking', 'Pondering', 'Reasoning', 'Computing']
-
-function ThinkingIndicator({
-  hasTurnStarted,
-  anchorRef,
-  autoFollow,
-}: {
-  hasTurnStarted: boolean
-  anchorRef: React.RefObject<HTMLDivElement | null>
-  autoFollow: boolean
-}) {
-  const [frame, setFrame] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
-  const [verbIndex, setVerbIndex] = useState(() => Math.floor(Math.random() * THINKING_VERBS.length))
-  const startRef = useRef(Date.now())
-
-  useEffect(() => {
-    startRef.current = Date.now()
-    setElapsed(0)
-  }, [hasTurnStarted])
-
-  useEffect(() => {
-    const spinnerTimer = setInterval(() => {
-      setFrame((f) => (f + 1) % SPINNER_FRAMES.length)
-    }, 80)
-    const elapsedTimer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
-    }, 1000)
-    const verbTimer = setInterval(() => {
-      setVerbIndex((i) => (i + 1) % THINKING_VERBS.length)
-    }, 9000)
-    return () => {
-      clearInterval(spinnerTimer)
-      clearInterval(elapsedTimer)
-      clearInterval(verbTimer)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (autoFollow && anchorRef.current) {
-      anchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    }
-  }, [autoFollow, hasTurnStarted, anchorRef])
-
-  const warnAt = hasTurnStarted ? 20 : 10
-  const dangerAt = hasTurnStarted ? 28 : 14
-  const elapsedColor =
-    elapsed >= dangerAt ? 'text-[#ff8080]' :
-    elapsed >= warnAt ? 'text-[#f59e0b]' :
-    'text-on-surface-variant opacity-70'
-
-  const phaseColor = hasTurnStarted ? 'text-[#e5e1e4]' : 'text-[#8e9192]'
-  const spinnerColor = hasTurnStarted ? 'text-[#4a9eff]' : 'text-[#8e9192]'
-  const label = hasTurnStarted ? THINKING_VERBS[verbIndex] : 'Connecting'
-
-  return (
-    <div
-      ref={anchorRef}
-      role="status"
-      aria-live="polite"
-      aria-atomic="false"
-      className="font-mono-code text-[13px] flex items-center gap-2 py-1 px-1 leading-relaxed"
-    >
-      <span aria-hidden="true" className={`${spinnerColor} text-[15px] w-4 inline-block`}>
-        {SPINNER_FRAMES[frame]}
-      </span>
-      <span className={phaseColor}>{label}…</span>
-      <span aria-hidden="true" className={`${elapsedColor} text-[11px]`}>
-        ({elapsed}s · Esc 或点击「取消」中断)
-      </span>
-    </div>
-  )
-}
-
-function MainItemView({ item, isSelected, onSelect }: { item: Item; isSelected: boolean; onSelect: () => void }) {
-  const baseClass = `p-3 border cursor-pointer transition-colors ${isSelected ? 'border-primary' : 'border-outline-variant hover:border-outline'}`
-
-  if (item.kind === 'text') {
-    return (
-      <div onClick={onSelect} className={`${baseClass} bg-surface-container-low`}>
-        <div className="font-mono-label text-[9px] text-on-surface-variant uppercase mb-1.5 tracking-wider">
-          {item.role === 'assistant' ? 'Assistant' : item.role}
-        </div>
-        <MarkdownText text={item.text || '...'} />
-      </div>
-    )
-  }
-
-  if (item.kind === 'thinking') {
-    return (
-      <details onClick={onSelect} className={`${baseClass} bg-surface-container-low`}>
-        <summary className="font-mono-label text-[9px] text-on-surface-variant uppercase cursor-pointer">
-          Thinking ({item.text.length} chars)
-        </summary>
-        <div className="text-on-surface-variant text-[12px] mt-2 italic whitespace-pre-wrap">{item.text}</div>
-      </details>
-    )
-  }
-
-  if (item.kind === 'tool_use') {
-    const decisionLabel =
-      item.approvalDecision === 'allow' ? '✓ allowed' :
-      item.approvalDecision === 'deny' ? '✕ denied' :
-      item.approvalId ? '⏳ awaiting approval' : null
-
-    return (
-      <div onClick={onSelect} className={`${baseClass} bg-surface-container-low`}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono-label text-[9px] text-[#f59e0b] uppercase tracking-wider">🔧 {item.toolName}</span>
-          {item.approvalRisk && (
-            <span className={`text-[9px] font-mono-label uppercase ${
-              item.approvalRisk === 'high' ? 'text-[#ff8080]' :
-              item.approvalRisk === 'medium' ? 'text-[#f59e0b]' :
-              'text-on-surface-variant'
-            }`}>{item.approvalRisk} risk</span>
-          )}
-          {decisionLabel && (
-            <span className={`text-[9px] font-mono-label uppercase ${
-              item.approvalDecision === 'deny' ? 'text-[#ff8080]' :
-              item.approvalDecision === 'allow' ? 'text-[#6fbf6f]' :
-              'text-[#f59e0b]'
-            }`}>{decisionLabel}</span>
-          )}
-          {item.toolOutput == null && (
-            <span className="text-[9px] font-mono-label text-[#4a9eff] uppercase">running</span>
-          )}
-          {item.toolIsError && (
-            <span className="text-[9px] font-mono-label text-[#ff8080] uppercase">error</span>
-          )}
-        </div>
-        <div className="font-mono-code text-[11px] text-on-surface-variant truncate">
-          {typeof item.toolInput === 'string' ? item.toolInput : JSON.stringify(item.toolInput || {}).slice(0, 200)}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div onClick={onSelect} className={`${baseClass} bg-surface-container-low opacity-75`}>
-      <div className="font-mono-label text-[9px] text-on-surface-variant uppercase">{item.role} · {item.kind}</div>
-      <div className="text-on-surface text-[11px] whitespace-pre-wrap">{item.text}</div>
-    </div>
-  )
-}
-
-function MarkdownText({ text }: { text: string }) {
-  return (
-    <div className="text-on-surface text-[13px] leading-relaxed break-words">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
-        components={markdownComponents}
-      >
-        {text}
-      </ReactMarkdown>
-    </div>
-  )
-}
-
-function Inspector({ item }: { item: Item }) {
-  return (
-    <>
-      <div className="flex items-center px-4 py-2 border-b border-outline-variant bg-surface-container-low shrink-0">
-        <span className="font-mono-code text-[11px] text-on-surface-variant uppercase flex-1">
-          Inspector: {item.kind === 'tool_use' ? item.toolName : item.kind}
-        </span>
-        <button
-          onClick={() => navigator.clipboard.writeText(JSON.stringify(item, null, 2))}
-          className="px-3 py-1 text-[10px] font-mono-label bg-surface border border-outline-variant text-on-surface hover:text-primary cursor-pointer"
-        >
-          复制 JSON
-        </button>
-      </div>
-      <div className="flex-1 overflow-auto p-4 font-mono-code text-[11px] leading-relaxed text-[#ccc]">
-        <pre className="whitespace-pre-wrap">
-          {JSON.stringify(item, null, 2)}
-        </pre>
-      </div>
-    </>
-  )
-}
-
-function ApprovalCard({ approval, onDecide }: { approval: PendingApproval; onDecide: (id: string, d: 'allow' | 'deny') => void }) {
-  const riskColor =
-    approval.risk === 'high' ? 'text-[#ff8080]' :
-    approval.risk === 'medium' ? 'text-[#f59e0b]' :
-    'text-on-surface-variant'
-
-  return (
-    <div className="bg-surface-container border border-outline-variant p-2.5 flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span className="font-mono-label text-[10px] text-on-surface uppercase">{approval.toolName}</span>
-        <span className={`font-mono-label text-[9px] uppercase ${riskColor}`}>{approval.risk} risk</span>
-      </div>
-      <pre className="font-mono-code text-[10px] text-on-surface-variant max-h-32 overflow-auto bg-[#0d0d0f] p-2 rounded">
-        {typeof approval.input === 'string' ? approval.input : JSON.stringify(approval.input, null, 2).slice(0, 400)}
-      </pre>
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={() => onDecide(approval.approvalId, 'deny')}
-          className="px-3 py-1 bg-[#3a1f1f] hover:bg-[#5a2f2f] text-[#ff8080] text-[10px] font-mono-label cursor-pointer"
-        >
-          Deny
-        </button>
-        <button
-          onClick={() => onDecide(approval.approvalId, 'allow')}
-          className="px-3 py-1 bg-[#1f3a1f] hover:bg-[#2f5a2f] text-[#6fbf6f] text-[10px] font-mono-label cursor-pointer"
-        >
-          Allow once
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function SettingsDrawer(props: {
-  settings: PublicSettings | null
-  draftBaseUrl: string
-  draftKey: string
-  draftModel: string
-  draftStitchProjectId: string
-  draftWorkspacePath: string
-  saved: boolean
-  onChangeBaseUrl: (v: string) => void
-  onChangeKey: (v: string) => void
-  onChangeModel: (v: string) => void
-  onChangeStitch: (v: string) => void
-  onChangeWorkspace: (v: string) => void
-  onSave: () => void
-  onClose: () => void
-}) {
-  return (
-    <div className="bg-surface-container border-b border-outline-variant px-4 py-3 grid gap-2 shrink-0 no-drag">
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-headline text-[12px] font-semibold text-primary">Settings</span>
-        <button onClick={props.onClose} className="text-on-surface-variant hover:text-primary text-[12px]">✕</button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <SettingField label="Default Workspace Path" value={props.draftWorkspacePath} placeholder="/path/to/project" onChange={props.onChangeWorkspace} />
-        <SettingField label="Base URL" value={props.draftBaseUrl} placeholder="https://..." onChange={props.onChangeBaseUrl} />
-        <SettingField
-          label="API Key"
-          value={props.draftKey}
-          type="password"
-          placeholder={props.settings?.hasApiKey ? '已配置 (保持不变)' : 'sk-... 或 tp-...'}
-          onChange={props.onChangeKey}
-        />
-        <SettingField label="Model" value={props.draftModel} placeholder="mimo-v2.5-pro" onChange={props.onChangeModel} />
-        <SettingField label="Stitch Project ID" value={props.draftStitchProjectId} placeholder="（可选）" onChange={props.onChangeStitch} />
-      </div>
-      <button onClick={props.onSave} className="self-end px-4 py-1 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface font-mono-label text-[11px] cursor-pointer">
-        {props.saved ? '✅ 已保存' : '保存配置'}
-      </button>
-    </div>
-  )
-}
-
-function SettingField({ label, value, onChange, placeholder, type }: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  type?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="font-mono-label text-[9px] text-on-surface-variant uppercase">{label}</span>
-      <input
-        type={type ?? 'text'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="bg-background border border-outline-variant text-on-surface font-mono-code text-[11px] px-2 py-1 focus:border-primary focus:outline-none"
+      <Footer
+        sessionId={sessionId}
+        lastTurn={turns[turns.length - 1]}
+        showDebug={showDebug}
+        rawEventsCount={rawEvents.length}
+        onToggleDebug={() => setShowDebug(!showDebug)}
       />
-    </label>
+
+      {showDebug && <DebugPanel rawEvents={rawEvents} onClose={() => setShowDebug(false)} />}
+    </div>
   )
-}
-
-function truncatePath(p: string): string {
-  if (p.length < 30) return p
-  return formatWorkspaceShort(p)
-}
-
-function formatWorkspaceShort(p: string): string {
-  const parts = p.split(/[\\/]+/).filter(Boolean)
-  if (parts.length <= 2) return p
-  return `…/${parts.slice(-2).join('/')}`
-}
-
-function formatRelative(iso: string): string {
-  const date = new Date(iso)
-  const diffMin = Math.floor((Date.now() - date.getTime()) / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  if (diffMin < 1440) return `${Math.floor(diffMin / 60)}h ago`
-  return date.toLocaleDateString()
 }
