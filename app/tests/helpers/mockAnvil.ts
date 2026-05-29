@@ -27,6 +27,7 @@ export type MockAnvilOptions = {
   queryResult?: { ok: boolean; sessionId?: string | null; error?: string }
   queryDelayMs?: number
   filePathsForDrop?: string[]
+  sessionEvents?: unknown[]
 }
 
 declare global {
@@ -87,7 +88,7 @@ export async function setupMockAnvil(page: Page, options: MockAnvilOptions = {})
         },
         events: async (sessionId: string) => {
           record('sessions:events', sessionId)
-          return []
+          return opts.sessionEvents ?? []
         },
         delete: async (sessionId: string) => {
           record('sessions:delete', sessionId)

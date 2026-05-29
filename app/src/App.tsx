@@ -743,6 +743,10 @@ export function App() {
     setActiveSessionId(s.id)
     const events = await window.anvil.sessions.events(s.id)
     loadFromEvents(events)
+    // Replayed history may contain past error events; mark them as already
+    // seen so a stale error (e.g. an old timeout) doesn't pop the top banner
+    // as if it just happened. New errors after the switch still surface.
+    setDismissedErrorCount(useAgentStore.getState().errors.length)
     setSelectedItemId(null)
   }
 
