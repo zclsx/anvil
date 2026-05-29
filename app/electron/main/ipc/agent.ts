@@ -21,11 +21,14 @@ import { toolRisk } from '../query/toolRisk'
 import type { MainRuntimeContext } from '../runtimeContext'
 
 const READ_DOCUMENT_TOOL_NAME = 'mcp__anvil__read_document'
+const GET_DOCUMENT_SKILL_TOOL_NAME = 'mcp__anvil__get_document_skill'
 const OFFICE_DOCUMENT_GUIDANCE =
   'When the user references Microsoft Office documents (.docx Word or .xlsx Excel files) by path, ' +
   'read their contents using the read_document tool from the "anvil" MCP server. ' +
-  'When the user asks you to generate or export a Word document, use the create_docx tool ' +
-  'from the "anvil" MCP server. ' +
+  'When the user asks you to generate or export a plain Word document, use the create_docx tool. ' +
+  'When the user wants a formal/report document, a PRD, meeting notes, or asks to follow a document ' +
+  'skill/template (e.g. "default-report"), first call get_document_skill to read its writing rules, ' +
+  'then call create_docx_from_skill with markdown that follows those rules. ' +
   'Do NOT use Bash, python, pip, or pandoc to parse or produce Office documents.'
 
 export function registerAgentIpc(ipcMain: IpcMain, ctx: MainRuntimeContext): void {
@@ -54,6 +57,7 @@ export function registerAgentIpc(ipcMain: IpcMain, ctx: MainRuntimeContext): voi
 async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   const { query, createSdkMcpServer } = await import('@anthropic-ai/claude-agent-sdk')
   const { createReadDocumentTool, createWriteDocumentTool } = await import('../query/documentTool')
+  const { createGetDocumentSkillTool, createWriteFromSkillTool } = await import('../query/documentSkillTool')
   const settings = getSettings()
   const workspacePath = resolveQueryWorkspace(req)
 
@@ -172,7 +176,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
     cwd: workspacePath,
     abortController,
     canUseTool: async (toolName: string, input: any) => {
-      if (toolName === READ_DOCUMENT_TOOL_NAME) {
+      if (toolName === READ_DOCUMENT_TOOL_NAME || toolName === GET_DOCUMENT_SKILL_TOOL_NAME) {
         return { behavior: 'allow', updatedInput: input }
       }
       const approvalId = randomUUID()
@@ -238,6 +242,8 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
       tools: [
         createReadDocumentTool(() => workspacePath, () => referencedPaths),
         createWriteDocumentTool(() => workspacePath),
+        createGetDocumentSkillTool(() => workspacePath),
+        createWriteFromSkillTool(() => workspacePath),
       ],
       alwaysLoad: true,
     }),

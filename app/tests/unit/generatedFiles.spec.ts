@@ -63,4 +63,11 @@ test.describe('getGeneratedDocxPath', () => {
       getGeneratedDocxPath({ toolName: 'mcp__anvil__create_docx', toolOutput: [{ type: 'text', text: 'done' }], toolIsError: false }),
     ).toBeNull()
   })
+
+  test('also recognizes create_docx_from_skill output', () => {
+    const out = [{ type: 'text', text: '已生成 Word 文档：/ws/report.docx\n使用文档 skill：default-report\n包含 4 个内容块。' }]
+    expect(
+      getGeneratedDocxPath({ toolName: 'mcp__anvil__create_docx_from_skill', toolOutput: out, toolIsError: false }),
+    ).toBe('/ws/report.docx')
+  })
 })

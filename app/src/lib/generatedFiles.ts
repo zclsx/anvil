@@ -1,6 +1,9 @@
 import type { Item } from '../store'
 
-const CREATE_DOCX_TOOL_NAME = 'mcp__anvil__create_docx'
+const CREATE_DOCX_TOOL_NAMES = new Set([
+  'mcp__anvil__create_docx',
+  'mcp__anvil__create_docx_from_skill',
+])
 
 function toolOutputToText(toolOutput: unknown): string {
   if (typeof toolOutput === 'string') return toolOutput
@@ -43,7 +46,7 @@ export function parseCreatedDocxPath(toolOutput: unknown): string | null {
 export function getGeneratedDocxPath(
   item: Pick<Item, 'toolName' | 'toolOutput' | 'toolIsError'>,
 ): string | null {
-  if (item.toolName !== CREATE_DOCX_TOOL_NAME) return null
+  if (!item.toolName || !CREATE_DOCX_TOOL_NAMES.has(item.toolName)) return null
   if (item.toolIsError === true) return null
   return parseCreatedDocxPath(item.toolOutput)
 }

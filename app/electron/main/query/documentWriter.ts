@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import type { DocxStyleOptions } from './documentSkill'
 
 export interface InlineRun {
   text: string
@@ -158,7 +159,7 @@ export async function generateDocx(
   absPath: string,
   markdown: string,
   title?: string,
-  options?: { overwrite?: boolean },
+  options?: { overwrite?: boolean; style?: DocxStyleOptions },
 ): Promise<number> {
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx')
 
@@ -195,7 +196,7 @@ export async function generateDocx(
   }
   for (const block of blocks) children.push(toParagraph(block))
 
-  const doc = new Document({
+  const docOptions: Record<string, unknown> = {
     numbering: {
       config: [
         {
@@ -205,7 +206,32 @@ export async function generateDocx(
       ],
     },
     sections: [{ children }],
-  })
+  }
+
+  const style = options?.style
+  if (style) {
+    const ptToHalf = (pt?: number) => (typeof pt === 'number' ? Math.round(pt * 2) : undefined)
+    const headingStyle = (pt?: number) => {
+      const size = ptToHalf(pt)
+      return size ? { run: { size, bold: true } } : undefined
+    }
+    docOptions.styles = {
+      default: {
+        document: {
+          run: { font: style.font, size: ptToHalf(style.bodySize) },
+          paragraph:
+            style.paragraphSpacingAfter != null
+              ? { spacing: { after: style.paragraphSpacingAfter } }
+              : undefined,
+        },
+        heading1: headingStyle(style.heading1Size),
+        heading2: headingStyle(style.heading2Size),
+        heading3: headingStyle(style.heading3Size),
+      },
+    }
+  }
+
+  const doc = new Document(docOptions as ConstructorParameters<typeof Document>[0])
 
   const buffer = await Packer.toBuffer(doc)
   await fs.mkdir(path.dirname(absPath), { recursive: true })
