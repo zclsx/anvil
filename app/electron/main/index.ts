@@ -12,6 +12,7 @@ import { registerSessionsIpc } from './ipc/sessions'
 import { registerDialogIpc } from './ipc/dialog'
 import { registerApprovalIpc } from './ipc/approval'
 import { registerAgentIpc } from './ipc/agent'
+import { registerFilesIpc } from './ipc/files'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
@@ -33,6 +34,7 @@ registerSessionsIpc(ipcMain)
 registerDialogIpc(ipcMain, ctx)
 registerApprovalIpc(ipcMain, ctx)
 registerAgentIpc(ipcMain, ctx)
+registerFilesIpc(ipcMain)
 
 app.whenReady().then(() => {
   if (process.platform !== 'darwin') {

@@ -94,6 +94,8 @@ declare global {
       }
       files: {
         getPaths: (files: File[]) => string[]
+        openPath: (filePath: string) => Promise<{ ok: boolean; error?: string }>
+        showInFolder: (filePath: string) => Promise<{ ok: boolean; error?: string }>
       }
       onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => () => void
     }
@@ -866,6 +868,7 @@ export function App() {
             loadingAnchorRef={loadingAnchorRef}
             conversationEndRef={conversationEndRef}
             onSelectItem={setSelectedItemId}
+            displayWorkspace={displayWorkspace}
           />
 
           <ApprovalsPanel approvals={pendingApprovals} onDecide={decideApproval} />

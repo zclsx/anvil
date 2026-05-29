@@ -155,6 +155,14 @@ export async function setupMockAnvil(page: Page, options: MockAnvilOptions = {})
           record('files:getPaths', null)
           return opts.filePathsForDrop ?? []
         },
+        openPath: async (filePath: string) => {
+          record('files:openPath', filePath)
+          return { ok: true }
+        },
+        showInFolder: async (filePath: string) => {
+          record('files:showInFolder', filePath)
+          return { ok: true }
+        },
       },
       onAgentEvent: (callback: (envelope: unknown) => void) => {
         listeners.push(callback)

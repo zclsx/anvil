@@ -17,6 +17,7 @@ export function Conversation({
   loadingAnchorRef,
   conversationEndRef,
   onSelectItem,
+  displayWorkspace,
 }: {
   turns: Turn[]
   items: Record<string, Item>
@@ -29,6 +30,7 @@ export function Conversation({
   loadingAnchorRef: React.RefObject<HTMLDivElement | null>
   conversationEndRef: React.RefObject<HTMLDivElement | null>
   onSelectItem: (id: string) => void
+  displayWorkspace?: string
 }) {
   return (
     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
@@ -55,6 +57,7 @@ export function Conversation({
                   item={item}
                   isSelected={selectedItemId === id}
                   onSelect={() => onSelectItem(id)}
+                  workspacePath={displayWorkspace}
                 />
               )
             })}

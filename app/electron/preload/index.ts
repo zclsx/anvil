@@ -67,6 +67,10 @@ const anvil = {
   files: {
     getPaths: (files: File[]): string[] =>
       files.map((file) => webUtils.getPathForFile(file)),
+    openPath: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('files:open-path', filePath),
+    showInFolder: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('files:show-in-folder', filePath),
   },
 
   onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => {

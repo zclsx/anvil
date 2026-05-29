@@ -1,14 +1,18 @@
 import type { Item } from '../../store'
 import { MarkdownText } from './MarkdownText'
+import { GeneratedFileChip } from './GeneratedFileChip'
+import { getGeneratedDocxPath } from '../../lib/generatedFiles'
 
 export function MainItemView({
   item,
   isSelected,
   onSelect,
+  workspacePath,
 }: {
   item: Item
   isSelected: boolean
   onSelect: () => void
+  workspacePath?: string
 }) {
   const baseClass = `p-3 border cursor-pointer transition-colors ${isSelected ? 'border-primary' : 'border-outline-variant hover:border-outline'}`
 
@@ -40,6 +44,8 @@ export function MainItemView({
       item.approvalDecision === 'deny' ? '✕ denied' :
       item.approvalId ? '⏳ awaiting approval' : null
 
+    const generatedDocxPath = getGeneratedDocxPath(item)
+
     return (
       <div onClick={onSelect} className={`${baseClass} bg-surface-container-low`}>
         <div className="flex items-center gap-2 mb-1">
@@ -68,6 +74,9 @@ export function MainItemView({
         <div className="font-mono-code text-[11px] text-on-surface-variant truncate">
           {typeof item.toolInput === 'string' ? item.toolInput : JSON.stringify(item.toolInput || {}).slice(0, 200)}
         </div>
+        {generatedDocxPath && (
+          <GeneratedFileChip absPath={generatedDocxPath} workspacePath={workspacePath} />
+        )}
       </div>
     )
   }
