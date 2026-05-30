@@ -8,6 +8,7 @@ import {
   loadSkill,
   parseSkill,
   listAvailableSkillNames,
+  DEFAULT_DOCX_STYLE,
 } from '../../electron/main/query/documentSkill'
 import { generateDocx } from '../../electron/main/query/documentWriter'
 import { extractDocumentText } from '../../electron/main/query/documentReader'
@@ -31,7 +32,48 @@ test.describe('parseSkill', () => {
   test('parses purpose, rules, and style', () => {
     const skill = parseSkill(
       'x',
-      `# x\n\n## Purpose\n正式报告\n\n## Writing Rules\n- 用正式书面语\n- 标题最多三级\n\n## Document Style\nfont: Microsoft YaHei\nbodySize: 11\nheading1Size: 18\nparagraphSpacingAfter: 120\n`,
+      [
+        '# x',
+        '',
+        '## Purpose',
+        '正式报告',
+        '',
+        '## Writing Rules',
+        '- 用正式书面语',
+        '- 标题最多三级',
+        '',
+        '## Document Style',
+        'font: Microsoft YaHei',
+        'bodySize: 11',
+        'heading1Size: 18',
+        'heading2Size: 15',
+        'heading3Size: 13',
+        'pageMarginTop: 72pt',
+        'pageMarginRight: 72',
+        'pageMarginBottom: 72pt',
+        'pageMarginLeft: 72',
+        'lineSpacing: 1.15',
+        'paragraphSpacingBefore: 0',
+        'paragraphSpacingAfter: 6pt',
+        'firstLineIndent: 22pt',
+        'alignment: justify',
+        'titleSize: 22',
+        'titleBold: true',
+        'titleAlignment: center',
+        'titleSpacingAfter: 12pt',
+        'heading1SpacingBefore: 12pt',
+        'heading1SpacingAfter: 6pt',
+        'heading2SpacingBefore: 12pt',
+        'heading2SpacingAfter: 6pt',
+        'heading3SpacingBefore: 12pt',
+        'heading3SpacingAfter: 6pt',
+        'tableBorderColor: b8c2d6',
+        'tableBorderSize: 1',
+        'tableCellPadding: 6pt',
+        'tableHeaderShading: eef4ff',
+        'tableHeaderBold: true',
+        'tableWidth: 100',
+      ].join('\n'),
     )
     expect(skill.purpose).toContain('正式报告')
     expect(skill.writingRules).toEqual(['用正式书面语', '标题最多三级'])
@@ -39,15 +81,61 @@ test.describe('parseSkill', () => {
       font: 'Microsoft YaHei',
       bodySize: 11,
       heading1Size: 18,
-      paragraphSpacingAfter: 120,
+      heading2Size: 15,
+      heading3Size: 13,
+      pageMarginTop: 72,
+      pageMarginRight: 72,
+      pageMarginBottom: 72,
+      pageMarginLeft: 72,
+      lineSpacing: 1.15,
+      paragraphSpacingBefore: 0,
+      paragraphSpacingAfter: 6,
+      firstLineIndent: 22,
+      alignment: 'justify',
+      titleSize: 22,
+      titleBold: true,
+      titleAlignment: 'center',
+      titleSpacingAfter: 12,
+      heading1SpacingBefore: 12,
+      heading1SpacingAfter: 6,
+      heading2SpacingBefore: 12,
+      heading2SpacingAfter: 6,
+      heading3SpacingBefore: 12,
+      heading3SpacingAfter: 6,
+      tableBorderColor: 'B8C2D6',
+      tableBorderSize: 1,
+      tableCellPadding: 6,
+      tableHeaderShading: 'EEF4FF',
+      tableHeaderBold: true,
+      tableWidth: 100,
     })
   })
 
   test('ignores invalid / out-of-range style values (fallback to default)', () => {
-    const skill = parseSkill('x', `## Document Style\nbodySize: 999\nheading1Size: abc\nfont:\n`)
+    const skill = parseSkill(
+      'x',
+      [
+        '## Document Style',
+        'bodySize: 999',
+        'heading1Size: abc',
+        'font:',
+        'pageMarginTop: 201pt',
+        'lineSpacing: 0.1',
+        'alignment: middle',
+        'titleBold: yes',
+        'tableBorderColor: #B8C2D6',
+        'tableWidth: 101',
+      ].join('\n'),
+    )
     expect(skill.style.bodySize).toBeUndefined()
     expect(skill.style.heading1Size).toBeUndefined()
     expect(skill.style.font).toBeUndefined()
+    expect(skill.style.pageMarginTop).toBeUndefined()
+    expect(skill.style.lineSpacing).toBeUndefined()
+    expect(skill.style.alignment).toBeUndefined()
+    expect(skill.style.titleBold).toBeUndefined()
+    expect(skill.style.tableBorderColor).toBeUndefined()
+    expect(skill.style.tableWidth).toBeUndefined()
   })
 })
 
@@ -68,7 +156,7 @@ test.describe('resolveSkillSource / loadSkill', () => {
   test('builtin default-report resolves without a workspace file', async () => {
     const skill = await loadSkill('default-report', wsDir)
     expect(skill?.name).toBe('default-report')
-    expect(skill?.style.font).toBe('Microsoft YaHei')
+    expect(skill?.style).toEqual(DEFAULT_DOCX_STYLE)
   })
 
   test('workspace skill overrides builtin', async () => {
@@ -80,7 +168,9 @@ test.describe('resolveSkillSource / loadSkill', () => {
     expect(skill?.style.font).toBe('SimSun')
     expect(skill?.style.bodySize).toBe(12)
     expect(skill?.style.heading1Size).toBe(18)
-    expect(skill?.style.paragraphSpacingAfter).toBe(120)
+    expect(skill?.style.paragraphSpacingAfter).toBe(6)
+    expect(skill?.style.lineSpacing).toBe(1.15)
+    expect(skill?.style.tableHeaderShading).toBe('EEF4FF')
   })
 
   test('loadSkill fills missing style fields with defaults', async () => {
@@ -90,13 +180,32 @@ test.describe('resolveSkillSource / loadSkill', () => {
     )
     const skill = await loadSkill('rules-only', wsDir)
     expect(skill?.writingRules).toEqual(['用正式书面语'])
+    expect(skill?.style).toEqual(DEFAULT_DOCX_STYLE)
+  })
+
+  test('legacy style keys still parse and inherit v2 defaults', async () => {
+    await fs.writeFile(
+      path.join(wsDir, '.anvil', 'document-skills', 'legacy.md'),
+      [
+        '## Purpose',
+        '旧样式',
+        '',
+        '## Document Style',
+        'font: SimSun',
+        'bodySize: 10',
+        'heading1Size: 16',
+        'heading2Size: 14',
+        'heading3Size: 12',
+      ].join('\n'),
+    )
+    const skill = await loadSkill('legacy', wsDir)
     expect(skill?.style).toEqual({
-      font: 'Microsoft YaHei',
-      bodySize: 11,
-      heading1Size: 18,
+      ...DEFAULT_DOCX_STYLE,
+      font: 'SimSun',
+      bodySize: 10,
+      heading1Size: 16,
       heading2Size: 14,
       heading3Size: 12,
-      paragraphSpacingAfter: 120,
     })
   })
 

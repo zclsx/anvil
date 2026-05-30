@@ -7,8 +7,34 @@ export interface DocxStyleOptions {
   heading1Size?: number
   heading2Size?: number
   heading3Size?: number
+  pageMarginTop?: number
+  pageMarginRight?: number
+  pageMarginBottom?: number
+  pageMarginLeft?: number
+  lineSpacing?: number
+  paragraphSpacingBefore?: number
   paragraphSpacingAfter?: number
+  firstLineIndent?: number
+  alignment?: DocxAlignment
+  titleSize?: number
+  titleBold?: boolean
+  titleAlignment?: DocxAlignment
+  titleSpacingAfter?: number
+  heading1SpacingBefore?: number
+  heading1SpacingAfter?: number
+  heading2SpacingBefore?: number
+  heading2SpacingAfter?: number
+  heading3SpacingBefore?: number
+  heading3SpacingAfter?: number
+  tableBorderColor?: string
+  tableBorderSize?: number
+  tableCellPadding?: number
+  tableHeaderShading?: string
+  tableHeaderBold?: boolean
+  tableWidth?: number
 }
+
+export type DocxAlignment = 'left' | 'center' | 'right' | 'justify'
 
 export interface DocumentSkill {
   name: string
@@ -23,9 +49,33 @@ export const DEFAULT_DOCX_STYLE: Required<DocxStyleOptions> = {
   font: 'Microsoft YaHei',
   bodySize: 11,
   heading1Size: 18,
-  heading2Size: 14,
-  heading3Size: 12,
-  paragraphSpacingAfter: 120,
+  heading2Size: 15,
+  heading3Size: 13,
+  pageMarginTop: 72,
+  pageMarginRight: 72,
+  pageMarginBottom: 72,
+  pageMarginLeft: 72,
+  lineSpacing: 1.15,
+  paragraphSpacingBefore: 0,
+  paragraphSpacingAfter: 6,
+  firstLineIndent: 22,
+  alignment: 'justify',
+  titleSize: 22,
+  titleBold: true,
+  titleAlignment: 'center',
+  titleSpacingAfter: 12,
+  heading1SpacingBefore: 12,
+  heading1SpacingAfter: 6,
+  heading2SpacingBefore: 12,
+  heading2SpacingAfter: 6,
+  heading3SpacingBefore: 12,
+  heading3SpacingAfter: 6,
+  tableBorderColor: 'B8C2D6',
+  tableBorderSize: 1,
+  tableCellPadding: 6,
+  tableHeaderShading: 'EEF4FF',
+  tableHeaderBold: true,
+  tableWidth: 100,
 }
 
 const SKILLS_SUBDIR = path.join('.anvil', 'document-skills')
@@ -47,9 +97,33 @@ const BUILTIN_DOCUMENT_SKILLS: Record<string, string> = {
 font: Microsoft YaHei
 bodySize: 11
 heading1Size: 18
-heading2Size: 14
-heading3Size: 12
-paragraphSpacingAfter: 120
+heading2Size: 15
+heading3Size: 13
+pageMarginTop: 72pt
+pageMarginRight: 72pt
+pageMarginBottom: 72pt
+pageMarginLeft: 72pt
+lineSpacing: 1.15
+paragraphSpacingBefore: 0
+paragraphSpacingAfter: 6pt
+firstLineIndent: 22pt
+alignment: justify
+titleSize: 22
+titleBold: true
+titleAlignment: center
+titleSpacingAfter: 12pt
+heading1SpacingBefore: 12pt
+heading1SpacingAfter: 6pt
+heading2SpacingBefore: 12pt
+heading2SpacingAfter: 6pt
+heading3SpacingBefore: 12pt
+heading3SpacingAfter: 6pt
+tableBorderColor: B8C2D6
+tableBorderSize: 1
+tableCellPadding: 6pt
+tableHeaderShading: EEF4FF
+tableHeaderBold: true
+tableWidth: 100
 `,
 }
 
@@ -133,37 +207,85 @@ export async function listAvailableSkillNames(workspacePath: string): Promise<st
   return Array.from(names).sort()
 }
 
-type NumericStyleKey = Exclude<keyof DocxStyleOptions, 'font'>
+type StyleFieldSpec =
+  | { kind: 'str'; default: string; minLength: number; maxLength: number }
+  | { kind: 'pt' | 'halfPtSize' | 'multiplier' | 'int'; default: number; min: number; max: number }
+  | { kind: 'bool'; default: boolean }
+  | { kind: 'enum'; default: DocxAlignment; values: readonly DocxAlignment[] }
+  | { kind: 'hex'; default: string }
 
-const NUMERIC_STYLE_BOUNDS: Record<NumericStyleKey, { min: number; max: number }> = {
-  bodySize: { min: 6, max: 72 },
-  heading1Size: { min: 6, max: 96 },
-  heading2Size: { min: 6, max: 96 },
-  heading3Size: { min: 6, max: 96 },
-  paragraphSpacingAfter: { min: 0, max: 2000 },
+const STYLE_FIELD_SPECS = {
+  font: { kind: 'str', default: DEFAULT_DOCX_STYLE.font, minLength: 1, maxLength: 64 },
+  bodySize: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.bodySize, min: 6, max: 72 },
+  heading1Size: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.heading1Size, min: 6, max: 96 },
+  heading2Size: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.heading2Size, min: 6, max: 96 },
+  heading3Size: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.heading3Size, min: 6, max: 96 },
+  pageMarginTop: { kind: 'pt', default: DEFAULT_DOCX_STYLE.pageMarginTop, min: 0, max: 200 },
+  pageMarginRight: { kind: 'pt', default: DEFAULT_DOCX_STYLE.pageMarginRight, min: 0, max: 200 },
+  pageMarginBottom: { kind: 'pt', default: DEFAULT_DOCX_STYLE.pageMarginBottom, min: 0, max: 200 },
+  pageMarginLeft: { kind: 'pt', default: DEFAULT_DOCX_STYLE.pageMarginLeft, min: 0, max: 200 },
+  lineSpacing: { kind: 'multiplier', default: DEFAULT_DOCX_STYLE.lineSpacing, min: 0.5, max: 4 },
+  paragraphSpacingBefore: { kind: 'pt', default: DEFAULT_DOCX_STYLE.paragraphSpacingBefore, min: 0, max: 200 },
+  paragraphSpacingAfter: { kind: 'pt', default: DEFAULT_DOCX_STYLE.paragraphSpacingAfter, min: 0, max: 200 },
+  firstLineIndent: { kind: 'pt', default: DEFAULT_DOCX_STYLE.firstLineIndent, min: 0, max: 200 },
+  alignment: { kind: 'enum', default: DEFAULT_DOCX_STYLE.alignment, values: ['left', 'center', 'right', 'justify'] },
+  titleSize: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.titleSize, min: 6, max: 96 },
+  titleBold: { kind: 'bool', default: DEFAULT_DOCX_STYLE.titleBold },
+  titleAlignment: { kind: 'enum', default: DEFAULT_DOCX_STYLE.titleAlignment, values: ['left', 'center', 'right', 'justify'] },
+  titleSpacingAfter: { kind: 'pt', default: DEFAULT_DOCX_STYLE.titleSpacingAfter, min: 0, max: 400 },
+  heading1SpacingBefore: { kind: 'pt', default: DEFAULT_DOCX_STYLE.heading1SpacingBefore, min: 0, max: 400 },
+  heading1SpacingAfter: { kind: 'pt', default: DEFAULT_DOCX_STYLE.heading1SpacingAfter, min: 0, max: 400 },
+  heading2SpacingBefore: { kind: 'pt', default: DEFAULT_DOCX_STYLE.heading2SpacingBefore, min: 0, max: 400 },
+  heading2SpacingAfter: { kind: 'pt', default: DEFAULT_DOCX_STYLE.heading2SpacingAfter, min: 0, max: 400 },
+  heading3SpacingBefore: { kind: 'pt', default: DEFAULT_DOCX_STYLE.heading3SpacingBefore, min: 0, max: 400 },
+  heading3SpacingAfter: { kind: 'pt', default: DEFAULT_DOCX_STYLE.heading3SpacingAfter, min: 0, max: 400 },
+  tableBorderColor: { kind: 'hex', default: DEFAULT_DOCX_STYLE.tableBorderColor },
+  tableBorderSize: { kind: 'int', default: DEFAULT_DOCX_STYLE.tableBorderSize, min: 0, max: 48 },
+  tableCellPadding: { kind: 'pt', default: DEFAULT_DOCX_STYLE.tableCellPadding, min: 0, max: 72 },
+  tableHeaderShading: { kind: 'hex', default: DEFAULT_DOCX_STYLE.tableHeaderShading },
+  tableHeaderBold: { kind: 'bool', default: DEFAULT_DOCX_STYLE.tableHeaderBold },
+  tableWidth: { kind: 'int', default: DEFAULT_DOCX_STYLE.tableWidth, min: 1, max: 100 },
+} satisfies Record<keyof DocxStyleOptions, StyleFieldSpec>
+
+function parseNumber(rawValue: string, spec: Extract<StyleFieldSpec, { kind: 'pt' | 'halfPtSize' | 'multiplier' | 'int' }>): number | null {
+  const value = rawValue.trim().replace(/pt$/i, '').trim()
+  const num = spec.kind === 'int' ? Number.parseInt(value, 10) : Number(value)
+  if (!Number.isFinite(num) || num < spec.min || num > spec.max) return null
+  if (spec.kind === 'int' && !Number.isInteger(num)) return null
+  return num
+}
+
+function parseStyleValue(rawValue: string, spec: StyleFieldSpec): string | number | boolean | DocxAlignment | null {
+  const value = rawValue.trim()
+  if (!value) return null
+  if (spec.kind === 'str') {
+    return value.length >= spec.minLength && value.length <= spec.maxLength ? value : null
+  }
+  if (spec.kind === 'pt' || spec.kind === 'halfPtSize' || spec.kind === 'multiplier' || spec.kind === 'int') {
+    return parseNumber(value, spec)
+  }
+  if (spec.kind === 'bool') {
+    const normalized = value.toLowerCase()
+    if (normalized === 'true') return true
+    if (normalized === 'false') return false
+    return null
+  }
+  if (spec.kind === 'enum') {
+    const normalized = value.toLowerCase()
+    return spec.values.includes(normalized as DocxAlignment) ? normalized as DocxAlignment : null
+  }
+  if (spec.kind === 'hex') {
+    return /^[0-9A-Fa-f]{6}$/.test(value) ? value.toUpperCase() : null
+  }
+  return null
 }
 
 function parseStyleLine(style: DocxStyleOptions, key: string, rawValue: string): void {
-  const value = rawValue.trim()
-  if (!value) return
-  if (key === 'font') {
-    style.font = value
-    return
-  }
-  const numericKeys: NumericStyleKey[] = [
-    'bodySize',
-    'heading1Size',
-    'heading2Size',
-    'heading3Size',
-    'paragraphSpacingAfter',
-  ]
-  const matched = numericKeys.find((k) => k === key)
-  if (!matched) return
-  const num = Number(value)
-  const bounds = NUMERIC_STYLE_BOUNDS[matched]
-  if (!Number.isFinite(num) || !bounds) return
-  if (num < bounds.min || num > bounds.max) return
-  style[matched] = num
+  const spec = STYLE_FIELD_SPECS[key as keyof DocxStyleOptions]
+  if (!spec) return
+  const value = parseStyleValue(rawValue, spec)
+  if (value == null) return
+  Object.assign(style, { [key]: value })
 }
 
 /**
