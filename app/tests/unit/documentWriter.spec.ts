@@ -11,6 +11,7 @@ import {
   isWriteTargetWithinWorkspace,
 } from '../../electron/main/query/documentWriter'
 import { extractDocumentText } from '../../electron/main/query/documentReader'
+import { DEFAULT_DOCX_STYLE } from '../../electron/main/query/documentSkill'
 
 test.describe('parseInline', () => {
   test('plain text is a single run', () => {
@@ -164,6 +165,50 @@ test.describe('generateDocx round-trip', () => {
     expect(text).toContain('测试场景')
     expect(text).toContain('通过率')
   })
+
+  test('applies v2 document style values to exact Word XML attributes', async () => {
+    const file = path.join(tmpDir, 'style-v2.docx')
+    await generateDocx(file, '# 第一章\n\n正文段落。', '正式报告', { style: DEFAULT_DOCX_STYLE })
+
+    const xml = await readDocumentXml(file)
+    const stylesXml = await readStylesXml(file)
+    expectXmlTagAttributes(xml, 'w:pgMar', {
+      'w:top': '1440',
+      'w:right': '1440',
+      'w:bottom': '1440',
+      'w:left': '1440',
+    })
+    expectXmlTagAttributes(stylesXml, 'w:sz', { 'w:val': '22' })
+
+    const titleParagraph = findParagraphContaining(xml, '正式报告')
+    expectXmlTagAttributes(titleParagraph, 'w:jc', { 'w:val': 'center' })
+    expectXmlTagAttributes(titleParagraph, 'w:spacing', { 'w:after': '240' })
+    expectXmlTagAttributes(titleParagraph, 'w:sz', { 'w:val': '44' })
+
+    const bodyParagraph = findParagraphContaining(xml, '正文段落。')
+    expectXmlTagAttributes(bodyParagraph, 'w:spacing', {
+      'w:before': '0',
+      'w:after': '120',
+      'w:line': '276',
+      'w:lineRule': 'auto',
+    })
+    expectXmlTagAttributes(bodyParagraph, 'w:ind', { 'w:firstLine': '440' })
+    expectXmlTagAttributes(bodyParagraph, 'w:jc', { 'w:val': 'both' })
+
+    const headingParagraph = findParagraphContaining(xml, '第一章')
+    expect(headingParagraph).not.toMatch(/\bw:firstLine="440"/)
+  })
+
+  test('keeps unstyled create_docx output free of skill-only layout markers', async () => {
+    const file = path.join(tmpDir, 'unstyled.docx')
+    await generateDocx(file, '# 标题\n\n正文段落。', '普通文档')
+
+    const xml = await readDocumentXml(file)
+    const stylesXml = await readStylesXml(file)
+    expect(xml).not.toMatch(/\bw:firstLine="440"/)
+    expect(xml).not.toMatch(/\bw:line="276"/)
+    expect(stylesXml).not.toContain('Microsoft YaHei')
+  })
 })
 
 async function readDocumentXml(file: string): Promise<string> {
@@ -173,8 +218,32 @@ async function readDocumentXml(file: string): Promise<string> {
   return documentXml.async('string')
 }
 
+async function readStylesXml(file: string): Promise<string> {
+  const zip = await JSZip.loadAsync(await fs.readFile(file))
+  const stylesXml = zip.file('word/styles.xml')
+  if (!stylesXml) throw new Error('word/styles.xml not found')
+  return stylesXml.async('string')
+}
+
 function countOccurrences(text: string, needle: string): number {
   return text.split(needle).length - 1
+}
+
+function expectXmlTagAttributes(xml: string, tagName: string, attrs: Record<string, string>): void {
+  const escapedTag = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const tags = xml.match(new RegExp(`<${escapedTag}\\b[^>]*>`, 'g')) ?? []
+  const found = tags.some((tag) =>
+    Object.entries(attrs).every(([name, value]) => tag.includes(`${name}="${value}"`)),
+  )
+  expect(found).toBe(true)
+}
+
+function findParagraphContaining(xml: string, text: string): string {
+  const paragraphs = xml.match(/<w:p\b[\s\S]*?<\/w:p>/g) ?? []
+  const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const paragraph = paragraphs.find((p) => new RegExp(`<w:t\\b[^>]*>${escapedText}</w:t>`).test(p))
+  if (!paragraph) throw new Error(`paragraph not found: ${text}`)
+  return paragraph
 }
 
 test.describe('isWriteTargetWithinWorkspace (symlink escape)', () => {

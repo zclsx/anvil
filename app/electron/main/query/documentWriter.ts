@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { DocxStyleOptions } from './documentSkill'
+import type { DocxAlignment, DocxStyleOptions } from './documentSkill'
 
 export interface InlineRun {
   text: string
@@ -215,6 +215,7 @@ export async function generateDocx(
     BorderStyle,
     Document,
     HeadingLevel,
+    LineRuleType,
     Packer,
     Paragraph,
     Table,
@@ -225,6 +226,51 @@ export async function generateDocx(
   } = await import('docx')
 
   const blocks = parseMarkdownBlocks(markdown)
+  const style = options?.style
+
+  const ptToTwip = (pt?: number) => (typeof pt === 'number' ? Math.round(pt * 20) : undefined)
+  const ptToHalf = (pt?: number) => (typeof pt === 'number' ? Math.round(pt * 2) : undefined)
+  const lineSpacingToTwip = (multiplier?: number) =>
+    typeof multiplier === 'number' ? Math.round(multiplier * 240) : undefined
+  const toAlignment = (alignment?: DocxAlignment) => {
+    if (alignment === 'left') return AlignmentType.LEFT
+    if (alignment === 'center') return AlignmentType.CENTER
+    if (alignment === 'right') return AlignmentType.RIGHT
+    if (alignment === 'justify') return AlignmentType.JUSTIFIED
+    return undefined
+  }
+  const compactRecord = (values: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined))
+  const paragraphSpacing = (before?: number, after?: number) => {
+    const line = lineSpacingToTwip(style?.lineSpacing)
+    const spacing = compactRecord({
+      before: ptToTwip(before),
+      after: ptToTwip(after),
+      line,
+      lineRule: line !== undefined ? LineRuleType.AUTO : undefined,
+    })
+    return Object.keys(spacing).length > 0 ? spacing : undefined
+  }
+  const bodyParagraphOptions = (withFirstLineIndent: boolean) => {
+    if (!style) return {}
+    return compactRecord({
+      spacing: paragraphSpacing(style.paragraphSpacingBefore, style.paragraphSpacingAfter),
+      indent: withFirstLineIndent ? compactRecord({ firstLine: ptToTwip(style.firstLineIndent) }) : undefined,
+      alignment: toAlignment(style.alignment),
+    })
+  }
+  const headingParagraphStyle = (
+    sizePt?: number,
+    spacingBefore?: number,
+    spacingAfter?: number,
+  ) => {
+    const run = compactRecord({ size: ptToHalf(sizePt), bold: true })
+    const paragraph = compactRecord({ spacing: paragraphSpacing(spacingBefore, spacingAfter) })
+    return compactRecord({
+      run: Object.keys(run).length > 0 ? run : undefined,
+      paragraph: Object.keys(paragraph).length > 0 ? paragraph : undefined,
+    })
+  }
 
   const toTextRuns = (runs: InlineRun[]) =>
     runs.map((r) => new TextRun({ text: r.text, bold: r.bold, italics: r.italic }))
@@ -241,12 +287,16 @@ export async function generateDocx(
       return new Paragraph({ heading: level, children })
     }
     if (block.type === 'bullet') {
-      return new Paragraph({ bullet: { level: 0 }, children })
+      return new Paragraph({ bullet: { level: 0 }, children, ...bodyParagraphOptions(false) })
     }
     if (block.type === 'numbered') {
-      return new Paragraph({ numbering: { reference: NUMBERING_REFERENCE, level: 0 }, children })
+      return new Paragraph({
+        numbering: { reference: NUMBERING_REFERENCE, level: 0 },
+        children,
+        ...bodyParagraphOptions(false),
+      })
     }
-    return new Paragraph({ children })
+    return new Paragraph({ children, ...bodyParagraphOptions(true) })
   }
 
   const tableBorder = { style: BorderStyle.SINGLE, size: 1, color: 'B8C2D6' }
@@ -299,13 +349,43 @@ export async function generateDocx(
 
   const children: Array<InstanceType<typeof Paragraph> | InstanceType<typeof Table>> = []
   if (title) {
+    const titleRun = compactRecord({
+      text: title,
+      bold: style ? style.titleBold : true,
+      size: style ? ptToHalf(style.titleSize) : undefined,
+    })
     children.push(
-      new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: title, bold: true })] }),
+      new Paragraph({
+        heading: HeadingLevel.TITLE,
+        children: [new TextRun(titleRun)],
+        ...(style
+          ? compactRecord({
+              alignment: toAlignment(style.titleAlignment),
+              spacing: compactRecord({ after: ptToTwip(style.titleSpacingAfter) }),
+            })
+          : {}),
+      }),
     )
   }
   for (const block of blocks) {
     children.push(block.type === 'table' ? toTable(block) : toParagraph(block))
   }
+
+  const section = style
+    ? {
+        properties: {
+          page: {
+            margin: {
+              top: ptToTwip(style.pageMarginTop),
+              right: ptToTwip(style.pageMarginRight),
+              bottom: ptToTwip(style.pageMarginBottom),
+              left: ptToTwip(style.pageMarginLeft),
+            },
+          },
+        },
+        children,
+      }
+    : { children }
 
   const docOptions: Record<string, unknown> = {
     numbering: {
@@ -316,28 +396,18 @@ export async function generateDocx(
         },
       ],
     },
-    sections: [{ children }],
+    sections: [section],
   }
 
-  const style = options?.style
   if (style) {
-    const ptToHalf = (pt?: number) => (typeof pt === 'number' ? Math.round(pt * 2) : undefined)
-    const headingStyle = (pt?: number) => {
-      const size = ptToHalf(pt)
-      return size ? { run: { size, bold: true } } : undefined
-    }
     docOptions.styles = {
       default: {
         document: {
           run: { font: style.font, size: ptToHalf(style.bodySize) },
-          paragraph:
-            style.paragraphSpacingAfter != null
-              ? { spacing: { after: style.paragraphSpacingAfter } }
-              : undefined,
         },
-        heading1: headingStyle(style.heading1Size),
-        heading2: headingStyle(style.heading2Size),
-        heading3: headingStyle(style.heading3Size),
+        heading1: headingParagraphStyle(style.heading1Size, style.heading1SpacingBefore, style.heading1SpacingAfter),
+        heading2: headingParagraphStyle(style.heading2Size, style.heading2SpacingBefore, style.heading2SpacingAfter),
+        heading3: headingParagraphStyle(style.heading3Size, style.heading3SpacingBefore, style.heading3SpacingAfter),
       },
     }
   }

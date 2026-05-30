@@ -260,7 +260,7 @@ test.describe('generateDocx with skill style', () => {
   test('applies style and round-trips content', async () => {
     const file = path.join(tmpDir, 'styled.docx')
     const count = await generateDocx(file, '# 标题\n\n正文内容。', '报告', {
-      style: { font: 'Microsoft YaHei', bodySize: 11, heading1Size: 18, paragraphSpacingAfter: 120 },
+      style: DEFAULT_DOCX_STYLE,
     })
     expect(count).toBeGreaterThan(0)
 
@@ -269,7 +269,6 @@ test.describe('generateDocx with skill style', () => {
     expect(text).toContain('标题')
     expect(text).toContain('正文内容')
 
-    // style lands in the docx package (styles.xml docDefaults)
     const JSZip = (await import('jszip')).default
     const buf = await fs.readFile(file)
     const zip = await JSZip.loadAsync(buf)
