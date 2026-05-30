@@ -72,6 +72,11 @@ test.describe('parseMarkdownBlocks', () => {
     expect(blocks[0].type).toBe('table')
     expect(JSON.stringify(blocks)).not.toContain('---')
   })
+
+  test('does not treat a bare thematic break after pipe text as a table', () => {
+    const blocks = parseMarkdownBlocks('汇总 | 详情\n---\n正文')
+    expect(blocks.map((b) => b.type)).toEqual(['paragraph', 'paragraph', 'paragraph'])
+  })
 })
 
 test.describe('resolveWritePath', () => {

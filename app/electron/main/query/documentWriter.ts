@@ -80,7 +80,7 @@ export function parseMarkdownBlocks(markdown: string): DocBlock[] {
     const line = raw.trimEnd()
     if (line.trim() === '') continue
     const nextLine = lines[i + 1]?.trimEnd() ?? ''
-    if (isPipeRow(line) && isTableSeparator(nextLine)) {
+    if (isPipeRow(line) && isPipeRow(nextLine) && isTableSeparator(nextLine)) {
       const headerCells = splitTableRow(line)
       const width = headerCells.length
       const rows: InlineRun[][][] = []
