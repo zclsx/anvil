@@ -95,6 +95,7 @@ export const useAgentStore = create<Store>((set) => ({
       for (const env of envelopes) {
         state = applyEnvelope(state, env)
       }
+      state = { ...state, pendingApprovals: [] }
       return state as Partial<Store>
     }),
 
