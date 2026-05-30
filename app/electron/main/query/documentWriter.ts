@@ -19,6 +19,13 @@ export type ResolvedWritePath =
   | { ok: true; absPath: string }
   | { ok: false; error: string }
 
+export type GenerateDocxOptions = { overwrite?: boolean; style?: DocxStyleOptions }
+
+export type GeneratedDocxBuffer = {
+  buffer: Buffer
+  blockCount: number
+}
+
 /**
  * Parse a single line's inline markdown into styled runs.
  * Supports **bold** and *italic*; nesting is not handled (first-level only),
@@ -208,8 +215,19 @@ export async function generateDocx(
   absPath: string,
   markdown: string,
   title?: string,
-  options?: { overwrite?: boolean; style?: DocxStyleOptions },
+  options?: GenerateDocxOptions,
 ): Promise<number> {
+  const { buffer, blockCount } = await buildDocxBuffer(markdown, title, options)
+  await fs.mkdir(path.dirname(absPath), { recursive: true })
+  await fs.writeFile(absPath, buffer, { flag: options?.overwrite ? 'w' : 'wx' })
+  return blockCount
+}
+
+export async function buildDocxBuffer(
+  markdown: string,
+  title?: string,
+  options?: GenerateDocxOptions,
+): Promise<GeneratedDocxBuffer> {
   const {
     AlignmentType,
     BorderStyle,
@@ -432,7 +450,5 @@ export async function generateDocx(
   const doc = new Document(docOptions as ConstructorParameters<typeof Document>[0])
 
   const buffer = await Packer.toBuffer(doc)
-  await fs.mkdir(path.dirname(absPath), { recursive: true })
-  await fs.writeFile(absPath, buffer, { flag: options?.overwrite ? 'w' : 'wx' })
-  return blocks.length
+  return { buffer, blockCount: blocks.length }
 }

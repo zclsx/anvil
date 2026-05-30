@@ -41,7 +41,13 @@ export interface DocumentSkill {
   purpose: string
   writingRules: string[]
   style: DocxStyleOptions
+  templatePath?: string
+  templateError?: string
 }
+
+export type ResolvedTemplatePath =
+  | { ok: true; absPath: string }
+  | { ok: false; error: string }
 
 export const DEFAULT_SKILL_NAME = 'default-report'
 
@@ -178,6 +184,45 @@ export async function resolveSkillSource(
   return BUILTIN_DOCUMENT_SKILLS[skillName] ?? null
 }
 
+export async function resolveDocumentTemplatePath(
+  rawPath: string,
+  workspacePath: string,
+): Promise<ResolvedTemplatePath> {
+  const cleaned = rawPath.trim().replace(/^`+/, '').replace(/`+$/, '').trim()
+  if (!cleaned) return { ok: false, error: '未提供模板路径' }
+  if (!workspacePath) return { ok: false, error: '当前没有可用的 workspace' }
+
+  const workspaceAbs = path.resolve(workspacePath)
+  const absPath = path.isAbsolute(cleaned)
+    ? path.resolve(cleaned)
+    : path.resolve(workspaceAbs, cleaned)
+  const rel = path.relative(workspaceAbs, absPath)
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    return { ok: false, error: `模板必须位于 workspace 内：${cleaned}` }
+  }
+  if (path.extname(absPath).toLowerCase() !== '.docx') {
+    return { ok: false, error: '模板文件必须是 .docx' }
+  }
+
+  try {
+    const stat = await fs.lstat(absPath)
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      return { ok: false, error: `模板不是普通文件：${cleaned}` }
+    }
+    const [realWorkspace, realTemplate] = await Promise.all([
+      fs.realpath(workspaceAbs),
+      fs.realpath(absPath),
+    ])
+    const realRel = path.relative(realWorkspace, realTemplate)
+    if (realRel.startsWith('..') || path.isAbsolute(realRel)) {
+      return { ok: false, error: `模板越过 workspace 边界：${cleaned}` }
+    }
+    return { ok: true, absPath }
+  } catch {
+    return { ok: false, error: `模板不存在或无法读取：${cleaned}` }
+  }
+}
+
 /**
  * List available skill names for a workspace: builtins plus any
  * `.anvil/document-skills/*.md` overrides, de-duplicated.
@@ -299,6 +344,7 @@ export function parseSkill(name: string, source: string): DocumentSkill {
   const purposeLines: string[] = []
   const writingRules: string[] = []
   const style: DocxStyleOptions = {}
+  let templatePath: string | undefined
 
   for (const raw of lines) {
     const line = raw.trim()
@@ -320,7 +366,14 @@ export function parseSkill(name: string, source: string): DocumentSkill {
       writingRules.push(bullet ? bullet[1].trim() : line)
     } else if (section === 'style') {
       const kv = /^([a-zA-Z0-9_]+)\s*:\s*(.*)$/.exec(line)
-      if (kv) parseStyleLine(style, kv[1], kv[2])
+      if (kv) {
+        if (kv[1] === 'template') {
+          const value = kv[2].trim()
+          if (value) templatePath = value
+        } else {
+          parseStyleLine(style, kv[1], kv[2])
+        }
+      }
     }
   }
 
@@ -329,6 +382,7 @@ export function parseSkill(name: string, source: string): DocumentSkill {
     purpose: purposeLines.join(' ').trim(),
     writingRules,
     style,
+    templatePath,
   }
 }
 
@@ -339,5 +393,17 @@ export async function loadSkill(
   const source = await resolveSkillSource(skillName, workspacePath)
   if (source === null) return null
   const parsed = parseSkill(skillName, source)
-  return { ...parsed, style: { ...DEFAULT_DOCX_STYLE, ...parsed.style } }
+  const { templatePath: rawTemplatePath, ...rest } = parsed
+  if (!rawTemplatePath) {
+    return { ...rest, style: { ...DEFAULT_DOCX_STYLE, ...rest.style } }
+  }
+  const resolved = await resolveDocumentTemplatePath(rawTemplatePath, workspacePath)
+  if (resolved.ok === true) {
+    return { ...rest, templatePath: resolved.absPath, style: { ...DEFAULT_DOCX_STYLE, ...rest.style } }
+  }
+  return {
+    ...rest,
+    templateError: resolved.error,
+    style: { ...DEFAULT_DOCX_STYLE, ...rest.style },
+  }
 }

@@ -7,6 +7,7 @@ import {
   listAvailableSkillNames,
   loadSkill,
 } from './documentSkill'
+import { generateDocxFromTemplate } from './documentTemplate'
 import { generateDocx, isWriteTargetWithinWorkspace, resolveWritePath } from './documentWriter'
 
 const MAX_SKILL_TEXT_CHARS = 4000
@@ -74,7 +75,7 @@ const CREATE_FROM_SKILL_DESCRIPTION = [
   'Create a Microsoft Word (.docx) document using a document skill (a reusable, formatted style).',
   'Use this when the user wants a formal/report-style document, a PRD, meeting notes, or asks to follow a document skill/template.',
   'First call get_document_skill to read the skill’s writing rules, then pass markdown that follows them.',
-  'The skill’s style (fonts, sizes, spacing) is applied automatically. Do NOT use Bash, python, or pandoc.',
+  'The skill’s style or template is applied automatically. Do NOT use Bash, python, or pandoc.',
 ].join(' ')
 
 export function createWriteFromSkillTool(getWorkspacePath: () => string) {
@@ -99,6 +100,9 @@ export function createWriteFromSkillTool(getWorkspacePath: () => string) {
         const available = await listAvailableSkillNames(workspacePath)
         return errorResult(`未找到文档 skill：${skill}。可用 skill：${available.join(', ') || '(无)'}`)
       }
+      if (loaded.templateError) {
+        return errorResult(loaded.templateError)
+      }
 
       const resolved = resolveWritePath(rawPath, workspacePath)
       if (!resolved.ok) return errorResult(resolved.error)
@@ -107,10 +111,12 @@ export function createWriteFromSkillTool(getWorkspacePath: () => string) {
       }
 
       try {
-        const blockCount = await generateDocx(resolved.absPath, markdown, title, {
-          overwrite,
-          style: loaded.style,
-        })
+        const blockCount = loaded.templatePath
+          ? await generateDocxFromTemplate(resolved.absPath, markdown, title, loaded.templatePath, { overwrite })
+          : await generateDocx(resolved.absPath, markdown, title, {
+              overwrite,
+              style: loaded.style,
+            })
         return {
           content: [
             {

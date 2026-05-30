@@ -9,6 +9,7 @@ import {
   parseSkill,
   listAvailableSkillNames,
   DEFAULT_DOCX_STYLE,
+  resolveDocumentTemplatePath,
 } from '../../electron/main/query/documentSkill'
 import { generateDocx } from '../../electron/main/query/documentWriter'
 import { extractDocumentText } from '../../electron/main/query/documentReader'
@@ -73,6 +74,7 @@ test.describe('parseSkill', () => {
         'tableHeaderShading: eef4ff',
         'tableHeaderBold: true',
         'tableWidth: 100',
+        'template: ./templates/report.docx',
       ].join('\n'),
     )
     expect(skill.purpose).toContain('正式报告')
@@ -109,6 +111,7 @@ test.describe('parseSkill', () => {
       tableHeaderBold: true,
       tableWidth: 100,
     })
+    expect(skill.templatePath).toBe('./templates/report.docx')
   })
 
   test('ignores invalid / out-of-range style values (fallback to default)', () => {
@@ -245,6 +248,36 @@ test.describe('resolveSkillSource / loadSkill', () => {
       await fs.rm(externalSkills, { recursive: true, force: true })
       await fs.rm(linkWs, { recursive: true, force: true })
     }
+  })
+
+  test('loads a workspace template path as an absolute path', async () => {
+    const templateDir = path.join(wsDir, 'templates')
+    const templatePath = path.join(templateDir, 'report.docx')
+    await fs.mkdir(templateDir, { recursive: true })
+    await fs.writeFile(templatePath, 'not a real docx')
+    await fs.writeFile(
+      path.join(wsDir, '.anvil', 'document-skills', 'templated.md'),
+      '## Purpose\n模板报告\n\n## Document Style\ntemplate: ./templates/report.docx\n',
+    )
+    const skill = await loadSkill('templated', wsDir)
+    expect(skill?.templatePath).toBe(templatePath)
+    expect(skill?.templateError).toBeUndefined()
+  })
+
+  test('rejects template paths outside the workspace', async () => {
+    const outsideTemplate = path.join(outsideDir, 'report.docx')
+    await fs.writeFile(outsideTemplate, 'x')
+    const resolved = await resolveDocumentTemplatePath(outsideTemplate, wsDir)
+    expect(resolved.ok).toBe(false)
+  })
+
+  test('rejects symlinked template files', async () => {
+    const outsideTemplate = path.join(outsideDir, 'linked.docx')
+    const linkPath = path.join(wsDir, 'linked.docx')
+    await fs.writeFile(outsideTemplate, 'x')
+    await fs.symlink(outsideTemplate, linkPath)
+    const resolved = await resolveDocumentTemplatePath(linkPath, wsDir)
+    expect(resolved.ok).toBe(false)
   })
 })
 
