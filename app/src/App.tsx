@@ -332,7 +332,7 @@ export function App() {
       setActiveSessionId(null)
     }
     setSelectedItemId(null)
-    setDismissedErrorCount(0)
+    setDismissedErrorCount(useAgentStore.getState().errors.length)
     setRunning(true)
     try {
       const result = await window.anvil.query(req)
