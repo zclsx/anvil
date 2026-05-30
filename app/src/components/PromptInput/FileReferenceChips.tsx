@@ -36,16 +36,16 @@ export function FileReferenceChips({
             <span
               key={reference.path}
               title={reference.path}
-              className="inline-flex max-w-full items-center gap-1.5 border border-[#4a9eff]/35 bg-[#1f2a3a] px-2 py-1 text-[11px] text-[#d8e7ff]"
+              className="inline-flex max-w-full items-center gap-1.5 border border-info-border bg-info-bg px-2 py-1 text-[11px] text-info-text"
             >
-              <Icon size={12} className={reference.isImage ? 'text-[#b7a7ff]' : 'text-[#a0c4ff]'} />
+              <Icon size={12} className={reference.isImage ? 'text-process-purple' : 'text-info-text-accent'} />
               <span className="font-mono-code truncate max-w-[140px]">{reference.label}</span>
               {reference.isOutsideWorkspace && (
-                <span className="font-mono-label text-[9px] text-[#f59e0b]">外部</span>
+                <span className="font-mono-label text-[9px] text-status-warning-text">外部</span>
               )}
               <button
                 onClick={() => onRemove(reference.path)}
-                className="text-on-surface-variant hover:text-[#ffffff] cursor-pointer"
+                className="text-on-surface-variant hover:text-primary cursor-pointer"
                 aria-label={`移除文件引用 ${reference.label}`}
                 title="移除"
               >
@@ -70,7 +70,7 @@ export function FileReferenceChips({
             const promptPathDisplay = getPromptPathDisplay(reference.promptPath)
             return (
               <div key={reference.path} className="grid grid-cols-[24px_1fr] gap-2 text-[11px]">
-                <span className="font-mono-label text-[#7fb2f0] text-right">{index + 1}</span>
+                <span className="font-mono-label text-info-text-secondary text-right">{index + 1}</span>
                 <div className="font-mono-code text-on-surface-variant break-all">
                   <div>{promptPathDisplay}</div>
                   {reference.path !== promptPathDisplay && (

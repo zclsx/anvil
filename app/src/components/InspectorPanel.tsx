@@ -4,7 +4,7 @@ import { Inspector } from './Inspector'
 
 export function InspectorPanel({ item }: { item: Item | null }) {
   return (
-    <aside className="w-[400px] border-l border-outline-variant bg-[#0d0d0f] overflow-hidden no-drag flex flex-col">
+    <aside className="w-[400px] border-l border-outline-variant bg-surface-container-lowest overflow-hidden no-drag flex flex-col">
       {item ? (
         <Inspector item={item} />
       ) : (

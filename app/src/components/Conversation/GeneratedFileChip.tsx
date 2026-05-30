@@ -46,22 +46,22 @@ export function GeneratedFileChip({
   return (
     <div
       onClick={stop}
-      className={`${compact ? '' : 'mt-2'} border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex flex-col gap-2`}
+      className={`${compact ? '' : 'mt-2'} border border-info-border bg-info-bg px-3 py-2 flex flex-col gap-2`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <FileText size={13} className="text-[#a0c4ff] shrink-0" />
-        <span className="font-mono-label text-[9px] text-[#7fb2f0] uppercase tracking-wider">DOCX</span>
-        <span className="font-mono-code text-[12px] text-[#d8e7ff] truncate max-w-[200px]">{fileName}</span>
+        <FileText size={13} className="text-info-text-accent shrink-0" />
+        <span className="font-mono-label text-[9px] text-info-text-secondary uppercase tracking-wider">DOCX</span>
+        <span className="font-mono-code text-[12px] text-info-text truncate max-w-[200px]">{fileName}</span>
         <div className="flex items-center gap-1 ml-auto">
           <button
             onClick={handleOpen}
-            className="text-[10px] font-mono-label text-[#a0c4ff] hover:text-primary cursor-pointer px-2 py-0.5"
+            className="text-[10px] font-mono-label text-info-text-accent hover:text-primary cursor-pointer px-2 py-0.5"
           >
             打开
           </button>
           <button
             onClick={handleReveal}
-            className="text-[10px] font-mono-label text-[#a0c4ff] hover:text-primary cursor-pointer px-2 py-0.5"
+            className="text-[10px] font-mono-label text-info-text-accent hover:text-primary cursor-pointer px-2 py-0.5"
           >
             定位
           </button>
@@ -88,12 +88,12 @@ export function GeneratedFileChip({
         <div className="border-t border-outline-variant pt-2 flex flex-col gap-1 font-mono-code text-[11px] text-on-surface-variant break-all">
           {relPath && (
             <div>
-              <span className="text-[#7fb2f0]">Workspace 路径：</span>
+              <span className="text-info-text-secondary">Workspace 路径：</span>
               {relPath}
             </div>
           )}
           <div>
-            <span className="text-[#7fb2f0]">完整路径：</span>
+            <span className="text-info-text-secondary">完整路径：</span>
             {absPath}
           </div>
         </div>
