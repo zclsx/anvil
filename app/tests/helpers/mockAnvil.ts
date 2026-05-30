@@ -6,7 +6,6 @@ export type MockAnvilOptions = {
     workspacePath?: string
     baseUrl?: string
     model?: string
-    stitchProjectId?: string
     source?: 'user' | 'env' | 'default'
     apiKeyHint?: string
   }
@@ -55,7 +54,6 @@ export async function setupMockAnvil(page: Page, options: MockAnvilOptions = {})
       hasApiKey: true,
       apiKeyHint: 'sk-…1234',
       model: 'test-model',
-      stitchProjectId: '',
       workspacePath: '/Users/test',
       source: 'user' as const,
       ...(opts.settings ?? {}),

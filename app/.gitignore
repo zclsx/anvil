@@ -7,4 +7,3 @@ release
 *.tsbuildinfo
 .env
 .env.local
-.stitch-mcp/

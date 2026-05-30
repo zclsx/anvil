@@ -93,7 +93,7 @@ and safer desktop automation.
 <td valign="top">
 
 - macOS and Windows desktop shell
-- Settings drawer for API key, base URL, model, workspace path, and Stitch project ID
+- Settings drawer for API key, base URL, model, and workspace path
 - Windows installer and portable build through GitHub Actions
 - Windows update check/download/restart flow through GitHub Releases
 

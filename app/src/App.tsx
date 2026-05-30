@@ -108,7 +108,6 @@ export function App() {
   const [draftKey, setDraftKey] = useState('')
   const [draftBaseUrl, setDraftBaseUrl] = useState('')
   const [draftModel, setDraftModel] = useState('')
-  const [draftStitchProjectId, setDraftStitchProjectId] = useState('')
   const [draftWorkspacePath, setDraftWorkspacePath] = useState('')
   const [isDraftWorkspacePathDirty, setIsDraftWorkspacePathDirty] = useState(false)
   const [running, setRunning] = useState(false)
@@ -171,7 +170,6 @@ export function App() {
       setSettingsState(s)
       setDraftBaseUrl(s.baseUrl)
       setDraftModel(s.model)
-      setDraftStitchProjectId(s.stitchProjectId || '')
       setDraftWorkspacePath(s.workspacePath || '')
       setIsDraftWorkspacePathDirty(false)
     })
@@ -301,7 +299,6 @@ export function App() {
     const patch: Partial<AnvilSettings> = {
       baseUrl: draftBaseUrl,
       model: draftModel,
-      stitchProjectId: draftStitchProjectId,
     }
     if (isDraftWorkspacePathDirty && draftWorkspacePath !== (settings?.workspacePath || '')) {
       patch.workspacePath = draftWorkspacePath
@@ -834,13 +831,11 @@ export function App() {
           draftBaseUrl={draftBaseUrl}
           draftKey={draftKey}
           draftModel={draftModel}
-          draftStitchProjectId={draftStitchProjectId}
           draftWorkspacePath={draftWorkspacePath}
           saved={saved}
           onChangeBaseUrl={setDraftBaseUrl}
           onChangeKey={setDraftKey}
           onChangeModel={setDraftModel}
-          onChangeStitch={setDraftStitchProjectId}
           onChangeWorkspace={updateDraftWorkspacePath}
           onSave={saveSettings}
           onClose={() => setShowSettings(false)}

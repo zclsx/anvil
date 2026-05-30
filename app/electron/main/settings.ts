@@ -10,7 +10,6 @@ const defaults: AnvilSettings = {
   baseUrl: 'https://token-plan-cn.xiaomimimo.com/anthropic',
   apiKey: '',
   model: 'mimo-v2.5-pro',
-  stitchProjectId: '',
   workspacePath: '',
 }
 
@@ -26,7 +25,6 @@ const store = new Store<StoreSchema>({
     baseUrl: { type: 'string' },
     apiKey: { type: 'string' },
     model: { type: 'string' },
-    stitchProjectId: { type: 'string' },
     workspacePath: { type: 'string' },
     hasUserConfigured: { type: 'boolean' },
     hasWorkspacePathConfigured: { type: 'boolean' },
@@ -60,7 +58,6 @@ function getRawSettings(): AnvilSettings {
     baseUrl: store.get('baseUrl'),
     apiKey: store.get('apiKey'),
     model: store.get('model'),
-    stitchProjectId: store.get('stitchProjectId') || '',
     workspacePath: resolveWorkspacePath(storedWorkspace),
   }
 }
@@ -77,7 +74,6 @@ export function getPublicSettings(): PublicSettings {
     hasApiKey: apiKey.length > 0,
     apiKeyHint: apiKey.length > 8 ? `${apiKey.slice(0, 4)}…${apiKey.slice(-4)}` : '',
     model: raw.model,
-    stitchProjectId: raw.stitchProjectId,
     workspacePath: raw.workspacePath,
     source: store.get('hasUserConfigured') ? 'user' : raw.apiKey ? 'env' : 'default',
   }
@@ -105,14 +101,12 @@ export function bootstrapFromEnv() {
   const envBaseUrl = process.env.ANVIL_DEV_BASE_URL
   const envApiKey = process.env.ANVIL_DEV_API_KEY
   const envModel = process.env.ANVIL_DEV_MODEL
-  const envStitchProjectId = process.env.ANVIL_DEV_STITCH_PROJECT_ID
   const envWorkspace = process.env.ANVIL_DEV_WORKSPACE_PATH
 
   const applied: string[] = []
   if (envBaseUrl) { store.set('baseUrl', envBaseUrl); applied.push('baseUrl') }
   if (envApiKey) { store.set('apiKey', envApiKey); applied.push('apiKey') }
   if (envModel) { store.set('model', envModel); applied.push('model') }
-  if (envStitchProjectId) { store.set('stitchProjectId', envStitchProjectId); applied.push('stitchProjectId') }
   if (envWorkspace) {
     store.set('workspacePath', normalizeWorkspacePathValue(envWorkspace))
     store.set('hasWorkspacePathConfigured', true)

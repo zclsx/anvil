@@ -6,13 +6,11 @@ export function SettingsDrawer(props: {
   draftBaseUrl: string
   draftKey: string
   draftModel: string
-  draftStitchProjectId: string
   draftWorkspacePath: string
   saved: boolean
   onChangeBaseUrl: (v: string) => void
   onChangeKey: (v: string) => void
   onChangeModel: (v: string) => void
-  onChangeStitch: (v: string) => void
   onChangeWorkspace: (v: string) => void
   onSave: () => void
   onClose: () => void
@@ -34,7 +32,6 @@ export function SettingsDrawer(props: {
           onChange={props.onChangeKey}
         />
         <SettingField label="Model" value={props.draftModel} placeholder="mimo-v2.5-pro" onChange={props.onChangeModel} />
-        <SettingField label="Stitch Project ID" value={props.draftStitchProjectId} placeholder="（可选）" onChange={props.onChangeStitch} />
       </div>
       <button onClick={props.onSave} className="self-end px-4 py-1 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface font-mono-label text-[11px] cursor-pointer">
         {props.saved ? '✅ 已保存' : '保存配置'}

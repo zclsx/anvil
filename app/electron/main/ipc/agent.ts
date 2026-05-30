@@ -18,6 +18,7 @@ import {
 import { resolveQueryWorkspace } from '../query/workspace'
 import { getClaudeExecutablePath } from '../query/claudeExecutable'
 import { toolRisk } from '../query/toolRisk'
+import { loadLocalMcpServers } from '../query/localMcpServers'
 import type { MainRuntimeContext } from '../runtimeContext'
 
 const READ_DOCUMENT_TOOL_NAME = 'mcp__anvil__read_document'
@@ -284,16 +285,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
       alwaysLoad: true,
     }),
   }
-  if (settings.stitchProjectId) {
-    mcpServers.stitch = {
-      command: 'npx',
-      args: ['-y', '@_davideast/stitch-mcp', 'proxy'],
-      env: {
-        STITCH_PROJECT_ID: settings.stitchProjectId,
-        ...process.env,
-      },
-    }
-  }
+  Object.assign(mcpServers, await loadLocalMcpServers())
   options.mcpServers = mcpServers
 
   try {
