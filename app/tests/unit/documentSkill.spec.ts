@@ -79,6 +79,25 @@ test.describe('resolveSkillSource / loadSkill', () => {
     const skill = await loadSkill('default-report', wsDir)
     expect(skill?.style.font).toBe('SimSun')
     expect(skill?.style.bodySize).toBe(12)
+    expect(skill?.style.heading1Size).toBe(18)
+    expect(skill?.style.paragraphSpacingAfter).toBe(120)
+  })
+
+  test('loadSkill fills missing style fields with defaults', async () => {
+    await fs.writeFile(
+      path.join(wsDir, '.anvil', 'document-skills', 'rules-only.md'),
+      '## Purpose\n只改写作规则\n\n## Writing Rules\n- 用正式书面语\n',
+    )
+    const skill = await loadSkill('rules-only', wsDir)
+    expect(skill?.writingRules).toEqual(['用正式书面语'])
+    expect(skill?.style).toEqual({
+      font: 'Microsoft YaHei',
+      bodySize: 11,
+      heading1Size: 18,
+      heading2Size: 14,
+      heading3Size: 12,
+      paragraphSpacingAfter: 120,
+    })
   })
 
   test('missing skill resolves to null', async () => {
@@ -101,6 +120,22 @@ test.describe('resolveSkillSource / loadSkill', () => {
     const names = await listAvailableSkillNames(wsDir)
     expect(names).toContain('default-report')
     expect(names).toContain('prd')
+  })
+
+  test('symlinked skills dir does not leak external skill names', async () => {
+    const externalSkills = await fs.mkdtemp(path.join(os.tmpdir(), 'anvil-skill-ext-'))
+    const linkWs = await fs.mkdtemp(path.join(os.tmpdir(), 'anvil-skill-linkws-'))
+    try {
+      await fs.writeFile(path.join(externalSkills, 'leaked.md'), '## Purpose\nx\n')
+      await fs.mkdir(path.join(linkWs, '.anvil'), { recursive: true })
+      await fs.symlink(externalSkills, path.join(linkWs, '.anvil', 'document-skills'))
+      const names = await listAvailableSkillNames(linkWs)
+      expect(names).not.toContain('leaked')
+      expect(names).toContain('default-report')
+    } finally {
+      await fs.rm(externalSkills, { recursive: true, force: true })
+      await fs.rm(linkWs, { recursive: true, force: true })
+    }
   })
 })
 

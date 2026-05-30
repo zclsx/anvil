@@ -166,11 +166,41 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
     }, STREAM_IDLE_TIMEOUT_MS)
   }
 
-  const hardTimer = setTimeout(() => {
-    if (!alreadyFinished) {
-      finishFailed({ kind: 'hard-timeout', afterMs: HARD_TIMEOUT_MS })
+  let hardTimer: NodeJS.Timeout | null = null
+  let hardRemainingMs = HARD_TIMEOUT_MS
+  let hardStartedAt = Date.now()
+  function startHardTimer() {
+    hardStartedAt = Date.now()
+    hardTimer = setTimeout(() => {
+      if (!alreadyFinished) {
+        finishFailed({ kind: 'hard-timeout', afterMs: HARD_TIMEOUT_MS })
+      }
+    }, hardRemainingMs)
+  }
+  startHardTimer()
+
+  let pendingApprovalCount = 0
+  function pauseTimersForApproval() {
+    if (pendingApprovalCount === 0) {
+      if (idleTimer) {
+        clearTimeout(idleTimer)
+        idleTimer = null
+      }
+      if (hardTimer) {
+        clearTimeout(hardTimer)
+        hardTimer = null
+        hardRemainingMs = Math.max(0, hardRemainingMs - (Date.now() - hardStartedAt))
+      }
     }
-  }, HARD_TIMEOUT_MS)
+    pendingApprovalCount++
+  }
+  function resumeTimersAfterApproval() {
+    pendingApprovalCount = Math.max(0, pendingApprovalCount - 1)
+    if (pendingApprovalCount === 0 && !alreadyFinished) {
+      resetIdleTimer()
+      startHardTimer()
+    }
+  }
 
   const options: any = {
     cwd: workspacePath,
@@ -194,13 +224,19 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
       }
       sendEnvelope({ event })
 
-      const decision = await new Promise<{
-        behavior: 'allow' | 'deny'
-        updatedInput?: unknown
-        message?: string
-      }>((resolve) => {
-        ctx.pendingApprovals.set(approvalId, resolve)
-      })
+      pauseTimersForApproval()
+      let decision: { behavior: 'allow' | 'deny'; updatedInput?: unknown; message?: string }
+      try {
+        decision = await new Promise<{
+          behavior: 'allow' | 'deny'
+          updatedInput?: unknown
+          message?: string
+        }>((resolve) => {
+          ctx.pendingApprovals.set(approvalId, resolve)
+        })
+      } finally {
+        resumeTimersAfterApproval()
+      }
 
       const decidedEvent: AgentEvent = {
         type: 'approval.decided',
@@ -340,7 +376,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   } finally {
     clearTimeout(firstResponseTimer)
     if (idleTimer) clearTimeout(idleTimer)
-    clearTimeout(hardTimer)
+    if (hardTimer) clearTimeout(hardTimer)
     if (ctx.activeQuery === query_state) ctx.activeQuery = null
   }
 }

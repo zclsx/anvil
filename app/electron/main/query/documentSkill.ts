@@ -19,6 +19,15 @@ export interface DocumentSkill {
 
 export const DEFAULT_SKILL_NAME = 'default-report'
 
+export const DEFAULT_DOCX_STYLE: Required<DocxStyleOptions> = {
+  font: 'Microsoft YaHei',
+  bodySize: 11,
+  heading1Size: 18,
+  heading2Size: 14,
+  heading3Size: 12,
+  paragraphSpacingAfter: 120,
+}
+
 const SKILLS_SUBDIR = path.join('.anvil', 'document-skills')
 
 const BUILTIN_DOCUMENT_SKILLS: Record<string, string> = {
@@ -102,12 +111,20 @@ export async function resolveSkillSource(
 export async function listAvailableSkillNames(workspacePath: string): Promise<string[]> {
   const names = new Set(listBuiltinSkillNames())
   try {
-    const dir = path.resolve(workspacePath, SKILLS_SUBDIR)
-    const entries = await fs.readdir(dir)
-    for (const entry of entries) {
-      if (entry.toLowerCase().endsWith('.md')) {
-        const name = entry.slice(0, -3)
-        if (isValidSkillName(name)) names.add(name)
+    const workspaceAbs = path.resolve(workspacePath)
+    const dir = path.resolve(workspaceAbs, SKILLS_SUBDIR)
+    const [realWorkspace, realDir] = await Promise.all([
+      fs.realpath(workspaceAbs),
+      fs.realpath(dir),
+    ])
+    const rel = path.relative(realWorkspace, realDir)
+    if (!rel.startsWith('..') && !path.isAbsolute(rel)) {
+      const entries = await fs.readdir(realDir)
+      for (const entry of entries) {
+        if (entry.toLowerCase().endsWith('.md')) {
+          const name = entry.slice(0, -3)
+          if (isValidSkillName(name)) names.add(name)
+        }
       }
     }
   } catch {
@@ -145,7 +162,7 @@ function parseStyleLine(style: DocxStyleOptions, key: string, rawValue: string):
   const num = Number(value)
   const bounds = NUMERIC_STYLE_BOUNDS[matched]
   if (!Number.isFinite(num) || !bounds) return
-  if (num < bounds.min || num > bounds.max) return // invalid → fall back to default
+  if (num < bounds.min || num > bounds.max) return
   style[matched] = num
 }
 
@@ -199,5 +216,6 @@ export async function loadSkill(
 ): Promise<DocumentSkill | null> {
   const source = await resolveSkillSource(skillName, workspacePath)
   if (source === null) return null
-  return parseSkill(skillName, source)
+  const parsed = parseSkill(skillName, source)
+  return { ...parsed, style: { ...DEFAULT_DOCX_STYLE, ...parsed.style } }
 }
