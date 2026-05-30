@@ -299,14 +299,31 @@ export async function generateDocx(
     return new Paragraph({ children, ...bodyParagraphOptions(true) })
   }
 
-  const tableBorder = { style: BorderStyle.SINGLE, size: 1, color: 'B8C2D6' }
-  const tableCellMargins = {
-    marginUnitType: WidthType.DXA,
-    top: 80,
-    bottom: 80,
-    left: 120,
-    right: 120,
+  const tablePadding = ptToTwip(style?.tableCellPadding)
+  const tableBorder = {
+    style: BorderStyle.SINGLE,
+    size: style?.tableBorderSize ?? 1,
+    color: style?.tableBorderColor ?? 'B8C2D6',
   }
+  const tableCellMargins =
+    tablePadding !== undefined
+      ? {
+          marginUnitType: WidthType.DXA,
+          top: tablePadding,
+          bottom: tablePadding,
+          left: tablePadding,
+          right: tablePadding,
+        }
+      : {
+          marginUnitType: WidthType.DXA,
+          top: 80,
+          bottom: 80,
+          left: 120,
+          right: 120,
+        }
+  const tableHeaderShading = style?.tableHeaderShading ?? 'EEF4FF'
+  const tableHeaderBold = style?.tableHeaderBold ?? true
+  const tableWidth = style?.tableWidth ?? 100
   const toTable = (block: Extract<DocBlock, { type: 'table' }>) => {
     const width = Math.max(1, block.headers.length)
     const cellWidth = Math.floor(9000 / width)
@@ -314,17 +331,17 @@ export async function generateDocx(
       new TableCell({
         width: { size: cellWidth, type: WidthType.DXA },
         margins: tableCellMargins,
-        shading: header ? { fill: 'EEF4FF' } : undefined,
+        shading: header ? { fill: tableHeaderShading } : undefined,
         children: [
           new Paragraph({
             children: toTextRuns(
-              header ? runs.map((run) => ({ ...run, bold: true })) : runs,
+              header && tableHeaderBold ? runs.map((run) => ({ ...run, bold: true })) : runs,
             ),
           }),
         ],
       })
     return new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
+      width: { size: tableWidth, type: WidthType.PERCENTAGE },
       borders: {
         top: tableBorder,
         bottom: tableBorder,

@@ -166,6 +166,58 @@ test.describe('generateDocx round-trip', () => {
     expect(text).toContain('通过率')
   })
 
+  test('applies v2 table style values to exact Word XML attributes', async () => {
+    const file = path.join(tmpDir, 'table-style-v2.docx')
+    await generateDocx(
+      file,
+      [
+        '| 组别 | 结果 |',
+        '|---|---|',
+        '| A | 通过 |',
+      ].join('\n'),
+      undefined,
+      { style: DEFAULT_DOCX_STYLE },
+    )
+
+    const xml = await readDocumentXml(file)
+    expectXmlTagAttributes(xml, 'w:top', { 'w:color': 'B8C2D6' })
+    expectXmlTagAttributes(xml, 'w:shd', { 'w:fill': 'EEF4FF' })
+    expectXmlTagAttributes(xml, 'w:top', { 'w:w': '120', 'w:type': 'dxa' })
+    expectXmlTagAttributes(xml, 'w:left', { 'w:w': '120', 'w:type': 'dxa' })
+  })
+
+  test('applies custom table style overrides', async () => {
+    const file = path.join(tmpDir, 'table-style-custom.docx')
+    await generateDocx(
+      file,
+      [
+        '| 组别 | 结果 |',
+        '|---|---|',
+        '| A | 通过 |',
+      ].join('\n'),
+      undefined,
+      {
+        style: {
+          ...DEFAULT_DOCX_STYLE,
+          tableBorderColor: 'AA0000',
+          tableBorderSize: 3,
+          tableCellPadding: 8,
+          tableHeaderShading: 'DDEEFF',
+          tableHeaderBold: false,
+          tableWidth: 80,
+        },
+      },
+    )
+
+    const xml = await readDocumentXml(file)
+    expectXmlTagAttributes(xml, 'w:tblW', { 'w:w': '80%', 'w:type': 'pct' })
+    expectXmlTagAttributes(xml, 'w:top', { 'w:color': 'AA0000', 'w:sz': '3' })
+    expectXmlTagAttributes(xml, 'w:shd', { 'w:fill': 'DDEEFF' })
+    expectXmlTagAttributes(xml, 'w:top', { 'w:w': '160', 'w:type': 'dxa' })
+    const headerParagraph = findParagraphContaining(xml, '组别')
+    expect(headerParagraph).not.toContain('<w:b')
+  })
+
   test('applies v2 document style values to exact Word XML attributes', async () => {
     const file = path.join(tmpDir, 'style-v2.docx')
     await generateDocx(file, '# 第一章\n\n正文段落。', '正式报告', { style: DEFAULT_DOCX_STYLE })
@@ -235,7 +287,7 @@ function expectXmlTagAttributes(xml: string, tagName: string, attrs: Record<stri
   const found = tags.some((tag) =>
     Object.entries(attrs).every(([name, value]) => tag.includes(`${name}="${value}"`)),
   )
-  expect(found).toBe(true)
+  if (!found) throw new Error(`${tagName} with ${JSON.stringify(attrs)} not found in ${tags.join('\n')}`)
 }
 
 function findParagraphContaining(xml: string, text: string): string {
