@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Premium Restrained Light Mode (Stitch Design) */
+  /* Premium Restrained Light Mode */
   --color-background: #F9F9FB;
   --color-surface: #FFFFFF;
   --color-surface-container: #F5F5F7;
