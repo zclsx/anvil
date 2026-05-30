@@ -1,4 +1,4 @@
-import type { Item } from '../store'
+import type { Item, Turn } from '../store'
 
 const CREATE_DOCX_TOOL_NAMES = new Set([
   'mcp__anvil__create_docx',
@@ -49,4 +49,26 @@ export function getGeneratedDocxPath(
   if (!item.toolName || !CREATE_DOCX_TOOL_NAMES.has(item.toolName)) return null
   if (item.toolIsError === true) return null
   return parseCreatedDocxPath(item.toolOutput)
+}
+
+/**
+ * Resolve generated document artifacts for a whole turn. This is used by the
+ * final response area so users don't have to scroll back to the tool card.
+ * It still reads only persisted structured tool output.
+ */
+export function getGeneratedDocxPathsForTurn(
+  turn: Pick<Turn, 'itemIds'>,
+  items: Record<string, Pick<Item, 'toolName' | 'toolOutput' | 'toolIsError'> | undefined>,
+): string[] {
+  const paths: string[] = []
+  const seen = new Set<string>()
+  for (const id of turn.itemIds) {
+    const item = items[id]
+    if (!item) continue
+    const docxPath = getGeneratedDocxPath(item)
+    if (!docxPath || seen.has(docxPath)) continue
+    seen.add(docxPath)
+    paths.push(docxPath)
+  }
+  return paths
 }

@@ -1,9 +1,11 @@
 import { FileSearch } from 'lucide-react'
 import type { Item, Turn } from '../../store'
 import { formatWorkspaceShort } from '../../lib/pathUtils'
+import { getGeneratedDocxPathsForTurn } from '../../lib/generatedFiles'
 import { MainItemView } from './MainItemView'
 import { UserEchoCard } from './UserEchoCard'
 import { ThinkingIndicator } from './ThinkingIndicator'
+import { GeneratedFilesPanel } from './GeneratedFilesPanel'
 
 export function Conversation({
   turns,
@@ -46,6 +48,7 @@ export function Conversation({
       )}
       {turns.map((turn) => {
         if (turn.status === 'running' && turn.itemIds.length === 0) return null
+        const generatedDocxPaths = getGeneratedDocxPathsForTurn(turn, items)
         return (
           <div key={turn.id} className="flex flex-col gap-2.5">
             {turn.itemIds.map((id) => {
@@ -61,6 +64,9 @@ export function Conversation({
                 />
               )
             })}
+            {turn.status !== 'running' && generatedDocxPaths.length > 0 && (
+              <GeneratedFilesPanel paths={generatedDocxPaths} workspacePath={displayWorkspace} />
+            )}
             {turn.status !== 'running' && turn.stats && (
               <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
                 <span className={

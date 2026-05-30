@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import JSZip from 'jszip'
 import {
   parseInline,
   parseMarkdownBlocks,
@@ -42,6 +43,34 @@ test.describe('parseMarkdownBlocks', () => {
 
   test('skips blank lines', () => {
     expect(parseMarkdownBlocks('a\n\n\nb')).toHaveLength(2)
+  })
+
+  test('parses a markdown pipe table into a table block', () => {
+    const blocks = parseMarkdownBlocks([
+      '# Report',
+      '',
+      '| 组别 | **场景** | 结果 |',
+      '|---|:---:|---|',
+      '| A | *登录* | 通过 |',
+      '| B | 导出 | 失败 |',
+    ].join('\n'))
+
+    expect(blocks.map((b) => b.type)).toEqual(['heading', 'table'])
+    expect(blocks[1]).toMatchObject({
+      type: 'table',
+      headers: [[{ text: '组别' }], [{ text: '场景', bold: true }], [{ text: '结果' }]],
+      rows: [
+        [[{ text: 'A' }], [{ text: '登录', italic: true }], [{ text: '通过' }]],
+        [[{ text: 'B' }], [{ text: '导出' }], [{ text: '失败' }]],
+      ],
+    })
+  })
+
+  test('does not emit table separator rows as paragraphs', () => {
+    const blocks = parseMarkdownBlocks('| A | B |\n|---|---|\n| 1 | 2 |')
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0].type).toBe('table')
+    expect(JSON.stringify(blocks)).not.toContain('---')
   })
 })
 
@@ -100,7 +129,48 @@ test.describe('generateDocx round-trip', () => {
     const text = await extractDocumentText(file)
     expect(text).toContain('third version')
   })
+
+  test('generates real Word tables from markdown pipe tables', async () => {
+    const file = path.join(tmpDir, 'tables.docx')
+    await generateDocx(
+      file,
+      [
+        '# 视觉偏差测试',
+        '',
+        '| 组别 | 测试场景 | 夹具载荷 |',
+        '|------|----------|----------|',
+        '| A | **基准** | 10kg |',
+        '| B | *偏差* | 12kg |',
+        '',
+        '| 指标 | 结果 |',
+        '|---|---|',
+        '| 通过率 | 98% |',
+      ].join('\n'),
+    )
+
+    const xml = await readDocumentXml(file)
+    expect(countOccurrences(xml, '<w:tbl>')).toBe(2)
+    expect(xml).not.toContain('|------|')
+    expect(xml).not.toContain('|---|')
+
+    const text = await extractDocumentText(file)
+    expect(text).toContain('视觉偏差测试')
+    expect(text).toContain('组别')
+    expect(text).toContain('测试场景')
+    expect(text).toContain('通过率')
+  })
 })
+
+async function readDocumentXml(file: string): Promise<string> {
+  const zip = await JSZip.loadAsync(await fs.readFile(file))
+  const documentXml = zip.file('word/document.xml')
+  if (!documentXml) throw new Error('word/document.xml not found')
+  return documentXml.async('string')
+}
+
+function countOccurrences(text: string, needle: string): number {
+  return text.split(needle).length - 1
+}
 
 test.describe('isWriteTargetWithinWorkspace (symlink escape)', () => {
   let wsDir = ''

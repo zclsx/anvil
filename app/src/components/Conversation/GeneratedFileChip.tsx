@@ -6,9 +6,11 @@ import { getWorkspaceRelativePath } from '../../lib/pathUtils'
 export function GeneratedFileChip({
   absPath,
   workspacePath,
+  compact = false,
 }: {
   absPath: string
   workspacePath?: string
+  compact?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const pushError = useAgentStore((s) => s.pushError)
@@ -44,7 +46,7 @@ export function GeneratedFileChip({
   return (
     <div
       onClick={stop}
-      className="mt-2 border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex flex-col gap-2"
+      className={`${compact ? '' : 'mt-2'} border border-[#4a9eff]/40 bg-[#1f2a3a] px-3 py-2 flex flex-col gap-2`}
     >
       <div className="flex flex-wrap items-center gap-2">
         <FileText size={13} className="text-[#a0c4ff] shrink-0" />

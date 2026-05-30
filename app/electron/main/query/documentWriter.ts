@@ -13,6 +13,7 @@ export type DocBlock =
   | { type: 'paragraph'; runs: InlineRun[] }
   | { type: 'bullet'; runs: InlineRun[] }
   | { type: 'numbered'; runs: InlineRun[] }
+  | { type: 'table'; headers: InlineRun[][]; rows: InlineRun[][][] }
 
 export type ResolvedWritePath =
   | { ok: true; absPath: string }
@@ -39,17 +40,65 @@ export function parseInline(text: string): InlineRun[] {
   return runs
 }
 
+function splitTableRow(line: string): string[] {
+  const trimmed = line.trim()
+  const withoutOuterPipes = trimmed.replace(/^\|/, '').replace(/\|$/, '')
+  return withoutOuterPipes.split('|').map((cell) => cell.trim())
+}
+
+function isTableSeparator(line: string): boolean {
+  const cells = splitTableRow(line)
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()))
+}
+
+function isPipeRow(line: string): boolean {
+  return line.includes('|') && splitTableRow(line).length > 1
+}
+
+function normalizeTableCells(cells: string[], width: number): string[] {
+  if (cells.length === width) return cells
+  if (cells.length > width) return cells.slice(0, width)
+  return [...cells, ...Array.from({ length: width - cells.length }, () => '')]
+}
+
+function normalizeTableRunCells(cells: InlineRun[][], width: number): InlineRun[][] {
+  if (cells.length === width) return cells
+  if (cells.length > width) return cells.slice(0, width)
+  return [...cells, ...Array.from({ length: width - cells.length }, () => [{ text: '' }])]
+}
+
 /**
- * Parse markdown into a flat list of block descriptors. Block-level only:
- * H1–H3, bullet/numbered list items, and paragraphs. Tables/images/code
- * fences degrade to plain paragraphs. Each non-empty line is one block.
+ * Parse markdown into a flat list of block descriptors. Block-level support is
+ * intentionally small: H1–H3, bullet/numbered list items, paragraphs, and GFM
+ * pipe tables. Unsupported blocks still degrade to paragraphs.
  */
 export function parseMarkdownBlocks(markdown: string): DocBlock[] {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n')
   const blocks: DocBlock[] = []
-  for (const raw of lines) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i]
     const line = raw.trimEnd()
     if (line.trim() === '') continue
+    const nextLine = lines[i + 1]?.trimEnd() ?? ''
+    if (isPipeRow(line) && isTableSeparator(nextLine)) {
+      const headerCells = splitTableRow(line)
+      const width = headerCells.length
+      const rows: InlineRun[][][] = []
+      i += 2
+      while (i < lines.length) {
+        const rowLine = lines[i].trimEnd()
+        if (rowLine.trim() === '' || !isPipeRow(rowLine)) break
+        rows.push(normalizeTableCells(splitTableRow(rowLine), width).map(parseInline))
+        i += 1
+      }
+      i -= 1
+      blocks.push({
+        type: 'table',
+        headers: headerCells.map(parseInline),
+        rows,
+      })
+      continue
+    }
     const heading = /^(#{1,3})\s+(.*)$/.exec(line)
     if (heading) {
       blocks.push({
@@ -161,14 +210,26 @@ export async function generateDocx(
   title?: string,
   options?: { overwrite?: boolean; style?: DocxStyleOptions },
 ): Promise<number> {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx')
+  const {
+    AlignmentType,
+    BorderStyle,
+    Document,
+    HeadingLevel,
+    Packer,
+    Paragraph,
+    Table,
+    TableCell,
+    TableRow,
+    TextRun,
+    WidthType,
+  } = await import('docx')
 
   const blocks = parseMarkdownBlocks(markdown)
 
   const toTextRuns = (runs: InlineRun[]) =>
     runs.map((r) => new TextRun({ text: r.text, bold: r.bold, italics: r.italic }))
 
-  const toParagraph = (block: DocBlock) => {
+  const toParagraph = (block: Exclude<DocBlock, { type: 'table' }>) => {
     const children = toTextRuns(block.runs)
     if (block.type === 'heading') {
       const level =
@@ -188,13 +249,63 @@ export async function generateDocx(
     return new Paragraph({ children })
   }
 
-  const children: InstanceType<typeof Paragraph>[] = []
+  const tableBorder = { style: BorderStyle.SINGLE, size: 1, color: 'B8C2D6' }
+  const tableCellMargins = {
+    marginUnitType: WidthType.DXA,
+    top: 80,
+    bottom: 80,
+    left: 120,
+    right: 120,
+  }
+  const toTable = (block: Extract<DocBlock, { type: 'table' }>) => {
+    const width = Math.max(1, block.headers.length)
+    const cellWidth = Math.floor(9000 / width)
+    const toCell = (runs: InlineRun[], header: boolean) =>
+      new TableCell({
+        width: { size: cellWidth, type: WidthType.DXA },
+        margins: tableCellMargins,
+        shading: header ? { fill: 'EEF4FF' } : undefined,
+        children: [
+          new Paragraph({
+            children: toTextRuns(
+              header ? runs.map((run) => ({ ...run, bold: true })) : runs,
+            ),
+          }),
+        ],
+      })
+    return new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: tableBorder,
+        bottom: tableBorder,
+        left: tableBorder,
+        right: tableBorder,
+        insideHorizontal: tableBorder,
+        insideVertical: tableBorder,
+      },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          children: block.headers.map((cell) => toCell(cell, true)),
+        }),
+        ...block.rows.map((row) =>
+          new TableRow({
+            children: normalizeTableRunCells(row, width).map((cell) => toCell(cell, false)),
+          }),
+        ),
+      ],
+    })
+  }
+
+  const children: Array<InstanceType<typeof Paragraph> | InstanceType<typeof Table>> = []
   if (title) {
     children.push(
       new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: title, bold: true })] }),
     )
   }
-  for (const block of blocks) children.push(toParagraph(block))
+  for (const block of blocks) {
+    children.push(block.type === 'table' ? toTable(block) : toParagraph(block))
+  }
 
   const docOptions: Record<string, unknown> = {
     numbering: {
