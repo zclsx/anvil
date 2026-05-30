@@ -103,6 +103,27 @@ declare global {
 }
 
 export function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('anvil-theme')
+    if (saved === 'light' || saved === 'dark') {
+      return saved
+    }
+    return 'dark'
+  })
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('anvil-theme', theme)
+  }, [theme])
+
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  }, [])
+
   const [prompt, setPrompt] = useState('')
   const [settings, setSettingsState] = useState<PublicSettings | null>(null)
   const [draftKey, setDraftKey] = useState('')
@@ -812,10 +833,12 @@ export function App() {
         isDraftWorkspace={isDraftWorkspace}
         hasAnvil={hasAnvil}
         updateSnapshot={updateSnapshot}
+        theme={theme}
         onCheckUpdate={checkForUpdates}
         onDownloadUpdate={downloadUpdate}
         onInstallUpdate={installUpdate}
         onToggleSettings={() => setShowSettings((v) => !v)}
+        onToggleTheme={toggleTheme}
       />
 
       {visibleErrors.length > 0 && (

@@ -25,19 +25,19 @@ export function UpdateActionButton({
   } else if (snapshot.status === 'available') {
     label = `Download${version}`
     action = onDownload
-    className = 'border-[#4a9eff]/50 text-[#a0c4ff] hover:bg-[#1f2a3a]'
+    className = 'border-info-border text-info-text-accent hover:bg-info-hover'
   } else if (snapshot.status === 'downloading') {
     label = `Downloading ${percent}%`
   } else if (snapshot.status === 'downloaded') {
     label = 'Restart to update'
     action = onInstall
-    className = 'border-[#6fbf6f]/50 text-[#9ce29c] hover:bg-[#1f3a1f]'
+    className = 'border-status-success-border text-status-success-text hover:bg-status-success-hover'
   } else if (snapshot.status === 'not-available') {
     label = 'Up to date'
   } else if (snapshot.status === 'error') {
     label = 'Update error'
     title = snapshot.message || 'Update check failed'
-    className = 'border-[#ff8080]/50 text-[#ffb4ab] hover:bg-[#3a1f1f]'
+    className = 'border-status-error-border text-status-error-text hover:bg-status-error-hover'
   }
 
   return (

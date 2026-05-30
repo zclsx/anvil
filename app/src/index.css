@@ -1,52 +1,73 @@
 @import "tailwindcss";
 
-@theme {
-  /* Premium Restrained Zinc/Charcoal Color System */
-  --color-surface-container: #201f21;
-  --color-background: #131315;
-  --color-secondary-fixed: #e2e1eb;
-  --color-surface: #131315;
-  --color-secondary: #c6c6cf;
-  --color-tertiary: #ffffff;
-  --color-surface-variant: #353437;
-  --color-on-background: #e5e1e4;
-  --color-on-secondary-container: #b4b4bd;
-  --color-surface-dim: #131315;
-  --color-inverse-surface: #e5e1e4;
-  --color-error: #ffb4ab;
-  --color-outline: #8e9192;
-  --color-primary-container: #e2e2e2;
-  --color-surface-container-low: #1c1b1d;
-  --color-on-tertiary: #303033;
-  --color-on-error-container: #ffdad6;
-  --color-on-primary-fixed: #1a1c1c;
-  --color-primary-fixed-dim: #c6c6c7;
-  --color-secondary-fixed-dim: #c6c6cf;
-  --color-on-primary-fixed-variant: #454747;
-  --color-error-container: #93000a;
-  --color-tertiary-container: #e4e1e5;
-  --color-surface-container-lowest: #0e0e10;
-  --color-on-surface-variant: #c4c7c8;
-  --color-on-secondary-fixed: #1a1b22;
-  --color-on-error: #690005;
-  --color-on-secondary-fixed-variant: #45464e;
-  --color-primary-fixed: #e2e2e2;
+:root {
+  /* Premium Restrained Light Mode (Stitch Design) */
+  --color-background: #F9F9FB;
+  --color-surface: #FFFFFF;
+  --color-surface-container: #F5F5F7;
+  --color-surface-container-low: #F9F9FB;
+  --color-surface-container-lowest: #F9F9FB;
+  --color-surface-container-high: #E5E5EA;
+  --color-surface-container-highest: #E5E5EA;
+  --color-surface-dim: #F2F2F7;
+  --color-surface-variant: #F2F2F7;
+  --color-surface-bright: #FFFFFF;
+  
+  --color-primary: #1D1D1F;
+  --color-on-surface: #1D1D1F;
+  --color-on-background: #1D1D1F;
+  --color-on-surface-variant: #424245;
+  --color-on-secondary-container: #424245;
+  --color-on-secondary: #1D1D1F;
   --color-on-primary-container: #636565;
-  --color-on-surface: #e5e1e4;
-  --color-outline-variant: #444748;
-  --color-primary: #ffffff;
-  --color-surface-tint: #c6c6c7;
-  --color-on-tertiary-container: #656467;
-  --color-tertiary-fixed-dim: #c8c6c9;
-  --color-surface-bright: #39393b;
-  --color-surface-container-highest: #353437;
-  --color-inverse-on-surface: #313032;
-  --color-on-tertiary-fixed: #1b1b1e;
-  --color-on-tertiary-fixed-variant: #47464a;
-  --color-surface-container-high: #2a2a2c;
-  --color-tertiary-fixed: #e4e1e5;
-  --color-secondary-container: #45464e;
-  --color-on-secondary: #2f3037;
+  
+  --color-outline: #8e9192;
+  --color-outline-variant: #D1D1D6;
+  --color-secondary-container: #E5E5EA;
+  
+  --color-success-emerald: #10b981;
+  --color-process-purple: #a855f7;
+  --color-warning-amber: #f59e0b;
+
+  --color-token-property: #005cc5;
+  --color-token-string: #032f62;
+  --color-token-number: #005cc5;
+  --color-token-punctuation: #24292e;
+
+  /* Adaptive Status & Alert Tokens */
+  --color-status-success-bg: #e6f4ea;
+  --color-status-success-text: #137333;
+  --color-status-success-border: #a3cfbb;
+  --color-status-success-hover: #d1ebd8;
+
+  --color-status-error-bg: #fce8e6;
+  --color-status-error-text: #c5221f;
+  --color-status-error-border: #f5c2c7;
+  --color-status-error-hover: #f8d7da;
+
+  --color-status-warning-bg: #fffbe6;
+  --color-status-warning-border: #ffe58f;
+  --color-status-warning-text: #b7791f;
+  --color-status-warning-hover: #fff3cd;
+
+  --color-info-bg: #f0f7ff;
+  --color-info-border: #c2e0ff;
+  --color-info-text: #005cc5;
+  --color-info-text-secondary: #0066cc;
+  --color-info-text-accent: #005cc5;
+  --color-info-hover: #e0effe;
+
+  /* Button Tokens */
+  --color-btn-primary-bg: #1D1D1F;
+  --color-btn-primary-hover: #424245;
+  --color-btn-primary-text: #FFFFFF;
+
+  --color-btn-disabled-bg: #F2F2F7;
+  --color-btn-disabled-text: #AEAEA3;
+
+  /* Drag Active Dropzone Tokens */
+  --color-drag-bg: #f0f7ff;
+  --color-drag-border: #005cc5;
 
   /* Typography Fonts */
   --font-mono-code: "JetBrains Mono", ui-monospace, monospace;
@@ -58,6 +79,138 @@
   --font-display: "Sora", var(--font-sans);
 }
 
+.dark {
+  /* Premium Restrained Dark Mode (Original Anvil Design) */
+  --color-background: #131315;
+  --color-surface: #131315;
+  --color-surface-container: #201f21;
+  --color-surface-container-low: #1c1b1d;
+  --color-surface-container-lowest: #0e0e10;
+  --color-surface-container-high: #2a2a2c;
+  --color-surface-container-highest: #353437;
+  --color-surface-dim: #131315;
+  --color-surface-variant: #353437;
+  --color-surface-bright: #39393b;
+  
+  --color-primary: #ffffff;
+  --color-on-surface: #e5e1e4;
+  --color-on-background: #e5e1e4;
+  --color-on-surface-variant: #c4c7c8;
+  --color-on-secondary-container: #b4b4bd;
+  --color-on-secondary: #2f3037;
+  --color-on-primary-container: #636565;
+  
+  --color-outline: #8e9192;
+  --color-outline-variant: #444748;
+  --color-secondary-container: #45464e;
+  
+  --color-success-emerald: #10b981;
+  --color-process-purple: #a855f7;
+  --color-warning-amber: #f59e0b;
+
+  --color-token-property: #8e9192;
+  --color-token-string: #c4c7c8;
+  --color-token-number: #ffffff;
+  --color-token-punctuation: #444748;
+
+  /* Adaptive Status & Alert Tokens */
+  --color-status-success-bg: #1f3a1f;
+  --color-status-success-text: #6fbf6f;
+  --color-status-success-border: rgba(111, 191, 111, 0.4);
+  --color-status-success-hover: #2f5a2f;
+
+  --color-status-error-bg: #3a1f1f;
+  --color-status-error-text: #ff8080;
+  --color-status-error-border: rgba(255, 128, 128, 0.4);
+  --color-status-error-hover: #5a2f2f;
+
+  --color-status-warning-bg: #2a1f0f;
+  --color-status-warning-border: #f59e0b;
+  --color-status-warning-text: #f59e0b;
+  --color-status-warning-hover: #3f2f17;
+
+  --color-info-bg: #1f2a3a;
+  --color-info-border: rgba(74, 158, 255, 0.4);
+  --color-info-text: #d8e7ff;
+  --color-info-text-secondary: #7fb2f0;
+  --color-info-text-accent: #a0c4ff;
+  --color-info-hover: #2f4a5a;
+
+  /* Button Tokens */
+  --color-btn-primary-bg: #FFFFFF;
+  --color-btn-primary-hover: #E5E5EA;
+  --color-btn-primary-text: #000000;
+
+  --color-btn-disabled-bg: #252527;
+  --color-btn-disabled-text: #666668;
+
+  /* Drag Active Dropzone Tokens */
+  --color-drag-bg: #111827;
+  --color-drag-border: #4a9eff;
+}
+
+@theme {
+  --color-surface-container: var(--color-surface-container);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-variant: var(--color-surface-variant);
+  --color-on-background: var(--color-on-background);
+  --color-on-secondary-container: var(--color-on-secondary-container);
+  --color-surface-dim: var(--color-surface-dim);
+  --color-outline: var(--color-outline);
+  --color-surface-container-low: var(--color-surface-container-low);
+  --color-surface-container-lowest: var(--color-surface-container-lowest);
+  --color-on-surface-variant: var(--color-on-surface-variant);
+  --color-primary: var(--color-primary);
+  --color-on-surface: var(--color-on-surface);
+  --color-outline-variant: var(--color-outline-variant);
+  --color-surface-bright: var(--color-surface-bright);
+  --color-surface-container-highest: var(--color-surface-container-highest);
+  --color-surface-container-high: var(--color-surface-container-high);
+  --color-secondary-container: var(--color-secondary-container);
+  --color-on-secondary: var(--color-on-secondary);
+
+  --color-status-success-bg: var(--color-status-success-bg);
+  --color-status-success-text: var(--color-status-success-text);
+  --color-status-success-border: var(--color-status-success-border);
+  --color-status-success-hover: var(--color-status-success-hover);
+
+  --color-status-error-bg: var(--color-status-error-bg);
+  --color-status-error-text: var(--color-status-error-text);
+  --color-status-error-border: var(--color-status-error-border);
+  --color-status-error-hover: var(--color-status-error-hover);
+
+  --color-status-warning-bg: var(--color-status-warning-bg);
+  --color-status-warning-border: var(--color-status-warning-border);
+  --color-status-warning-text: var(--color-status-warning-text);
+  --color-status-warning-hover: var(--color-status-warning-hover);
+
+  --color-info-bg: var(--color-info-bg);
+  --color-info-border: var(--color-info-border);
+  --color-info-text: var(--color-info-text);
+  --color-info-text-secondary: var(--color-info-text-secondary);
+  --color-info-text-accent: var(--color-info-text-accent);
+  --color-info-hover: var(--color-info-hover);
+
+  --color-btn-primary-bg: var(--color-btn-primary-bg);
+  --color-btn-primary-hover: var(--color-btn-primary-hover);
+  --color-btn-primary-text: var(--color-btn-primary-text);
+
+  --color-btn-disabled-bg: var(--color-btn-disabled-bg);
+  --color-btn-disabled-text: var(--color-btn-disabled-text);
+
+  --color-drag-bg: var(--color-drag-bg);
+  --color-drag-border: var(--color-drag-border);
+
+  --font-mono-code: var(--font-mono-code);
+  --font-mono-label: var(--font-mono-label);
+  --font-body-lg: var(--font-body-lg);
+  --font-body-sm: var(--font-body-sm);
+  --font-label-caps: var(--font-label-caps);
+  --font-headline: var(--font-headline);
+  --font-display: var(--font-display);
+}
+
 /* Base resets */
 * {
   box-sizing: border-box;
@@ -65,9 +218,10 @@
 
 body {
   margin: 0;
-  background-color: #131315;
-  color: #e5e1e4;
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Custom Scrollbars for Mac Feel */
@@ -81,13 +235,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2c;
+  background: var(--color-outline-variant);
   border-radius: 4px;
   transition: background 0.15s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #353437;
+  background: var(--color-outline);
 }
 
 /* Electron Draggable Titlebar Utilities */
@@ -100,7 +254,7 @@ body {
 }
 
 /* Code highlight tweaks */
-.token.property { color: #8e9192; }
-.token.string { color: #c4c7c8; }
-.token.number { color: #ffffff; }
-.token.punctuation { color: #444748; }
+.token.property { color: var(--color-token-property); }
+.token.string { color: var(--color-token-string); }
+.token.number { color: var(--color-token-number); }
+.token.punctuation { color: var(--color-token-punctuation); }
