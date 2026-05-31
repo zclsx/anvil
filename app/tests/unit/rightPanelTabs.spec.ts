@@ -66,4 +66,26 @@ test.describe('rightPanelReducer', () => {
     const s = rightPanelReducer(initialRightPanelState, { type: 'setActive', id: 'nope' })
     expect(s).toEqual(initialRightPanelState)
   })
+
+  test('followInspector updates an open inspector tab without stealing focus', () => {
+    let s = rightPanelReducer(initialRightPanelState, { type: 'openInspector', itemId: 'a' })
+    s = rightPanelReducer(s, { type: 'openPreview', filePath: '/r.docx', title: 'r' })
+    expect(s.activeTabId).toBe('preview:/r.docx')
+
+    s = rightPanelReducer(s, { type: 'followInspector', itemId: 'b' })
+    expect(s.tabs.find((t) => t.id === INSPECTOR_TAB_ID)).toMatchObject({ itemId: 'b' })
+    expect(s.activeTabId).toBe('preview:/r.docx')
+  })
+
+  test('followInspector is a no-op when no inspector tab is open', () => {
+    const s = rightPanelReducer(initialRightPanelState, { type: 'followInspector', itemId: 'a' })
+    expect(s).toEqual(initialRightPanelState)
+  })
+
+  test('reset clears all tabs', () => {
+    let s = rightPanelReducer(initialRightPanelState, { type: 'openInspector', itemId: 'a' })
+    s = rightPanelReducer(s, { type: 'openPreview', filePath: '/r.docx', title: 'r' })
+    s = rightPanelReducer(s, { type: 'reset' })
+    expect(s).toEqual(initialRightPanelState)
+  })
 })

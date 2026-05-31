@@ -26,6 +26,10 @@ export function DocumentPreview({ filePath }: { filePath: string }) {
         await renderAsync(result.bytes, container, undefined, {
           inWrapper: true,
           ignoreLastRenderedPageBreak: true,
+          renderAltChunks: false,
+          renderComments: false,
+          renderChanges: false,
+          useBase64URL: true,
         })
         if (!cancelled) setStatus('ready')
       } catch (e) {
@@ -37,6 +41,7 @@ export function DocumentPreview({ filePath }: { filePath: string }) {
 
     return () => {
       cancelled = true
+      if (containerRef.current) containerRef.current.innerHTML = ''
     }
   }, [filePath])
 

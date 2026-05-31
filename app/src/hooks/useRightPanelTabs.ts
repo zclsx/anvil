@@ -11,9 +11,11 @@ export interface RightPanelState {
 
 export type RightPanelAction =
   | { type: 'openInspector'; itemId: string }
+  | { type: 'followInspector'; itemId: string }
   | { type: 'openPreview'; filePath: string; title: string }
   | { type: 'closeTab'; id: string }
   | { type: 'setActive'; id: string }
+  | { type: 'reset' }
 
 export const INSPECTOR_TAB_ID = 'inspector'
 
@@ -32,6 +34,18 @@ export function rightPanelReducer(state: RightPanelState, action: RightPanelActi
         ? state.tabs.map((t) => (t.id === INSPECTOR_TAB_ID ? inspector : t))
         : [inspector, ...state.tabs]
       return { tabs, activeTabId: INSPECTOR_TAB_ID }
+    }
+    case 'followInspector': {
+      const existing = state.tabs.find((t) => t.id === INSPECTOR_TAB_ID)
+      if (!existing) return state
+      return {
+        ...state,
+        tabs: state.tabs.map((t) =>
+          t.id === INSPECTOR_TAB_ID
+            ? { id: INSPECTOR_TAB_ID, kind: 'inspector', itemId: action.itemId }
+            : t,
+        ),
+      }
     }
     case 'openPreview': {
       const id = previewTabId(action.filePath)
@@ -55,6 +69,8 @@ export function rightPanelReducer(state: RightPanelState, action: RightPanelActi
       if (!state.tabs.some((t) => t.id === action.id)) return state
       return { ...state, activeTabId: action.id }
     }
+    case 'reset':
+      return initialRightPanelState
     default:
       return state
   }
@@ -64,12 +80,23 @@ export function useRightPanelTabs() {
   const [state, dispatch] = useReducer(rightPanelReducer, initialRightPanelState)
 
   const openInspector = useCallback((itemId: string) => dispatch({ type: 'openInspector', itemId }), [])
+  const followInspector = useCallback((itemId: string) => dispatch({ type: 'followInspector', itemId }), [])
   const openPreview = useCallback(
     (filePath: string, title: string) => dispatch({ type: 'openPreview', filePath, title }),
     [],
   )
   const closeTab = useCallback((id: string) => dispatch({ type: 'closeTab', id }), [])
   const setActive = useCallback((id: string) => dispatch({ type: 'setActive', id }), [])
+  const reset = useCallback(() => dispatch({ type: 'reset' }), [])
 
-  return { tabs: state.tabs, activeTabId: state.activeTabId, openInspector, openPreview, closeTab, setActive }
+  return {
+    tabs: state.tabs,
+    activeTabId: state.activeTabId,
+    openInspector,
+    followInspector,
+    openPreview,
+    closeTab,
+    setActive,
+    reset,
+  }
 }

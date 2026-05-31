@@ -203,10 +203,11 @@ export function App() {
       ingest(env)
       if (autoFollow && env.event && 'itemId' in env.event && env.event.itemId) {
         setSelectedItemId(env.event.itemId as string)
+        rightPanel.followInspector(env.event.itemId as string)
       }
     })
     return off
-  }, [ingest, autoFollow])
+  }, [ingest, autoFollow, rightPanel.followInspector])
 
   useGlobalFileDropGuard(() => setIsFileDragActive(false))
 
@@ -257,6 +258,10 @@ export function App() {
       setActiveSessionId(sessionId)
     }
   }, [sessionId, activeSessionId])
+
+  useEffect(() => {
+    rightPanel.reset()
+  }, [activeSessionId, rightPanel.reset])
 
   useEscapeToCancel(running, () => {
     window.anvil?.cancel()
