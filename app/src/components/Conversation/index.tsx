@@ -20,6 +20,8 @@ export function Conversation({
   conversationEndRef,
   onSelectItem,
   displayWorkspace,
+  expandAll,
+  onToggleExpand,
 }: {
   turns: Turn[]
   items: Record<string, Item>
@@ -33,6 +35,8 @@ export function Conversation({
   conversationEndRef: React.RefObject<HTMLDivElement | null>
   onSelectItem: (id: string) => void
   displayWorkspace?: string
+  expandAll: boolean
+  onToggleExpand: () => void
 }) {
   return (
     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
@@ -44,6 +48,16 @@ export function Conversation({
               ? `Workspace 已就绪：${formatWorkspaceShort(pendingWorkspace)}，请在下方输入指令`
               : '点 New 选择 workspace 开始新对话，或从左侧选择历史 session'}
           </div>
+        </div>
+      )}
+      {turns.length > 0 && (
+        <div className="sticky top-0 z-10 flex justify-end pointer-events-none -mt-2 -mb-2">
+          <button
+            onClick={onToggleExpand}
+            className="pointer-events-auto font-mono-label text-[10px] text-on-surface-variant hover:text-primary bg-surface-container border border-outline-variant px-2 py-0.5 cursor-pointer"
+          >
+            {expandAll ? '收起过程' : '展开过程'} <span className="opacity-50">⌘E</span>
+          </button>
         </div>
       )}
       {turns.map((turn) => {
@@ -61,6 +75,7 @@ export function Conversation({
                   isSelected={selectedItemId === id}
                   onSelect={() => onSelectItem(id)}
                   workspacePath={displayWorkspace}
+                  expandAll={expandAll}
                 />
               )
             })}

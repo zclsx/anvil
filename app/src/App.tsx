@@ -25,6 +25,7 @@ import { RightPanel } from './components/RightPanel'
 import { RightPanelContext } from './components/RightPanel/context'
 import { useRightPanelTabs } from './hooks/useRightPanelTabs'
 import { useResizablePanel } from './hooks/useResizablePanel'
+import { useConversationExpand } from './hooks/useConversationExpand'
 import { ApprovalsPanel } from './components/Approvals/ApprovalsPanel'
 import { ErrorBanner } from './components/ErrorBanner'
 import { NoticeBanner } from './components/NoticeBanner'
@@ -141,6 +142,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const rightPanel = useRightPanelTabs()
+  const { expandAll, toggleExpandAll } = useConversationExpand()
   const rightPanelApi = useMemo(() => ({ openPreview: rightPanel.openPreview }), [rightPanel.openPreview])
   const { width: rightPanelWidth, startResize: startRightPanelResize } = useResizablePanel({
     initialWidth: 400,
@@ -911,6 +913,8 @@ export function App() {
                 rightPanel.openInspector(id)
               }}
               displayWorkspace={displayWorkspace}
+              expandAll={expandAll}
+              onToggleExpand={toggleExpandAll}
             />
           </RightPanelContext.Provider>
 

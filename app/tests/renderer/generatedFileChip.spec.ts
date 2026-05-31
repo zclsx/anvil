@@ -159,8 +159,8 @@ test('errored create_docx does not render a chip', async ({ page }) => {
     isError: true,
   })
 
-  // the tool card shows, but no generated-file chip (no Open/Reveal actions)
-  await expect(page.getByText('mcp__anvil__create_docx').first()).toBeVisible({ timeout: 5_000 })
+  // the tool step shows (compact, cleaned name), but no generated-file chip
+  await expect(page.getByText('create_docx').first()).toBeVisible({ timeout: 5_000 })
   await expect(page.getByRole('button', { name: '打开' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '定位' })).toHaveCount(0)
 })
