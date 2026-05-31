@@ -25,10 +25,6 @@ export default defineConfig({
       name: 'electron',
       testMatch: /electron\/.*\.spec\.ts$/,
     },
-    {
-      name: 'unit',
-      testMatch: /unit\/.*\.spec\.ts$/,
-    },
   ],
   webServer: {
     command: 'npm run dev:web',

@@ -3,7 +3,6 @@ import type {
   AgentEvent,
   AgentEventEnvelope,
   AgentRole,
-  ApprovalRequest,
 } from '../electron/shared/events'
 import type { SessionMeta } from '../electron/shared/session'
 

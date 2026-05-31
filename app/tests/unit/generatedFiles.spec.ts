@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from 'vitest'
 import { parseCreatedDocxPath, getGeneratedDocxPath } from '../../src/lib/generatedFiles'
 
 test.describe('parseCreatedDocxPath', () => {

@@ -14,12 +14,9 @@ import {
   formatPathLiteral,
   formatWorkspaceShort,
   getComparablePath,
-  getPromptPathDisplay,
   getWorkspaceRelativePath,
   normalizePathForCompare,
-  truncatePath,
 } from './lib/pathUtils'
-import { formatRelative } from './lib/timeUtils'
 import { formatFileReferenceLabel, isImagePath } from './lib/fileUtils'
 import { RightPanel } from './components/RightPanel'
 import { RightPanelContext } from './components/RightPanel/context'
