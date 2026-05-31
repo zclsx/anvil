@@ -108,7 +108,7 @@ test.describe('Anvil Premium Theme Switcher E2E Test Suite', () => {
     const lightVarProperty = await win.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--color-token-property').trim()
     })
-    expect(lightVarProperty.toLowerCase()).toBe('#005cc5')
+    expect(lightVarProperty.toLowerCase()).toBe('#1d4ed8')
 
     const toggleBtn = win.locator('button:has-text("Dark")')
     await toggleBtn.click()
@@ -116,6 +116,6 @@ test.describe('Anvil Premium Theme Switcher E2E Test Suite', () => {
     const darkVarProperty = await win.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--color-token-property').trim()
     })
-    expect(darkVarProperty.toLowerCase()).toBe('#8e9192')
+    expect(darkVarProperty.toLowerCase()).toBe('#afc4ff')
   })
 })

@@ -2,72 +2,72 @@
 
 :root {
   /* Premium Restrained Light Mode */
-  --color-background: #F9F9FB;
+  --color-background: #F6F7F9;
   --color-surface: #FFFFFF;
-  --color-surface-container: #F5F5F7;
-  --color-surface-container-low: #F9F9FB;
-  --color-surface-container-lowest: #F9F9FB;
-  --color-surface-container-high: #E5E5EA;
-  --color-surface-container-highest: #E5E5EA;
-  --color-surface-dim: #F2F2F7;
-  --color-surface-variant: #F2F2F7;
+  --color-surface-container: #F0F2F5;
+  --color-surface-container-low: #F7F8FA;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-high: #E6E9EE;
+  --color-surface-container-highest: #DFE3EA;
+  --color-surface-dim: #EEF1F5;
+  --color-surface-variant: #E9ECF2;
   --color-surface-bright: #FFFFFF;
 
-  --color-primary: #1D1D1F;
-  --color-on-surface: #1D1D1F;
-  --color-on-background: #1D1D1F;
-  --color-on-surface-variant: #424245;
-  --color-on-secondary-container: #424245;
-  --color-on-secondary: #1D1D1F;
-  --color-on-primary-container: #636565;
+  --color-primary: #182230;
+  --color-on-surface: #182230;
+  --color-on-background: #182230;
+  --color-on-surface-variant: #3B4350;
+  --color-on-secondary-container: #4B5563;
+  --color-on-secondary: #182230;
+  --color-on-primary-container: #647083;
 
-  --color-outline: #8e9192;
-  --color-outline-variant: #D1D1D6;
-  --color-secondary-container: #E5E5EA;
+  --color-outline: #7D8592;
+  --color-outline-variant: #C7CCD6;
+  --color-secondary-container: #E1E5EC;
 
   --color-success-emerald: #10b981;
   --color-process-purple: #a855f7;
   --color-warning-amber: #f59e0b;
 
-  --color-token-property: #005cc5;
-  --color-token-string: #032f62;
-  --color-token-number: #005cc5;
-  --color-token-punctuation: #24292e;
+  --color-token-property: #1D4ED8;
+  --color-token-string: #0F4C81;
+  --color-token-number: #1D4ED8;
+  --color-token-punctuation: #374151;
 
   /* Adaptive Status & Alert Tokens */
-  --color-status-success-bg: #e6f4ea;
-  --color-status-success-text: #137333;
-  --color-status-success-border: #a3cfbb;
-  --color-status-success-hover: #d1ebd8;
+  --color-status-success-bg: #DCFCE7;
+  --color-status-success-text: #047857;
+  --color-status-success-border: #9FD6B8;
+  --color-status-success-hover: #C7F4D5;
 
-  --color-status-error-bg: #fce8e6;
-  --color-status-error-text: #c5221f;
-  --color-status-error-border: #f5c2c7;
-  --color-status-error-hover: #f8d7da;
+  --color-status-error-bg: #FEE2E2;
+  --color-status-error-text: #B91C1C;
+  --color-status-error-border: #F1B6B6;
+  --color-status-error-hover: #FBD0D0;
 
-  --color-status-warning-bg: #fffbe6;
-  --color-status-warning-border: #ffe58f;
-  --color-status-warning-text: #b7791f;
-  --color-status-warning-hover: #fff3cd;
+  --color-status-warning-bg: #FFF7DB;
+  --color-status-warning-border: #F5D37B;
+  --color-status-warning-text: #A16207;
+  --color-status-warning-hover: #FFEFB6;
 
-  --color-info-bg: #f0f7ff;
-  --color-info-border: #c2e0ff;
-  --color-info-text: #005cc5;
-  --color-info-text-secondary: #0066cc;
-  --color-info-text-accent: #005cc5;
-  --color-info-hover: #e0effe;
+  --color-info-bg: #EAF2FF;
+  --color-info-border: #BFD5FF;
+  --color-info-text: #1D4ED8;
+  --color-info-text-secondary: #2757C5;
+  --color-info-text-accent: #1D4ED8;
+  --color-info-hover: #DDEAFF;
 
   /* Button Tokens */
-  --color-btn-primary-bg: #1D1D1F;
-  --color-btn-primary-hover: #424245;
+  --color-btn-primary-bg: #182230;
+  --color-btn-primary-hover: #2A3646;
   --color-btn-primary-text: #FFFFFF;
 
-  --color-btn-disabled-bg: #F2F2F7;
-  --color-btn-disabled-text: #AEAEA3;
+  --color-btn-disabled-bg: #EDF0F4;
+  --color-btn-disabled-text: #9AA3AF;
 
   /* Drag Active Dropzone Tokens */
-  --color-drag-bg: #f0f7ff;
-  --color-drag-border: #005cc5;
+  --color-drag-bg: #EAF2FF;
+  --color-drag-border: #1D4ED8;
 
   --color-surface-base: var(--color-background);
   --color-surface-raised: var(--color-surface-container);
@@ -86,7 +86,7 @@
   --color-focus-ring: var(--color-info-text-secondary);
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
-  --color-status-running: #4a9eff;
+  --color-status-running: #1D4ED8;
   --color-status-success: var(--color-status-success-text);
   --color-status-success-muted: var(--color-status-success-bg);
   --color-status-warning: var(--color-status-warning-text);
@@ -121,73 +121,73 @@
 }
 
 .dark {
-  /* Premium Restrained Dark Mode (Original Anvil Design) */
-  --color-background: #131315;
-  --color-surface: #131315;
-  --color-surface-container: #201f21;
-  --color-surface-container-low: #1c1b1d;
-  --color-surface-container-lowest: #0e0e10;
-  --color-surface-container-high: #2a2a2c;
-  --color-surface-container-highest: #353437;
-  --color-surface-dim: #131315;
-  --color-surface-variant: #353437;
-  --color-surface-bright: #39393b;
+  /* Premium Restrained Dark Mode */
+  --color-background: #0B0B0C;
+  --color-surface: #111115;
+  --color-surface-container: #18181D;
+  --color-surface-container-low: #141419;
+  --color-surface-container-lowest: #0E0E12;
+  --color-surface-container-high: #23232A;
+  --color-surface-container-highest: #2E2E37;
+  --color-surface-dim: #0B0B0C;
+  --color-surface-variant: #2B2D36;
+  --color-surface-bright: #363842;
 
-  --color-primary: #ffffff;
-  --color-on-surface: #e5e1e4;
-  --color-on-background: #e5e1e4;
-  --color-on-surface-variant: #c4c7c8;
-  --color-on-secondary-container: #b4b4bd;
-  --color-on-secondary: #2f3037;
-  --color-on-primary-container: #636565;
+  --color-primary: #B3C5FF;
+  --color-on-surface: #ECECF2;
+  --color-on-background: #ECECF2;
+  --color-on-surface-variant: #B8BDCB;
+  --color-on-secondary-container: #A6ADBA;
+  --color-on-secondary: #30323A;
+  --color-on-primary-container: #F6F8FF;
 
-  --color-outline: #8e9192;
-  --color-outline-variant: #444748;
-  --color-secondary-container: #45464e;
+  --color-outline: #8A91A3;
+  --color-outline-variant: #343A47;
+  --color-secondary-container: #3E4350;
 
   --color-success-emerald: #10b981;
   --color-process-purple: #a855f7;
   --color-warning-amber: #f59e0b;
 
-  --color-token-property: #8e9192;
-  --color-token-string: #c4c7c8;
-  --color-token-number: #ffffff;
-  --color-token-punctuation: #444748;
+  --color-token-property: #AFC4FF;
+  --color-token-string: #FFD0BF;
+  --color-token-number: #C7D4FF;
+  --color-token-punctuation: #7F8797;
 
   /* Adaptive Status & Alert Tokens */
-  --color-status-success-bg: #1f3a1f;
-  --color-status-success-text: #6fbf6f;
-  --color-status-success-border: rgba(111, 191, 111, 0.4);
-  --color-status-success-hover: #2f5a2f;
+  --color-status-success-bg: rgba(16, 185, 129, 0.11);
+  --color-status-success-text: #50D69A;
+  --color-status-success-border: rgba(80, 214, 154, 0.34);
+  --color-status-success-hover: rgba(16, 185, 129, 0.18);
 
-  --color-status-error-bg: #3a1f1f;
-  --color-status-error-text: #ff8080;
-  --color-status-error-border: rgba(255, 128, 128, 0.4);
-  --color-status-error-hover: #5a2f2f;
+  --color-status-error-bg: rgba(239, 68, 68, 0.12);
+  --color-status-error-text: #FF8A8A;
+  --color-status-error-border: rgba(255, 138, 138, 0.34);
+  --color-status-error-hover: rgba(239, 68, 68, 0.2);
 
-  --color-status-warning-bg: #2a1f0f;
-  --color-status-warning-border: #f59e0b;
-  --color-status-warning-text: #f59e0b;
-  --color-status-warning-hover: #3f2f17;
+  --color-status-warning-bg: rgba(245, 158, 11, 0.09);
+  --color-status-warning-border: rgba(245, 158, 11, 0.34);
+  --color-status-warning-text: #F7B955;
+  --color-status-warning-hover: rgba(245, 158, 11, 0.16);
 
-  --color-info-bg: #1f2a3a;
-  --color-info-border: rgba(74, 158, 255, 0.4);
-  --color-info-text: #d8e7ff;
-  --color-info-text-secondary: #7fb2f0;
-  --color-info-text-accent: #a0c4ff;
-  --color-info-hover: #2f4a5a;
+  --color-info-bg: #172033;
+  --color-info-border: rgba(179, 197, 255, 0.32);
+  --color-info-text: #E8EEFF;
+  --color-info-text-secondary: #A7BAF7;
+  --color-info-text-accent: #B3C5FF;
+  --color-info-hover: #1D2940;
 
   /* Button Tokens */
-  --color-btn-primary-bg: #FFFFFF;
-  --color-btn-primary-hover: #E5E5EA;
-  --color-btn-primary-text: #000000;
+  --color-btn-primary-bg: #E8EEFF;
+  --color-btn-primary-hover: #C9D7FF;
+  --color-btn-primary-text: #0B0B0C;
 
-  --color-btn-disabled-bg: #252527;
-  --color-btn-disabled-text: #666668;
+  --color-btn-disabled-bg: #202127;
+  --color-btn-disabled-text: #666D7A;
 
   /* Drag Active Dropzone Tokens */
   --color-drag-bg: #111827;
-  --color-drag-border: #4a9eff;
+  --color-drag-border: #B3C5FF;
 
   --color-surface-base: var(--color-background);
   --color-surface-raised: var(--color-surface-container);
@@ -206,7 +206,7 @@
   --color-focus-ring: var(--color-info-text-secondary);
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
-  --color-status-running: #4a9eff;
+  --color-status-running: #B3C5FF;
   --color-status-success: var(--color-status-success-text);
   --color-status-success-muted: var(--color-status-success-bg);
   --color-status-warning: var(--color-status-warning-text);
