@@ -33,7 +33,7 @@ export function ToolStep({
     !summary.hasOutput && summary.approvalLabel !== '✕ denied' && summary.approvalLabel !== '⏳ awaiting'
   const generatedDocxPath = getGeneratedDocxPath(item)
 
-  let inputText = ''
+  let inputText: string
   try {
     inputText = JSON.stringify(item.toolInput, null, 2)
   } catch {
@@ -62,14 +62,14 @@ export function ToolStep({
             size={12}
             className={`shrink-0 text-on-surface-variant transition-transform ${expanded ? 'rotate-90' : ''}`}
           />
-          <span className="text-[#f59e0b] shrink-0">🔧 {summary.label}</span>
+          <span className="text-status-warning shrink-0">🔧 {summary.label}</span>
           {summary.risk && (
             <span
               className={`text-[9px] uppercase shrink-0 ${
                 summary.risk === 'high'
-                  ? 'text-[#ff8080]'
+                  ? 'text-status-danger'
                   : summary.risk === 'medium'
-                    ? 'text-[#f59e0b]'
+                    ? 'text-status-warning'
                     : 'text-on-surface-variant'
               }`}
             >
@@ -80,17 +80,17 @@ export function ToolStep({
             <span
               className={`text-[9px] shrink-0 ${
                 summary.approvalLabel.startsWith('✕')
-                  ? 'text-[#ff8080]'
+                  ? 'text-status-danger'
                   : summary.approvalLabel.startsWith('✓')
-                    ? 'text-[#6fbf6f]'
-                    : 'text-[#f59e0b]'
+                    ? 'text-status-success'
+                    : 'text-status-warning'
               }`}
             >
               {summary.approvalLabel}
             </span>
           )}
-          {running && <span className="text-[9px] text-[#4a9eff] shrink-0">running</span>}
-          {summary.isError && <span className="text-[9px] text-[#ff8080] shrink-0">error</span>}
+          {running && <span className="text-[9px] text-status-running shrink-0">running</span>}
+          {summary.isError && <span className="text-[9px] text-status-danger shrink-0">error</span>}
           {summary.argPreview && (
             <span className="font-mono-code text-on-surface-variant truncate">{summary.argPreview}</span>
           )}
@@ -125,7 +125,7 @@ export function ToolStep({
               </div>
               <pre
                 className={`whitespace-pre-wrap break-all max-h-80 overflow-auto ${
-                  summary.isError ? 'text-[#ff8080]' : 'text-on-surface'
+                  summary.isError ? 'text-status-danger' : 'text-on-surface'
                 }`}
               >
                 {running ? '…' : outputText.slice(0, MAX_OUTPUT_CHARS)}

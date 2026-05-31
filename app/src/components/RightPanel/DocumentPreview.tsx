@@ -46,7 +46,7 @@ export function DocumentPreview({ filePath }: { filePath: string }) {
   }, [filePath])
 
   return (
-    <div className="flex-1 overflow-auto bg-surface-hover relative">
+    <div className="flex-1 overflow-auto bg-document-preview-bg relative">
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center text-text-secondary text-[12px] font-mono-label">
           加载预览…

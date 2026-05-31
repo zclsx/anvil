@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from 'vitest'
 import { cleanToolName, toolStepSummary, fullToolOutputText } from '../../src/lib/toolStep'
 
 test.describe('cleanToolName', () => {
