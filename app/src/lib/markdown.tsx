@@ -20,7 +20,7 @@ export const markdownComponents: Components = {
     <li className="my-1 pl-1" {...props} />
   ),
   a: ({ node: _node, ...props }) => (
-    <a className="text-[#8ab4ff] underline underline-offset-2 hover:text-primary" target="_blank" rel="noreferrer" {...props} />
+    <a className="text-link underline underline-offset-2 hover:text-primary" target="_blank" rel="noreferrer" {...props} />
   ),
   code: ({ node: _node, className, ...props }) => (
     <code className={`font-mono-code text-[0.92em] bg-surface-container-high px-1 py-0.5 rounded ${className ?? ''}`} {...props} />

@@ -48,12 +48,12 @@ export function ThinkingIndicator({
   const warnAt = hasTurnStarted ? 20 : 10
   const dangerAt = hasTurnStarted ? 28 : 14
   const elapsedColor =
-    elapsed >= dangerAt ? 'text-[#ff8080]' :
-    elapsed >= warnAt ? 'text-[#f59e0b]' :
+    elapsed >= dangerAt ? 'text-status-danger' :
+    elapsed >= warnAt ? 'text-status-warning' :
     'text-on-surface-variant opacity-70'
 
-  const phaseColor = hasTurnStarted ? 'text-[#e5e1e4]' : 'text-[#8e9192]'
-  const spinnerColor = hasTurnStarted ? 'text-[#4a9eff]' : 'text-[#8e9192]'
+  const phaseColor = hasTurnStarted ? 'text-text-primary' : 'text-text-secondary'
+  const spinnerColor = hasTurnStarted ? 'text-status-running' : 'text-text-secondary'
   const label = hasTurnStarted ? THINKING_VERBS[verbIndex] : 'Connecting'
 
   return (

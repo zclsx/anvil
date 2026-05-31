@@ -46,14 +46,14 @@ export function DocumentPreview({ filePath }: { filePath: string }) {
   }, [filePath])
 
   return (
-    <div className="flex-1 overflow-auto bg-[#e5e5ea] relative">
+    <div className="flex-1 overflow-auto bg-surface-hover relative">
       {status === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center text-[#5b5b60] text-[12px] font-mono-label">
+        <div className="absolute inset-0 flex items-center justify-center text-text-secondary text-[12px] font-mono-label">
           加载预览…
         </div>
       )}
       {status === 'error' && (
-        <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-[#b3261e] text-[12px] font-mono-label">
+        <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-status-danger text-[12px] font-mono-label">
           预览失败：{error}
         </div>
       )}

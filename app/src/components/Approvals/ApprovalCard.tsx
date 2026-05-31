@@ -8,8 +8,8 @@ export function ApprovalCard({
   onDecide: (id: string, d: 'allow' | 'deny') => void
 }) {
   const riskColor =
-    approval.risk === 'high' ? 'text-[#ff8080]' :
-    approval.risk === 'medium' ? 'text-[#f59e0b]' :
+    approval.risk === 'high' ? 'text-status-danger' :
+    approval.risk === 'medium' ? 'text-status-warning' :
     'text-on-surface-variant'
 
   return (

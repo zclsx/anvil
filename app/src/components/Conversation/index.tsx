@@ -85,7 +85,7 @@ export function Conversation({
             {turn.status !== 'running' && turn.stats && (
               <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
                 <span className={
-                  turn.status === 'failed' ? 'text-[#ff8080]' : 'text-[#6fbf6f]'
+                  turn.status === 'failed' ? 'text-status-danger' : 'text-status-success'
                 }>{turn.status}</span>
                 {turn.stats.durationMs && <span>{(turn.stats.durationMs / 1000).toFixed(1)}s</span>}
                 {turn.stats.outputTokens != null && <span>{turn.stats.outputTokens} out</span>}

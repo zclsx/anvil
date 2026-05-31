@@ -29,7 +29,7 @@ export function SessionItem({
         </span>
         <button
           onClick={(e) => onDelete(session, e)}
-          className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-[#ff8080] p-0.5"
+          className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-status-danger p-0.5"
         >
           <Trash2 size={10} />
         </button>
@@ -37,9 +37,9 @@ export function SessionItem({
       <div className="flex items-center gap-2 font-mono-label text-[9px] text-on-surface-variant">
         <span>{session.turnCount}t</span>
         <span className={
-          session.lastStatus === 'failed' ? 'text-[#ff8080]' :
-          session.lastStatus === 'running' ? 'text-[#4a9eff]' :
-          'text-[#6fbf6f]'
+          session.lastStatus === 'failed' ? 'text-status-danger' :
+          session.lastStatus === 'running' ? 'text-status-running' :
+          'text-status-success'
         }>
           {session.lastStatus}
         </span>
