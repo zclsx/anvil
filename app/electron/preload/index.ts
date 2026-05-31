@@ -71,6 +71,8 @@ const anvil = {
       ipcRenderer.invoke('files:open-path', filePath),
     showInFolder: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('files:show-in-folder', filePath),
+    readDocxBytes: (filePath: string): Promise<{ ok: boolean; bytes?: Uint8Array; error?: string }> =>
+      ipcRenderer.invoke('files:read-docx-bytes', filePath),
   },
 
   onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAgentStore } from './store'
 import type { AnvilSettings, PublicSettings } from '../electron/shared/settings'
 import type { AgentEventEnvelope } from '../electron/shared/events'
@@ -21,7 +21,9 @@ import {
 } from './lib/pathUtils'
 import { formatRelative } from './lib/timeUtils'
 import { formatFileReferenceLabel, isImagePath } from './lib/fileUtils'
-import { InspectorPanel } from './components/InspectorPanel'
+import { RightPanel } from './components/RightPanel'
+import { RightPanelContext } from './components/RightPanel/context'
+import { useRightPanelTabs } from './hooks/useRightPanelTabs'
 import { ApprovalsPanel } from './components/Approvals/ApprovalsPanel'
 import { ErrorBanner } from './components/ErrorBanner'
 import { NoticeBanner } from './components/NoticeBanner'
@@ -96,6 +98,7 @@ declare global {
         getPaths: (files: File[]) => string[]
         openPath: (filePath: string) => Promise<{ ok: boolean; error?: string }>
         showInFolder: (filePath: string) => Promise<{ ok: boolean; error?: string }>
+        readDocxBytes: (filePath: string) => Promise<{ ok: boolean; bytes?: Uint8Array; error?: string }>
       }
       onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => () => void
     }
@@ -136,6 +139,8 @@ export function App() {
   const [showDebug, setShowDebug] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const rightPanel = useRightPanelTabs()
+  const rightPanelApi = useMemo(() => ({ openPreview: rightPanel.openPreview }), [rightPanel.openPreview])
   const [autoFollow, setAutoFollow] = useState(true)
   const [dismissedErrorCount, setDismissedErrorCount] = useState(0)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
@@ -806,7 +811,6 @@ export function App() {
     await window.anvil.approval.decide({ approvalId, decision })
   }
 
-  const selectedItem = selectedItemId ? items[selectedItemId] : null
   const visibleErrors = errors.slice(dismissedErrorCount)
   const lastTurn = turns[turns.length - 1]
   const awaitingFirstItem =
@@ -878,20 +882,25 @@ export function App() {
         {/* Main — Conversation */}
         <main className="flex-1 flex flex-col bg-background overflow-hidden no-drag">
 
-          <Conversation
-            turns={turns}
-            items={items}
-            running={running}
-            pendingWorkspace={pendingWorkspace}
-            pendingPrompt={pendingPrompt}
-            selectedItemId={selectedItemId}
-            autoFollow={autoFollow}
-            awaitingFirstItem={awaitingFirstItem}
-            loadingAnchorRef={loadingAnchorRef}
-            conversationEndRef={conversationEndRef}
-            onSelectItem={setSelectedItemId}
-            displayWorkspace={displayWorkspace}
-          />
+          <RightPanelContext.Provider value={rightPanelApi}>
+            <Conversation
+              turns={turns}
+              items={items}
+              running={running}
+              pendingWorkspace={pendingWorkspace}
+              pendingPrompt={pendingPrompt}
+              selectedItemId={selectedItemId}
+              autoFollow={autoFollow}
+              awaitingFirstItem={awaitingFirstItem}
+              loadingAnchorRef={loadingAnchorRef}
+              conversationEndRef={conversationEndRef}
+              onSelectItem={(id) => {
+                setSelectedItemId(id)
+                rightPanel.openInspector(id)
+              }}
+              displayWorkspace={displayWorkspace}
+            />
+          </RightPanelContext.Provider>
 
           <ApprovalsPanel approvals={pendingApprovals} onDecide={decideApproval} />
 
@@ -932,7 +941,13 @@ export function App() {
           />
         </main>
 
-        <InspectorPanel item={selectedItem} />
+        <RightPanel
+          tabs={rightPanel.tabs}
+          activeTabId={rightPanel.activeTabId}
+          items={items}
+          onActivate={rightPanel.setActive}
+          onClose={rightPanel.closeTab}
+        />
       </div>
 
       <Footer

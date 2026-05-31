@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAgentStore } from '../../store'
 import { getWorkspaceRelativePath } from '../../lib/pathUtils'
+import { useRightPanel } from '../RightPanel/context'
 
 export function GeneratedFileChip({
   absPath,
@@ -14,6 +15,7 @@ export function GeneratedFileChip({
 }) {
   const [expanded, setExpanded] = useState(false)
   const pushError = useAgentStore((s) => s.pushError)
+  const rightPanel = useRightPanel()
 
   const fileName = absPath.split(/[\\/]/).filter(Boolean).pop() ?? absPath
   const relPath = workspacePath ? getWorkspaceRelativePath(absPath, workspacePath) : null
@@ -43,6 +45,11 @@ export function GeneratedFileChip({
     }
   }
 
+  function handlePreview(e: React.MouseEvent) {
+    stop(e)
+    rightPanel?.openPreview(absPath, fileName)
+  }
+
   return (
     <div
       onClick={stop}
@@ -53,6 +60,14 @@ export function GeneratedFileChip({
         <span className="font-mono-label text-[9px] text-info-text-secondary uppercase tracking-wider">DOCX</span>
         <span className="font-mono-code text-[12px] text-info-text truncate max-w-[200px]">{fileName}</span>
         <div className="flex items-center gap-1 ml-auto">
+          {rightPanel && (
+            <button
+              onClick={handlePreview}
+              className="text-[10px] font-mono-label text-info-text-accent hover:text-primary cursor-pointer px-2 py-0.5"
+            >
+              预览
+            </button>
+          )}
           <button
             onClick={handleOpen}
             className="text-[10px] font-mono-label text-info-text-accent hover:text-primary cursor-pointer px-2 py-0.5"

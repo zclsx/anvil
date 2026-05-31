@@ -21,6 +21,7 @@
     "@monaco-editor/react": "^4.7.0",
     "better-sqlite3": "^12.10.0",
     "docx": "^9.7.1",
+    "docx-preview": "^0.3.7",
     "dotenv": "^17.4.2",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",

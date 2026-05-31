@@ -7,6 +7,14 @@ export interface FileActionResult {
   error?: string
 }
 
+export interface DocxBytesResult {
+  ok: boolean
+  bytes?: Uint8Array
+  error?: string
+}
+
+const MAX_PREVIEW_BYTES = 25 * 1024 * 1024
+
 /**
  * Validate a path the renderer asked us to open/reveal. The renderer can't
  * touch the filesystem directly, so this is the trust boundary: absolute
@@ -49,5 +57,19 @@ export function registerFilesIpc(ipcMain: IpcMain): void {
     if (!(await isRegularDocxFile(valid))) return { ok: false, error: '文件不存在或不是普通文件' }
     shell.showItemInFolder(valid)
     return { ok: true }
+  })
+
+  ipcMain.handle('files:read-docx-bytes', async (_e, filePath: unknown): Promise<DocxBytesResult> => {
+    const valid = validateDocxPath(filePath)
+    if (!valid) return { ok: false, error: '无效的文件路径' }
+    if (!(await isRegularDocxFile(valid))) return { ok: false, error: '文件不存在或不是普通文件' }
+    try {
+      const stat = await fs.stat(valid)
+      if (stat.size > MAX_PREVIEW_BYTES) return { ok: false, error: '文档过大，无法预览' }
+      const buf = await fs.readFile(valid)
+      return { ok: true, bytes: new Uint8Array(buf) }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
   })
 }

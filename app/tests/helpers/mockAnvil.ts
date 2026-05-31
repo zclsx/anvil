@@ -162,6 +162,10 @@ export async function setupMockAnvil(page: Page, options: MockAnvilOptions = {})
           record('files:showInFolder', filePath)
           return { ok: true }
         },
+        readDocxBytes: async (filePath: string) => {
+          record('files:readDocxBytes', filePath)
+          return { ok: false, error: 'mock 预览不可用' }
+        },
       },
       onAgentEvent: (callback: (envelope: unknown) => void) => {
         listeners.push(callback)
