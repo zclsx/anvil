@@ -50,39 +50,54 @@ export function GeneratedFileChip({
     rightPanel?.openPreview(absPath, fileName)
   }
 
+  const actionClass =
+    'rounded-[var(--radius-control)] border border-info-border bg-surface px-2 py-1 text-[10px] font-mono-label text-info-text-accent transition-colors hover:border-primary hover:text-primary focus-ring cursor-pointer'
+
   return (
     <div
       onClick={stop}
-      className={`${compact ? '' : 'mt-2'} border border-info-border bg-info-bg px-3 py-2 flex flex-col gap-2`}
+      className={`${compact ? '' : 'mt-2'} inline-flex max-w-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-info-border bg-info-bg text-info-text transition-colors hover:bg-info-hover/60`}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <FileText size={13} className="text-info-text-accent shrink-0" />
-        <span className="font-mono-label text-[9px] text-info-text-secondary uppercase tracking-wider">DOCX</span>
-        <span className="font-mono-code text-[12px] text-info-text truncate max-w-[200px]">{fileName}</span>
-        <div className="flex items-center gap-1 ml-auto">
+      <div className="flex min-w-0 items-center gap-3 px-3 py-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-info-border bg-surface text-info-text-accent">
+          <FileText size={16} />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2">
+          <span className="font-mono-code max-w-[240px] truncate text-[12px] font-medium text-info-text">
+            {fileName}
+          </span>
+          <span className="font-mono-label text-[9px] uppercase tracking-wider text-info-text-secondary">
+            DOCX · 已生成
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
           {rightPanel && (
             <button
               onClick={handlePreview}
-              className="text-[10px] font-mono-label text-info-text-accent hover:text-primary cursor-pointer px-2 py-0.5"
+              className={actionClass}
+              title="预览文档"
             >
               预览
             </button>
           )}
           <button
             onClick={handleOpen}
-            className="text-[10px] font-mono-label text-info-text-accent hover:text-primary cursor-pointer px-2 py-0.5"
+            className={actionClass}
+            title="打开文档"
           >
             打开
           </button>
           <button
             onClick={handleReveal}
-            className="text-[10px] font-mono-label text-info-text-accent hover:text-primary cursor-pointer px-2 py-0.5"
+            className={actionClass}
+            title="在文件夹中定位"
           >
             定位
           </button>
           <button
             onClick={handleCopy}
-            className="text-[10px] font-mono-label text-on-surface-variant hover:text-primary cursor-pointer px-2 py-0.5"
+            className={actionClass}
+            title="复制路径"
           >
             复制路径
           </button>
@@ -93,14 +108,14 @@ export function GeneratedFileChip({
             }}
             aria-expanded={expanded}
             aria-label={expanded ? '收起路径' : '展开路径'}
-            className="text-on-surface-variant hover:text-primary cursor-pointer px-1"
+            className="rounded-[var(--radius-control)] border border-transparent px-1.5 py-1 text-on-surface-variant transition-colors hover:border-info-border hover:text-primary focus-ring cursor-pointer"
           >
             {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
         </div>
       </div>
       {expanded && (
-        <div className="border-t border-outline-variant pt-2 flex flex-col gap-1 font-mono-code text-[11px] text-on-surface-variant break-all">
+        <div className="flex max-w-full flex-col gap-1.5 border-t border-info-border bg-accent-muted/40 px-3 py-3 font-mono-code text-[11px] text-on-surface-variant break-all">
           {relPath && (
             <div>
               <span className="text-info-text-secondary">Workspace 路径：</span>
