@@ -4,8 +4,10 @@ const PREVIEW_CHARS = 120
 
 export function cleanToolName(toolName?: string): string {
   if (!toolName) return 'tool'
-  return toolName.replace(/^mcp__[a-z0-9]+__/i, '')
+  return toolName.replace(/^mcp__.+?__/i, '')
 }
+
+const ARG_PREVIEW_KEYS = ['command', 'path', 'file_path', 'query', 'url', 'pattern', 'prompt']
 
 function outputToText(output: unknown): string {
   if (output == null) return ''
@@ -49,8 +51,9 @@ export function toolStepSummary(item: ToolItem): ToolStepSummary {
   const input = item.toolInput
   let argPreview = ''
   if (input && typeof input === 'object') {
-    const path = (input as { path?: unknown }).path
-    argPreview = typeof path === 'string' ? path : JSON.stringify(input).slice(0, PREVIEW_CHARS)
+    const obj = input as Record<string, unknown>
+    const key = ARG_PREVIEW_KEYS.find((k) => typeof obj[k] === 'string')
+    argPreview = key ? (obj[key] as string).slice(0, PREVIEW_CHARS) : JSON.stringify(input).slice(0, PREVIEW_CHARS)
   } else if (typeof input === 'string') {
     argPreview = input.slice(0, PREVIEW_CHARS)
   }

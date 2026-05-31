@@ -11,6 +11,9 @@ test.describe('cleanToolName', () => {
   test('falls back for missing name', () => {
     expect(cleanToolName(undefined)).toBe('tool')
   })
+  test('strips a server name that contains underscores', () => {
+    expect(cleanToolName('mcp__my_server__do_thing')).toBe('do_thing')
+  })
 })
 
 test.describe('toolStepSummary', () => {
@@ -59,6 +62,11 @@ test.describe('toolStepSummary', () => {
   test('compacts non-path object input', () => {
     const s = toolStepSummary({ toolName: 'x', toolInput: { a: 1, b: 2 } })
     expect(s.argPreview).toBe('{"a":1,"b":2}')
+  })
+
+  test('prefers a recognizable arg field over raw JSON', () => {
+    expect(toolStepSummary({ toolName: 'Bash', toolInput: { command: 'npm test', timeout: 5 } }).argPreview).toBe('npm test')
+    expect(toolStepSummary({ toolName: 'x', toolInput: { url: 'https://x', method: 'GET' } }).argPreview).toBe('https://x')
   })
 })
 

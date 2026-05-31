@@ -51,7 +51,7 @@ export function Conversation({
         </div>
       )}
       {turns.length > 0 && (
-        <div className="sticky top-0 z-10 flex justify-end pointer-events-none -mt-2 -mb-2">
+        <div className="sticky top-0 z-10 flex justify-end pointer-events-none -mt-2">
           <button
             onClick={onToggleExpand}
             className="pointer-events-auto font-mono-label text-[10px] text-on-surface-variant hover:text-primary bg-surface-container border border-outline-variant px-2 py-0.5 cursor-pointer"
