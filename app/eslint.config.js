@@ -12,6 +12,8 @@ export default tseslint.config(
     linterOptions: {
       reportUnusedDisableDirectives: false,
     },
+  },
+  {
     ignores: [
       'dist/**',
       'dist-electron/**',
