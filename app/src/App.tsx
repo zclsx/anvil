@@ -24,6 +24,7 @@ import { formatFileReferenceLabel, isImagePath } from './lib/fileUtils'
 import { RightPanel } from './components/RightPanel'
 import { RightPanelContext } from './components/RightPanel/context'
 import { useRightPanelTabs } from './hooks/useRightPanelTabs'
+import { useResizablePanel } from './hooks/useResizablePanel'
 import { ApprovalsPanel } from './components/Approvals/ApprovalsPanel'
 import { ErrorBanner } from './components/ErrorBanner'
 import { NoticeBanner } from './components/NoticeBanner'
@@ -141,6 +142,12 @@ export function App() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const rightPanel = useRightPanelTabs()
   const rightPanelApi = useMemo(() => ({ openPreview: rightPanel.openPreview }), [rightPanel.openPreview])
+  const { width: rightPanelWidth, startResize: startRightPanelResize } = useResizablePanel({
+    initialWidth: 400,
+    min: 280,
+    max: 900,
+    storageKey: 'anvil:right-panel-width',
+  })
   const [autoFollow, setAutoFollow] = useState(true)
   const [dismissedErrorCount, setDismissedErrorCount] = useState(0)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
@@ -946,7 +953,13 @@ export function App() {
           />
         </main>
 
+        <div
+          onMouseDown={startRightPanelResize}
+          className="w-1 shrink-0 cursor-col-resize bg-outline-variant/40 hover:bg-primary/60 transition-colors no-drag"
+          aria-hidden="true"
+        />
         <RightPanel
+          width={rightPanelWidth}
           tabs={rightPanel.tabs}
           activeTabId={rightPanel.activeTabId}
           items={items}

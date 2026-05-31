@@ -6,12 +6,14 @@ import { TabStrip } from './TabStrip'
 import { DocumentPreview } from './DocumentPreview'
 
 export function RightPanel({
+  width,
   tabs,
   activeTabId,
   items,
   onActivate,
   onClose,
 }: {
+  width: number
   tabs: RightTab[]
   activeTabId: string | null
   items: Record<string, Item>
@@ -21,7 +23,10 @@ export function RightPanel({
   const active = tabs.find((t) => t.id === activeTabId) ?? null
 
   return (
-    <aside className="w-[400px] border-l border-outline-variant bg-surface-container-lowest overflow-hidden no-drag flex flex-col">
+    <aside
+      style={{ width }}
+      className="shrink-0 border-l border-outline-variant bg-surface-container-lowest overflow-hidden no-drag flex flex-col"
+    >
       {tabs.length > 0 && (
         <TabStrip tabs={tabs} activeTabId={activeTabId} onActivate={onActivate} onClose={onClose} />
       )}
