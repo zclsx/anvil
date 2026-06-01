@@ -5,7 +5,7 @@ export const markdownComponents: Components = {
     <p className="mb-2 last:mb-0" {...props} />
   ),
   strong: ({ node: _node, ...props }) => (
-    <strong className="font-semibold text-primary" {...props} />
+    <strong className="font-semibold text-on-surface" {...props} />
   ),
   em: ({ node: _node, ...props }) => (
     <em className="italic text-on-surface" {...props} />

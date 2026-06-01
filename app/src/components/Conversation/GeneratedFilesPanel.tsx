@@ -12,10 +12,15 @@ export function GeneratedFilesPanel({
   return (
     <div
       data-testid="generated-files-panel"
-      className="bg-surface-container-low border border-outline-variant px-3 py-2"
+      className="border border-info-border bg-info-bg/50 px-3 py-3"
     >
-      <div className="font-mono-label text-[9px] text-info-text-secondary uppercase tracking-wider mb-2">
-        生成文件
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-label-caps text-[10px] uppercase tracking-wider text-info-text-accent">
+          生成文件
+        </span>
+        <span className="font-mono-label text-[9px] uppercase tracking-wider text-info-text-secondary">
+          {paths.length} 个结果
+        </span>
       </div>
       <div className="flex flex-col gap-2">
         {paths.map((path) => (

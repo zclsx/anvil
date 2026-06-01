@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-const THINKING_VERBS = ['Thinking', 'Pondering', 'Reasoning', 'Computing']
+const THINKING_VERBS = ['思考中', '推理中', '整理中', '计算中']
 
 export function ThinkingIndicator({
   hasTurnStarted,
@@ -52,9 +52,9 @@ export function ThinkingIndicator({
     elapsed >= warnAt ? 'text-status-warning' :
     'text-on-surface-variant opacity-70'
 
-  const phaseColor = hasTurnStarted ? 'text-text-primary' : 'text-text-secondary'
-  const spinnerColor = hasTurnStarted ? 'text-status-running' : 'text-text-secondary'
-  const label = hasTurnStarted ? THINKING_VERBS[verbIndex] : 'Connecting'
+  const phaseColor = hasTurnStarted ? 'text-on-surface-variant' : 'text-text-muted'
+  const spinnerColor = hasTurnStarted ? 'text-status-running' : 'text-text-muted'
+  const label = hasTurnStarted ? THINKING_VERBS[verbIndex] : '连接中'
 
   return (
     <div
@@ -62,7 +62,7 @@ export function ThinkingIndicator({
       role="status"
       aria-live="polite"
       aria-atomic="false"
-      className="font-mono-code text-[13px] flex items-center gap-2 py-1 px-1 leading-relaxed"
+      className="flex items-center gap-2 px-1 py-1 font-mono-code text-[12px] leading-relaxed opacity-80"
     >
       <span aria-hidden="true" className={`${spinnerColor} text-[15px] w-4 inline-block`}>
         {SPINNER_FRAMES[frame]}
