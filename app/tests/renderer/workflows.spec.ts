@@ -178,9 +178,9 @@ test.describe('approval panel', () => {
 
     await expect(page.getByText(/Awaiting Approval/).first()).toBeVisible({ timeout: 5_000 })
     await expect(page.getByText('Bash').first()).toBeVisible()
-    await expect(page.getByText(/high risk/).first()).toBeVisible()
+    await expect(page.getByText(/RISK: 高 \(high\)/).first()).toBeVisible()
 
-    await page.getByRole('button', { name: 'Allow once' }).click()
+    await page.getByRole('button', { name: '允许' }).click()
 
     await page.waitForFunction(() => {
       const ctl = (window as unknown as { __anvilTestControl: { getCalls: (c: string) => unknown[] } }).__anvilTestControl

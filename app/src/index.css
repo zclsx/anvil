@@ -86,6 +86,7 @@
   --color-focus-ring: var(--color-info-text-secondary);
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
+  --color-code-surface: #F2F4F7;
   --color-status-running: #1D4ED8;
   --color-status-success: var(--color-status-success-text);
   --color-status-success-muted: var(--color-status-success-bg);
@@ -206,6 +207,7 @@
   --color-focus-ring: var(--color-info-text-secondary);
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
+  --color-code-surface: #0F1117;
   --color-status-running: #B3C5FF;
   --color-status-success: var(--color-status-success-text);
   --color-status-success-muted: var(--color-status-success-bg);
@@ -287,6 +289,7 @@
   --color-focus-ring: var(--color-focus-ring);
   --color-link: var(--color-link);
   --color-document-preview-bg: var(--color-document-preview-bg);
+  --color-code-surface: var(--color-code-surface);
   --color-status-running: var(--color-status-running);
   --color-status-success: var(--color-status-success);
   --color-status-success-muted: var(--color-status-success-muted);
