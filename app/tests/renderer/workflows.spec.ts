@@ -79,11 +79,12 @@ test.describe('file reference chips', () => {
       return ctl.getCalls('agent:query')
     })
     expect(calls.length).toBe(1)
-    const req = calls[0] as { mode: string; prompt: string; workspacePath?: string }
+    const req = calls[0] as { mode: string; prompt: string; displayPrompt?: string; workspacePath?: string }
     expect(req.mode).toBe('new')
     expect(req.prompt).toContain('look at this file')
     expect(req.prompt).toContain('Referenced files:')
     expect(req.prompt).toContain('./src/a.ts')
+    expect(req.displayPrompt).toBe('look at this file')
   })
 })
 

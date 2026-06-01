@@ -393,10 +393,10 @@ export function App() {
     const promptText = buildPromptWithFileReferences(text, references)
     const referencedPaths = references.map((r) => r.path)
     if (activeSessionId) {
-      return { mode: 'resume', sessionId: activeSessionId, prompt: promptText, referencedPaths }
+      return { mode: 'resume', sessionId: activeSessionId, prompt: promptText, displayPrompt: text, referencedPaths }
     }
     if (pendingWorkspace) {
-      return { mode: 'new', prompt: promptText, workspacePath: pendingWorkspace, referencedPaths }
+      return { mode: 'new', prompt: promptText, displayPrompt: text, workspacePath: pendingWorkspace, referencedPaths }
     }
     return null
   }
@@ -405,7 +405,7 @@ export function App() {
     if (submittingRef.current) return false
     if (req.mode === 'resume' && activeSessionIdRef.current !== req.sessionId) return false
     submittingRef.current = true
-    setPendingPrompt(req.prompt)
+    setPendingPrompt(req.displayPrompt ?? req.prompt)
     void executeQuery(req, options)
     return true
   }
@@ -824,8 +824,15 @@ export function App() {
 
   const visibleErrors = errors.slice(dismissedErrorCount)
   const lastTurn = turns[turns.length - 1]
+  const isLastTurnRunning = lastTurn?.status === 'running'
+  const runningTurnItems = isLastTurnRunning
+    ? lastTurn.itemIds.map((id) => items[id]).filter((item) => !!item)
+    : []
+  const hasUserPromptItem = runningTurnItems.some((item) => item.role === 'user' && item.kind === 'text')
+  const hasModelResponseItem = runningTurnItems.some((item) => item.role !== 'user')
   const awaitingFirstItem =
-    running && (turns.length === 0 || !lastTurn || lastTurn.status !== 'running' || lastTurn.itemIds.length === 0)
+    running && (turns.length === 0 || !lastTurn || !isLastTurnRunning || !hasModelResponseItem)
+  const optimisticPendingPrompt = hasUserPromptItem ? null : pendingPrompt
 
   useAutoScroll({
     turns,
@@ -899,7 +906,7 @@ export function App() {
               items={items}
               running={running}
               pendingWorkspace={pendingWorkspace}
-              pendingPrompt={pendingPrompt}
+              pendingPrompt={optimisticPendingPrompt}
               selectedItemId={selectedItemId}
               autoFollow={autoFollow}
               awaitingFirstItem={awaitingFirstItem}

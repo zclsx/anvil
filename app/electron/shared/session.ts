@@ -17,5 +17,5 @@ export type ApprovalDecision = {
 }
 
 export type QueryRequest =
-  | { mode: 'new'; prompt: string; workspacePath: string; referencedPaths?: string[] }
-  | { mode: 'resume'; sessionId: string; prompt: string; referencedPaths?: string[] }
+  | { mode: 'new'; prompt: string; displayPrompt?: string; workspacePath: string; referencedPaths?: string[] }
+  | { mode: 'resume'; sessionId: string; prompt: string; displayPrompt?: string; referencedPaths?: string[] }

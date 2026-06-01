@@ -73,6 +73,38 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   adapter.start()
   let sessionId: string | null = null
   let firstAssistantText = ''
+  let sentUserPromptEcho = false
+  const visiblePrompt = req.displayPrompt ?? req.prompt
+
+  function createUserPromptEchoEvents(turn: Extract<AgentEvent, { type: 'turn.started' }>): AgentEventEnvelope[] {
+    const itemId = `user:${turn.turnId}`
+    const timestamp = new Date().toISOString()
+    return [
+      {
+        event: {
+          type: 'item.added',
+          sessionId: turn.sessionId,
+          turnId: turn.turnId,
+          itemId,
+          role: 'user',
+          kind: 'text',
+          seq: adapter.nextSeq(),
+          timestamp,
+        },
+      },
+      {
+        event: {
+          type: 'text.delta',
+          sessionId: turn.sessionId,
+          turnId: turn.turnId,
+          itemId,
+          text: visiblePrompt,
+          seq: adapter.nextSeq(),
+          timestamp,
+        },
+      },
+    ]
+  }
 
   function sendEnvelope(env: AgentEventEnvelope) {
     ctx.mainWindow?.webContents.send('agent:event', env)
@@ -87,8 +119,8 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
           upsertSession({
             id: sessionId,
             workspacePath,
-            title: req.prompt.slice(0, 60) || 'untitled',
-            firstPrompt: req.prompt,
+            title: visiblePrompt.slice(0, 60) || 'untitled',
+            firstPrompt: visiblePrompt,
             createdAt: now,
             updatedAt: now,
             lastStatus: 'running',
@@ -306,7 +338,15 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
       if (isMeaningful) resetIdleTimer()
 
       const envelopes = adapter.ingest(msg)
-      for (const env of envelopes) sendEnvelope(env)
+      for (const env of envelopes) {
+        sendEnvelope(env)
+        if (env.event.type === 'turn.started' && !sentUserPromptEcho) {
+          sentUserPromptEcho = true
+          for (const userEnv of createUserPromptEchoEvents(env.event)) {
+            sendEnvelope(userEnv)
+          }
+        }
+      }
 
       if (rawType === 'result') {
         terminalResultStatus = (msg as any)?.is_error ? 'failed' : 'completed'
@@ -340,8 +380,8 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
         : {
             id: sessionId,
             workspacePath,
-            title: req.prompt.slice(0, 60),
-            firstPrompt: req.prompt,
+            title: visiblePrompt.slice(0, 60),
+            firstPrompt: visiblePrompt,
             createdAt: now,
             updatedAt: now,
             lastStatus,
