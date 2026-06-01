@@ -34,6 +34,14 @@ async function emitCreateDocx(page: Page, absPath: string) {
         isError: false,
       },
     })
+    ctl.emitEvent({
+      event: {
+        type: 'turn.finished',
+        ...stamp(5),
+        status: 'completed',
+        stats: { durationMs: 800, outputTokens: 10 },
+      },
+    })
   }, absPath)
 }
 

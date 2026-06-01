@@ -3,7 +3,7 @@ import { setupMockAnvil } from '../helpers/mockAnvil'
 
 async function emitCreateDocxItem(
   page: Page,
-  options: { output: unknown; isError: boolean },
+  options: { output: unknown; isError: boolean; finish?: boolean },
 ) {
   await page.evaluate((opts) => {
     const ctl = (
@@ -39,6 +39,16 @@ async function emitCreateDocxItem(
         isError: opts.isError,
       },
     })
+    if (opts.finish) {
+      ctl.emitEvent({
+        event: {
+          type: 'turn.finished',
+          ...stamp(5),
+          status: 'completed',
+          stats: { durationMs: 900, outputTokens: 20 },
+        },
+      })
+    }
   }, options)
 }
 
@@ -117,9 +127,10 @@ test('successful create_docx renders a generated file chip with working actions'
   await emitCreateDocxItem(page, {
     output: [{ type: 'text', text: '已生成 Word 文档：/Users/test/proj/out.docx\n包含 3 个内容块。' }],
     isError: false,
+    finish: true,
   })
 
-  await expect(page.getByText('out.docx').first()).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText('out.docx')).toHaveCount(1, { timeout: 5_000 })
 
   // expand to reveal full + workspace-relative path
   await page.getByRole('button', { name: '展开路径' }).click()

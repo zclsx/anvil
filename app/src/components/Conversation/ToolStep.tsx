@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { ChevronRight, ExternalLink, Wrench } from 'lucide-react'
 import type { Item } from '../../store'
 import { toolStepSummary, fullToolOutputText } from '../../lib/toolStep'
-import { getGeneratedDocxPath } from '../../lib/generatedFiles'
-import { GeneratedFileChip } from './GeneratedFileChip'
 import { StatusDot, type StatusTone } from '../StatusDot'
 
 const MAX_OUTPUT_CHARS = 8000
@@ -19,30 +17,17 @@ function getToolState(summary: ReturnType<typeof toolStepSummary>, running: bool
 
 export function ToolStep({
   item,
-  expandAll,
   onSelect,
-  workspacePath,
 }: {
   item: Item
-  expandAll: boolean
   onSelect: () => void
-  workspacePath?: string
 }) {
-  const [override, setOverride] = useState<boolean | null>(null)
-  const prevExpandAll = useRef(expandAll)
-  useEffect(() => {
-    if (prevExpandAll.current !== expandAll) {
-      prevExpandAll.current = expandAll
-      setOverride(null)
-    }
-  }, [expandAll])
-  const expanded = override !== null ? override : expandAll
+  const [expanded, setExpanded] = useState(false)
 
   const summary = toolStepSummary(item)
   const running =
     !summary.hasOutput && summary.approvalLabel !== '✕ denied' && summary.approvalLabel !== '⏳ awaiting'
   const state = getToolState(summary, running)
-  const generatedDocxPath = getGeneratedDocxPath(item)
 
   let inputText: string
   try {
@@ -60,11 +45,11 @@ export function ToolStep({
           role="button"
           tabIndex={0}
           aria-expanded={expanded}
-          onClick={() => setOverride(!expanded)}
+          onClick={() => setExpanded(!expanded)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault()
-              setOverride(!expanded)
+              setExpanded(!expanded)
             }
           }}
           className="grid min-w-0 flex-1 cursor-pointer grid-cols-[auto_auto_minmax(120px,0.8fr)_minmax(120px,1fr)_minmax(96px,0.7fr)] items-center gap-2 focus-ring"
@@ -139,12 +124,6 @@ export function ToolStep({
               </pre>
             </div>
           )}
-        </div>
-      )}
-
-      {generatedDocxPath && (
-        <div className="border-t border-outline-variant bg-surface-container-low px-3 py-2">
-          <GeneratedFileChip absPath={generatedDocxPath} workspacePath={workspacePath} compact />
         </div>
       )}
     </div>

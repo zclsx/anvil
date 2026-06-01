@@ -2,8 +2,10 @@ import type { Item } from '../../store'
 import { MarkdownText } from './MarkdownText'
 import { ToolStep } from './ToolStep'
 
-function textRoleLabel(item: Item): string {
-  if (item.role === 'assistant') return '最终回答'
+type TextVariant = 'final' | 'process'
+
+function textRoleLabel(item: Item, textVariant: TextVariant): string {
+  if (item.role === 'assistant') return textVariant === 'final' ? '最终回答' : '回复'
   if (item.role === 'user') return '用户输入'
   return item.role
 }
@@ -12,32 +14,30 @@ export function MainItemView({
   item,
   isSelected,
   onSelect,
-  workspacePath,
-  expandAll,
+  textVariant = 'final',
 }: {
   item: Item
   isSelected: boolean
   onSelect: () => void
-  workspacePath?: string
-  expandAll: boolean
+  textVariant?: TextVariant
 }) {
   const selectedClass = isSelected ? 'border-primary ring-1 ring-primary/35' : 'border-outline-variant hover:border-outline'
 
   if (item.kind === 'text') {
-    const isAssistant = item.role === 'assistant'
+    const isFinalAssistant = item.role === 'assistant' && textVariant === 'final'
     return (
       <div
         onClick={onSelect}
         className={`cursor-pointer border bg-surface transition-colors ${selectedClass} ${
-          isAssistant ? 'border-l-2 border-l-primary px-4 py-3.5' : 'px-3 py-2.5'
+          isFinalAssistant ? 'border-l-2 border-l-primary px-4 py-3.5' : 'px-3 py-2.5'
         }`}
       >
         <div className={`mb-2 font-label-caps text-[10px] uppercase tracking-wider ${
-          isAssistant ? 'text-primary' : 'text-on-surface-variant'
+          isFinalAssistant ? 'text-primary' : 'text-on-surface-variant'
         }`}>
-          {textRoleLabel(item)}
+          {textRoleLabel(item, textVariant)}
         </div>
-        <div className={isAssistant ? 'text-[13px] leading-relaxed text-on-surface' : 'text-[12px] text-on-surface'}>
+        <div className={isFinalAssistant ? 'text-[13px] leading-relaxed text-on-surface' : 'text-[12px] text-on-surface'}>
           <MarkdownText text={item.text || '...'} />
         </div>
       </div>
@@ -57,7 +57,7 @@ export function MainItemView({
 
   if (item.kind === 'tool_use') {
     return (
-      <ToolStep item={item} expandAll={expandAll} onSelect={onSelect} workspacePath={workspacePath} />
+      <ToolStep item={item} onSelect={onSelect} />
     )
   }
 

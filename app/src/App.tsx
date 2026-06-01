@@ -139,7 +139,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const rightPanel = useRightPanelTabs()
-  const { expandAll, toggleExpandAll } = useConversationExpand()
+  const { processExpandMode, toggleProcessExpandMode } = useConversationExpand()
   const rightPanelApi = useMemo(() => ({ openPreview: rightPanel.openPreview }), [rightPanel.openPreview])
   const { width: rightPanelWidth, startResize: startRightPanelResize } = useResizablePanel({
     initialWidth: 400,
@@ -917,8 +917,8 @@ export function App() {
                 rightPanel.openInspector(id)
               }}
               displayWorkspace={displayWorkspace}
-              expandAll={expandAll}
-              onToggleExpand={toggleExpandAll}
+              processExpandMode={processExpandMode}
+              onToggleProcessExpand={toggleProcessExpandMode}
             />
           </RightPanelContext.Provider>
 

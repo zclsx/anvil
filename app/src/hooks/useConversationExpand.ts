@@ -6,9 +6,14 @@ export const EXPAND_TRACE_SHORTCUT = {
   label: '⌘/Ctrl + E',
 }
 
+export type ProcessExpandMode = 'default' | 'expanded' | 'collapsed'
+
 export function useConversationExpand() {
-  const [expandAll, setExpandAll] = useState(false)
-  const toggleExpandAll = useCallback(() => setExpandAll((v) => !v), [])
+  const [processExpandMode, setProcessExpandMode] = useState<ProcessExpandMode>('default')
+  const toggleProcessExpandMode = useCallback(
+    () => setProcessExpandMode((mode) => (mode === 'expanded' ? 'collapsed' : 'expanded')),
+    [],
+  )
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -24,12 +29,12 @@ export function useConversationExpand() {
         e.key.toLowerCase() === EXPAND_TRACE_SHORTCUT.key
       ) {
         e.preventDefault()
-        setExpandAll((v) => !v)
+        setProcessExpandMode((mode) => (mode === 'expanded' ? 'collapsed' : 'expanded'))
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  return { expandAll, toggleExpandAll }
+  return { processExpandMode, toggleProcessExpandMode }
 }
