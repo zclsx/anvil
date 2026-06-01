@@ -1,57 +1,79 @@
+import { Clipboard } from 'lucide-react'
 import type { Item } from '../store'
-
-function syntaxHighlightJson(json: string): string {
-  const escaped = json
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-
-  return escaped.replace(
-    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
-    (match) => {
-      let cls = 'token number'
-      if (match.startsWith('"')) {
-        if (match.endsWith(':')) {
-          cls = 'token property'
-        } else {
-          cls = 'token string'
-        }
-      } else if (match === 'true' || match === 'false') {
-        cls = 'token number font-semibold'
-      } else if (match === 'null') {
-        cls = 'token punctuation opacity-60'
-      }
-
-      if (cls === 'token property') {
-        return `<span class="${cls}">${match.slice(0, -1)}</span>:`
-      }
-      return `<span class="${cls}">${match}</span>`
-    }
-  )
-}
+import { BlockValue, MonoValue, Row, Section } from './Inspector/MetadataRows'
+import {
+  approvalLabel,
+  errorLabel,
+  formatTime,
+  kindLabel,
+  previewText,
+  riskLabel,
+  roleLabel,
+  syntaxHighlightJson,
+} from './Inspector/format'
 
 export function Inspector({ item }: { item: Item }) {
   const jsonString = JSON.stringify(item, null, 2)
   const highlightedHtml = syntaxHighlightJson(jsonString)
+  const itemTitle = kindLabel(item)
 
   return (
     <>
-      <div className="flex items-center px-4 py-2 border-b border-outline-variant bg-surface-container-low shrink-0">
-        <span className="font-mono-code text-[11px] text-on-surface-variant uppercase flex-1">
-          Inspector: {item.kind === 'tool_use' ? item.toolName : item.kind}
-        </span>
+      <div className="flex shrink-0 items-center border-b border-outline-variant bg-surface-container-low px-4 py-2">
+        <div className="min-w-0 flex-1">
+          <div className="font-label-caps text-[10px] font-semibold uppercase tracking-wider text-primary">详情</div>
+          <div className="mt-0.5 truncate font-mono-code text-[10px] text-on-surface-variant">
+            {itemTitle} / {item.id}
+          </div>
+        </div>
         <button
-          onClick={() => navigator.clipboard.writeText(jsonString)}
-          className="px-3 py-1 text-[10px] font-mono-label bg-surface border border-outline-variant text-on-surface hover:text-primary cursor-pointer"
+          onClick={() => void navigator.clipboard.writeText(jsonString)}
+          className="inline-flex cursor-pointer items-center gap-1.5 border border-outline-variant bg-surface px-2.5 py-1 font-mono-label text-[10px] text-on-surface transition-colors hover:border-primary hover:text-primary focus-ring"
         >
+          <Clipboard size={11} />
           复制 JSON
         </button>
       </div>
-      <div className="flex-1 overflow-auto p-4 font-mono-code text-[11px] leading-relaxed text-on-surface">
-        <pre
-          className="whitespace-pre-wrap select-text"
-          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-        />
+
+      <div className="flex-1 overflow-auto bg-surface-container-lowest px-4 pb-4 font-mono-code text-[11px] text-on-surface">
+        <Section title="项目">
+          <Row label="类型"><MonoValue value={itemTitle} /></Row>
+          <Row label="角色"><MonoValue value={roleLabel(item.role)} /></Row>
+          <Row label="创建"><MonoValue value={formatTime(item.createdAt)} /></Row>
+          <Row label="ID"><MonoValue value={item.id} /></Row>
+        </Section>
+
+        {item.kind === 'tool_use' && (
+          <Section title="工具">
+            <Row label="名称"><MonoValue value={item.toolName ?? '未命名工具'} /></Row>
+            <Row label="风险"><MonoValue value={riskLabel(item.approvalRisk)} /></Row>
+            <Row label="审批"><MonoValue value={approvalLabel(item)} /></Row>
+            <Row label="错误"><MonoValue value={errorLabel(item.toolIsError)} /></Row>
+            <Row label="输入"><BlockValue value={previewText(item.toolInput)} /></Row>
+            <Row label="输出"><BlockValue value={previewText(item.toolOutput)} /></Row>
+          </Section>
+        )}
+
+        {item.text && (
+          <Section title="内容">
+            <Row label="文本"><BlockValue value={previewText(item.text)} /></Row>
+          </Section>
+        )}
+
+        <section className="pt-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-label-caps text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
+              原始 JSON
+            </span>
+            <span className="font-mono-label text-[9px] uppercase tracking-wider text-on-surface-variant">
+              次级载荷
+            </span>
+          </div>
+          <pre
+            className="max-h-[48vh] overflow-auto border border-outline-variant bg-surface-container-low p-3 font-mono-code text-[10px] leading-relaxed text-on-surface-variant select-text"
+            dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+          />
+        </section>
       </div>
     </>
   )
