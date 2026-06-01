@@ -16,15 +16,17 @@ export function Sidebar({
   onDeleteSession: (s: SessionMeta, e: React.MouseEvent) => void
 }) {
   return (
-    <nav className="flex flex-col bg-surface-container text-primary w-[260px] border-r border-outline-variant shrink-0 z-0 no-drag">
-      <div className="p-3 border-b border-outline-variant flex flex-col gap-2 shrink-0">
+    <nav className="no-drag z-0 flex w-[260px] shrink-0 flex-col border-r border-outline-variant bg-surface-container text-primary">
+      <div className="flex shrink-0 flex-col gap-2 border-b border-outline-variant px-3 py-3">
         <div className="flex items-center justify-between">
-          <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold flex items-center gap-1">
-            <History size={11} /> Sessions ({sessions.length})
+          <span className="flex items-center gap-1.5 font-label-caps text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
+            <History size={11} />
+            会话
+            <span className="font-mono-code text-[9px] text-on-surface-variant/80">{sessions.length}</span>
           </span>
           <button
             onClick={onRefresh}
-            className="text-on-surface-variant hover:text-primary p-0.5 cursor-pointer"
+            className="cursor-pointer border border-transparent p-1 text-on-surface-variant transition-colors hover:border-outline-variant hover:bg-surface-container-high hover:text-primary"
             title="刷新"
           >
             <RotateCw size={11} />
@@ -32,9 +34,9 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+      <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
         {sessions.length === 0 && (
-          <div className="text-on-surface-variant italic text-[11px] p-2">还没有 session</div>
+          <div className="p-3 text-[11px] text-on-surface-variant">暂无会话</div>
         )}
         {sessions.map((s) => (
           <SessionItem

@@ -1,6 +1,8 @@
 import type { PublicSettings } from '../../electron/shared/settings'
 import type { UpdateSnapshot } from '../../electron/shared/updates'
+import { Cpu, Folder, Moon, Settings, Sun } from 'lucide-react'
 import { LogoIcon } from './LogoIcon'
+import { StatusDot } from './StatusDot'
 import { UpdateActionButton } from './UpdateActionButton'
 import { truncatePath } from '../lib/pathUtils'
 
@@ -30,29 +32,41 @@ export function Header({
   onToggleTheme: () => void
 }) {
   return (
-    <header className="flex items-center pl-[80px] pr-4 w-full bg-surface text-primary border-b border-outline-variant h-12 app-header shrink-0 z-10 relative">
-      <div className="flex items-center gap-2 mr-6 no-drag">
-        <LogoIcon className="h-[22px] w-[22px] shrink-0" />
-        <span className="font-headline text-[16px] text-primary tracking-tight font-semibold">Anvil</span>
-        <span className="text-outline-variant text-[14px]">/</span>
-        <span className="text-on-surface-variant font-semibold text-[12px]">Workbench</span>
+    <header className="flex h-12 w-full shrink-0 items-center border-b border-outline-variant bg-surface-container-lowest pl-[80px] pr-3 text-primary app-header relative z-10">
+      <div className="no-drag mr-5 flex items-center gap-2.5">
+        <LogoIcon className="h-[22px] w-[22px] shrink-0 text-primary" />
+        <div className="flex items-baseline gap-2">
+          <span className="font-headline text-[15px] font-semibold tracking-tight text-primary">Anvil</span>
+          <span className="font-mono-label text-[9px] uppercase tracking-wider text-on-surface-variant">
+            工作台
+          </span>
+        </div>
       </div>
       <div className="flex-grow" />
-      <div className="flex items-center gap-2 no-drag">
+      <div className="no-drag flex items-center gap-1.5">
         {(settings || displayWorkspace) && (
-          <span className="bg-surface-container border border-outline-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono-code">
-            {displayWorkspace ? `📁 ${truncatePath(displayWorkspace)}${isDraftWorkspace ? ' (draft)' : ''}` : 'no workspace'}
+          <span className="inline-flex max-w-[280px] items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 text-[10px] text-on-surface-variant">
+            <Folder size={11} className="shrink-0 text-primary" />
+            <span className="font-mono-label uppercase tracking-wider">
+              {isDraftWorkspace ? '草稿' : '工作区'}
+            </span>
+            <span className="min-w-0 truncate font-mono-code">
+              {displayWorkspace ? truncatePath(displayWorkspace) : '未选择'}
+            </span>
           </span>
         )}
         {settings && (
-          <span className="bg-surface-container border border-outline-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono-code">
-            {settings.model}
+          <span className="inline-flex max-w-[180px] items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 text-[10px] text-on-surface-variant">
+            <Cpu size={11} className="shrink-0 text-primary" />
+            <span className="truncate font-mono-code">{settings.model}</span>
           </span>
         )}
-        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
-          hasAnvil ? 'bg-status-success-bg text-status-success-text border border-status-success-border' : 'bg-status-error-bg text-status-error-text border border-status-error-border'
+        <span className={`inline-flex items-center gap-1.5 border px-2 py-1 font-mono-label text-[9px] uppercase tracking-wider ${
+          hasAnvil
+            ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+            : 'border-status-error-border bg-status-error-bg text-status-error-text'
         }`}>
-          {hasAnvil ? 'connected' : 'disconnected'}
+          <StatusDot tone={hasAnvil ? 'success' : 'danger'} label={hasAnvil ? '已连接' : '未连接'} />
         </span>
         {updateSnapshot?.enabled && (
           <UpdateActionButton
@@ -64,15 +78,17 @@ export function Header({
         )}
         <button
           onClick={onToggleTheme}
-          className="px-2 py-0.5 text-[10px] font-mono-label bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface-variant cursor-pointer flex items-center gap-1"
+          className="flex cursor-pointer items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 font-mono-label text-[10px] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
         >
-          {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          {theme === 'dark' ? <Sun size={11} /> : <Moon size={11} />}
+          {theme === 'dark' ? '浅色' : '深色'}
         </button>
         <button
           onClick={onToggleSettings}
-          className="px-2 py-0.5 text-[10px] font-mono-label bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface-variant cursor-pointer"
+          className="flex cursor-pointer items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 font-mono-label text-[10px] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
         >
-          ⚙ Settings
+          <Settings size={11} />
+          设置
         </button>
       </div>
     </header>

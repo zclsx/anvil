@@ -66,14 +66,14 @@ test.describe('Anvil Premium Theme Switcher E2E Test Suite', () => {
     const savedTheme = await win.evaluate(() => localStorage.getItem('anvil-theme'))
     expect(savedTheme === null || savedTheme === 'dark').toBe(true)
 
-    const toggleBtn = win.locator('button:has-text("Light")')
+    const toggleBtn = win.locator('button:has-text("浅色")')
     await expect(toggleBtn).toBeVisible()
   })
 
   test('2. Toggling theme switches to light and updates localStorage', async ({}, testInfo) => {
     const win = await launchIsolatedApp(testInfo)
 
-    const toggleBtn = win.locator('button:has-text("Light")')
+    const toggleBtn = win.locator('button:has-text("浅色")')
     await toggleBtn.click()
 
     const htmlClassList = await win.locator('html').getAttribute('class')
@@ -82,14 +82,14 @@ test.describe('Anvil Premium Theme Switcher E2E Test Suite', () => {
     const savedTheme = await win.evaluate(() => localStorage.getItem('anvil-theme'))
     expect(savedTheme).toBe('light')
 
-    const toggleBtnDark = win.locator('button:has-text("Dark")')
+    const toggleBtnDark = win.locator('button:has-text("深色")')
     await expect(toggleBtnDark).toBeVisible()
   })
 
   test('3. Reloading window preserves light theme state (persistence)', async ({}, testInfo) => {
     const win = await launchIsolatedApp(testInfo)
 
-    await win.locator('button:has-text("Light")').click()
+    await win.locator('button:has-text("浅色")').click()
     await win.reload()
     await win.waitForFunction(() => 'anvil' in window, undefined, { timeout: 5000 })
 
@@ -103,14 +103,14 @@ test.describe('Anvil Premium Theme Switcher E2E Test Suite', () => {
   test('4. CSS variables resolve to correct colors in light/dark mode', async ({}, testInfo) => {
     const win = await launchIsolatedApp(testInfo)
 
-    await win.locator('button:has-text("Light")').click()
+    await win.locator('button:has-text("浅色")').click()
 
     const lightVarProperty = await win.evaluate(() => {
       return getComputedStyle(document.documentElement).getPropertyValue('--color-token-property').trim()
     })
     expect(lightVarProperty.toLowerCase()).toBe('#1d4ed8')
 
-    const toggleBtn = win.locator('button:has-text("Dark")')
+    const toggleBtn = win.locator('button:has-text("深色")')
     await toggleBtn.click()
 
     const darkVarProperty = await win.evaluate(() => {

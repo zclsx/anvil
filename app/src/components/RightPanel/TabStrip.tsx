@@ -17,28 +17,33 @@ export function TabStrip({
   onClose: (id: string) => void
 }) {
   return (
-    <div className="flex border-b border-outline-variant bg-surface-container-low shrink-0 overflow-x-auto">
+    <div className="flex shrink-0 overflow-x-auto border-b border-outline-variant bg-surface-container-low">
       {tabs.map((tab) => (
         <div
           key={tab.id}
-          onClick={() => onActivate(tab.id)}
-          className={`group flex items-center gap-1.5 px-3 py-1.5 border-r border-outline-variant cursor-pointer max-w-[160px] shrink-0 ${
+          className={`group relative flex max-w-[180px] shrink-0 items-center gap-1.5 border-r border-outline-variant px-2 py-1.5 transition-colors ${
             tab.id === activeTabId
               ? 'bg-surface-container text-primary'
-              : 'text-on-surface-variant hover:text-on-surface'
+              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
           }`}
         >
-          <span className="font-mono-label text-[10px] truncate">{tabLabel(tab)}</span>
+          <button
+            onClick={() => onActivate(tab.id)}
+            className="min-w-0 flex-1 cursor-pointer truncate py-0.5 text-left font-mono-label text-[10px] tracking-wider focus-ring"
+          >
+            {tabLabel(tab)}
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation()
               onClose(tab.id)
             }}
             aria-label="关闭标签"
-            className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-primary cursor-pointer shrink-0"
+            className="shrink-0 cursor-pointer text-on-surface-variant opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
           >
             <X size={11} />
           </button>
+          {tab.id === activeTabId && <span className="absolute bottom-0 left-0 h-[2px] w-full bg-primary" />}
         </div>
       ))}
     </div>

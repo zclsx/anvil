@@ -52,7 +52,7 @@ test('switching to a session with a historical error does not pop the error bann
   await page.getByText('Old session').click()
 
   // give replay a beat, then assert the stale error is not shown as a banner
-  await expect(page.getByText('failed').first()).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText('失败').first()).toBeVisible({ timeout: 5_000 })
   await expect(page.getByText('first response timeout')).toHaveCount(0)
 })
 
@@ -115,7 +115,7 @@ test('sending again from a session with a historical error keeps that error dism
   await expect(page.getByText('Old session')).toBeVisible({ timeout: 5_000 })
 
   await page.getByText('Old session').click()
-  await expect(page.getByText('SESSION:')).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText(/id old1/i)).toBeVisible({ timeout: 5_000 })
   await expect(page.getByText('请求已取消')).toHaveCount(0)
 
   await page.locator('textarea').fill('继续测试')
