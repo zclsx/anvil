@@ -194,7 +194,7 @@ export function registerUpdateIpc() {
     if (snapshot.status !== 'downloaded') {
       return { ok: false, error: 'No downloaded update is ready to install.' }
     }
-    autoUpdater.quitAndInstall(false, true)
+    autoUpdater.quitAndInstall(true, true)
     return { ok: true }
   })
 }
