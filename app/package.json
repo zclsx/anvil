@@ -1,7 +1,7 @@
 {
   "name": "anvil",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Anvil — AI Agent Workbench",
   "main": "dist-electron/main/index.js",
   "type": "module",
@@ -107,11 +107,15 @@
       ]
     },
     "nsis": {
+      "artifactName": "${productName}.Setup.${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Anvil"
+    },
+    "portable": {
+      "artifactName": "${productName}.${version}.${ext}"
     },
     "files": [
       "dist",
