@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.150",
+    "@fontsource/geist": "^5.2.9",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/sora": "^5.2.8",
     "@monaco-editor/react": "^4.7.0",

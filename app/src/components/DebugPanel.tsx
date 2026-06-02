@@ -8,7 +8,7 @@ export function DebugPanel({
   onClose: () => void
 }) {
   return (
-    <div className="absolute right-4 bottom-12 w-[320px] max-h-[300px] bg-surface-container-lowest border border-outline-variant p-4 z-50 overflow-y-auto shadow-lg rounded">
+    <div className="absolute right-4 bottom-12 w-[320px] max-h-[300px] bg-surface-container-lowest border border-outline-variant p-4 z-50 overflow-y-auto rounded-[var(--radius-panel)]">
       <div className="flex justify-between items-center border-b border-outline-variant pb-2 mb-2">
         <span className="font-mono-label text-[10px] text-primary uppercase">
           Raw Events ({rawEvents.length})

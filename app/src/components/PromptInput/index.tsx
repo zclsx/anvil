@@ -181,7 +181,7 @@ export function PromptInput({
             <button
               onClick={onSend}
               disabled={!canSendPrompt}
-              className="px-4 py-1.5 bg-btn-primary-bg hover:bg-btn-primary-hover disabled:bg-btn-disabled-bg disabled:text-btn-disabled-text disabled:cursor-not-allowed text-btn-primary-text font-semibold text-[11px] transition-colors cursor-pointer"
+              className="action-button px-4 py-1.5 font-semibold text-[11px]"
             >
               发送
             </button>

@@ -23,7 +23,7 @@ export const markdownComponents: Components = {
     <a className="text-link underline underline-offset-2 hover:text-primary" target="_blank" rel="noreferrer" {...props} />
   ),
   code: ({ node: _node, className, ...props }) => (
-    <code className={`font-mono-code text-[0.92em] bg-surface-container-high px-1 py-0.5 rounded ${className ?? ''}`} {...props} />
+    <code className={`font-mono-code text-[0.92em] bg-surface-container-high px-1 py-0.5 rounded-[var(--radius-control)] ${className ?? ''}`} {...props} />
   ),
   pre: ({ node: _node, ...props }) => (
     <pre className="my-2 overflow-x-auto border border-outline-variant bg-surface-container p-3 font-mono-code text-[11px] leading-relaxed" {...props} />

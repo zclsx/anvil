@@ -58,9 +58,12 @@
   --color-info-hover: #DDEAFF;
 
   /* Button Tokens */
-  --color-btn-primary-bg: #182230;
-  --color-btn-primary-hover: #2A3646;
-  --color-btn-primary-text: #FFFFFF;
+  --color-action: #0066FF;
+  --color-action-hover: #0054D6;
+  --color-on-action: #FFFFFF;
+  --color-btn-primary-bg: var(--color-action);
+  --color-btn-primary-hover: var(--color-action-hover);
+  --color-btn-primary-text: var(--color-on-action);
 
   --color-btn-disabled-bg: #EDF0F4;
   --color-btn-disabled-text: #9AA3AF;
@@ -83,7 +86,7 @@
   --color-border-strong: var(--color-outline);
   --color-accent: var(--color-info-text);
   --color-accent-muted: var(--color-info-bg);
-  --color-focus-ring: var(--color-info-text-secondary);
+  --color-focus-ring: var(--color-action);
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
   --color-code-surface: #F2F4F7;
@@ -107,16 +110,16 @@
   --space-5: 1.25rem;
   --space-6: 1.5rem;
 
-  --radius-control: 6px;
-  --radius-panel: 8px;
+  --radius-control: 2px;
+  --radius-panel: 4px;
   --radius-pill: 9999px;
 
   /* Typography Fonts */
   --font-mono-code: "JetBrains Mono", ui-monospace, monospace;
   --font-mono-label: "JetBrains Mono", ui-monospace, monospace;
-  --font-body-lg: "Sora", var(--font-sans);
-  --font-body-sm: "Sora", var(--font-sans);
-  --font-label-caps: "Sora", var(--font-sans);
+  --font-body-lg: "Geist", var(--font-sans);
+  --font-body-sm: "Geist", var(--font-sans);
+  --font-label-caps: "JetBrains Mono", ui-monospace, monospace;
   --font-headline: "Sora", var(--font-sans);
   --font-display: "Sora", var(--font-sans);
 }
@@ -143,7 +146,7 @@
   --color-on-primary-container: #F6F8FF;
 
   --color-outline: #8A91A3;
-  --color-outline-variant: #343A47;
+  --color-outline-variant: #1D1D22;
   --color-secondary-container: #3E4350;
 
   --color-success-emerald: #10b981;
@@ -179,9 +182,12 @@
   --color-info-hover: #1D2940;
 
   /* Button Tokens */
-  --color-btn-primary-bg: #E8EEFF;
-  --color-btn-primary-hover: #C9D7FF;
-  --color-btn-primary-text: #0B0B0C;
+  --color-action: #0066FF;
+  --color-action-hover: #0054D6;
+  --color-on-action: #FFFFFF;
+  --color-btn-primary-bg: var(--color-action);
+  --color-btn-primary-hover: var(--color-action-hover);
+  --color-btn-primary-text: var(--color-on-action);
 
   --color-btn-disabled-bg: #202127;
   --color-btn-disabled-text: #666D7A;
@@ -204,7 +210,7 @@
   --color-border-strong: var(--color-outline);
   --color-accent: var(--color-info-text-accent);
   --color-accent-muted: var(--color-info-bg);
-  --color-focus-ring: var(--color-info-text-secondary);
+  --color-focus-ring: var(--color-action);
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
   --color-code-surface: #0F1117;
@@ -265,6 +271,9 @@
   --color-btn-primary-bg: var(--color-btn-primary-bg);
   --color-btn-primary-hover: var(--color-btn-primary-hover);
   --color-btn-primary-text: var(--color-btn-primary-text);
+  --color-action: var(--color-action);
+  --color-action-hover: var(--color-action-hover);
+  --color-on-action: var(--color-on-action);
 
   --color-btn-disabled-bg: var(--color-btn-disabled-bg);
   --color-btn-disabled-text: var(--color-btn-disabled-text);
@@ -339,10 +348,10 @@
 
 .section-label {
   font-family: var(--font-label-caps);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1.2;
+  letter-spacing: 0.05em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
@@ -388,6 +397,24 @@
   line-height: 1.2;
 }
 
+.action-button {
+  background-color: var(--color-action);
+  border-radius: var(--radius-control);
+  color: var(--color-on-action);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.action-button:hover:not(:disabled) {
+  background-color: var(--color-action-hover);
+}
+
+.action-button:disabled {
+  background-color: var(--color-btn-disabled-bg);
+  color: var(--color-btn-disabled-text);
+  cursor: not-allowed;
+}
+
 .focus-ring:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
@@ -404,6 +431,7 @@
 
 body {
   margin: 0;
+  font-family: var(--font-body-sm);
   background-color: var(--color-background);
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
