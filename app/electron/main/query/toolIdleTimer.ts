@@ -1,43 +1,118 @@
 import type { AgentEvent } from '../../shared/events'
 
+export interface ToolIdleState {
+  activeToolItemIds: ReadonlySet<string>
+  permissionStartedToolItemIds: ReadonlySet<string>
+}
+
 export interface ToolIdleTransition {
-  activeToolCount: number
+  state: ToolIdleState
   clearIdleTimer: boolean
   resetIdleTimer: boolean
 }
 
-export function updateToolIdleState(
-  activeToolCount: number,
-  event: Pick<AgentEvent, 'type'>,
-  canResetIdle: boolean,
-): ToolIdleTransition {
-  if (event.type === 'tool.started') {
+export function createToolIdleState(): ToolIdleState {
+  return {
+    activeToolItemIds: new Set(),
+    permissionStartedToolItemIds: new Set(),
+  }
+}
+
+export function markToolPermissionAllowed(state: ToolIdleState, itemId: string): ToolIdleTransition {
+  const activeToolItemIds = new Set(state.activeToolItemIds)
+  const permissionStartedToolItemIds = new Set(state.permissionStartedToolItemIds)
+
+  if (activeToolItemIds.has(itemId)) {
     return {
-      activeToolCount: activeToolCount + 1,
-      clearIdleTimer: activeToolCount === 0,
+      state: {
+        activeToolItemIds,
+        permissionStartedToolItemIds,
+      },
+      clearIdleTimer: false,
       resetIdleTimer: false,
     }
   }
 
-  if (event.type === 'tool.result') {
-    if (activeToolCount === 0) {
+  const wasIdle = activeToolItemIds.size === 0
+  activeToolItemIds.add(itemId)
+  permissionStartedToolItemIds.add(itemId)
+
+  return {
+    state: {
+      activeToolItemIds,
+      permissionStartedToolItemIds,
+    },
+    clearIdleTimer: wasIdle,
+    resetIdleTimer: false,
+  }
+}
+
+export function updateToolIdleState(
+  state: ToolIdleState,
+  event: Pick<AgentEvent, 'type'> & { itemId?: string },
+  canResetIdle: boolean,
+): ToolIdleTransition {
+  const activeToolItemIds = new Set(state.activeToolItemIds)
+  const permissionStartedToolItemIds = new Set(state.permissionStartedToolItemIds)
+
+  if (event.type === 'tool.started') {
+    if (!event.itemId) {
       return {
-        activeToolCount: 0,
+        state,
         clearIdleTimer: false,
         resetIdleTimer: false,
       }
     }
 
-    const nextCount = activeToolCount - 1
+    if (activeToolItemIds.has(event.itemId)) {
+      permissionStartedToolItemIds.delete(event.itemId)
+      return {
+        state: {
+          activeToolItemIds,
+          permissionStartedToolItemIds,
+        },
+        clearIdleTimer: false,
+        resetIdleTimer: false,
+      }
+    }
+
+    const wasIdle = activeToolItemIds.size === 0
+    activeToolItemIds.add(event.itemId)
+
     return {
-      activeToolCount: nextCount,
+      state: {
+        activeToolItemIds,
+        permissionStartedToolItemIds,
+      },
+      clearIdleTimer: wasIdle,
+      resetIdleTimer: false,
+    }
+  }
+
+  if (event.type === 'tool.result') {
+    if (!event.itemId || !activeToolItemIds.has(event.itemId)) {
+      return {
+        state,
+        clearIdleTimer: false,
+        resetIdleTimer: false,
+      }
+    }
+
+    activeToolItemIds.delete(event.itemId)
+    permissionStartedToolItemIds.delete(event.itemId)
+
+    return {
+      state: {
+        activeToolItemIds,
+        permissionStartedToolItemIds,
+      },
       clearIdleTimer: false,
-      resetIdleTimer: nextCount === 0 && canResetIdle,
+      resetIdleTimer: activeToolItemIds.size === 0 && canResetIdle,
     }
   }
 
   return {
-    activeToolCount,
+    state,
     clearIdleTimer: false,
     resetIdleTimer: false,
   }

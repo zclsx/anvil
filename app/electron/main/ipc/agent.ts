@@ -19,11 +19,15 @@ import { resolveQueryWorkspace } from '../query/workspace'
 import { getClaudeExecutablePath } from '../query/claudeExecutable'
 import { toolRisk } from '../query/toolRisk'
 import { loadLocalMcpServers } from '../query/localMcpServers'
-import { updateToolIdleState } from '../query/toolIdleTimer'
+import { createToolIdleState, markToolPermissionAllowed, updateToolIdleState } from '../query/toolIdleTimer'
 import type { MainRuntimeContext } from '../runtimeContext'
 
 const READ_DOCUMENT_TOOL_NAME = 'mcp__anvil__read_document'
 const GET_DOCUMENT_SKILL_TOOL_NAME = 'mcp__anvil__get_document_skill'
+
+type ToolPermissionContext = {
+  toolUseID?: string
+}
 const OFFICE_DOCUMENT_GUIDANCE =
   'When the user references Microsoft Office documents (.docx Word or .xlsx Excel files) by path, ' +
   'read their contents using the read_document tool from the "anvil" MCP server. ' +
@@ -149,7 +153,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   let receivedAnyMessage = false
   let alreadyFinished = false
   let pendingApprovalCount = 0
-  let activeToolCount = 0
+  let toolIdleState = createToolIdleState()
 
   function finishFailed(source: FailureSource, normalized?: NormalizedError) {
     if (alreadyFinished) return
@@ -194,7 +198,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
 
   let idleTimer: NodeJS.Timeout | null = null
   function resetIdleTimer() {
-    if (pendingApprovalCount > 0 || activeToolCount > 0) return
+    if (pendingApprovalCount > 0 || toolIdleState.activeToolItemIds.size > 0) return
     if (idleTimer) clearTimeout(idleTimer)
     idleTimer = setTimeout(() => {
       if (!alreadyFinished) {
@@ -233,7 +237,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   function resumeTimersAfterApproval() {
     pendingApprovalCount = Math.max(0, pendingApprovalCount - 1)
     if (pendingApprovalCount === 0 && !alreadyFinished) {
-      if (activeToolCount === 0) resetIdleTimer()
+      if (toolIdleState.activeToolItemIds.size === 0) resetIdleTimer()
       startHardTimer()
     }
   }
@@ -245,13 +249,26 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
     }
   }
 
+  function toolItemIdFromPermission(permissionContext?: ToolPermissionContext) {
+    if (!permissionContext?.toolUseID) return null
+    return `tool:${permissionContext.toolUseID}`
+  }
+
+  function applyToolPermissionAllowed(permissionContext?: ToolPermissionContext) {
+    const itemId = toolItemIdFromPermission(permissionContext)
+    if (!itemId) return
+    const transition = markToolPermissionAllowed(toolIdleState, itemId)
+    toolIdleState = transition.state
+    if (transition.clearIdleTimer) pauseIdleForTool()
+  }
+
   function applyToolIdleEvent(event: AgentEvent) {
     const transition = updateToolIdleState(
-      activeToolCount,
+      toolIdleState,
       event,
       pendingApprovalCount === 0 && !alreadyFinished,
     )
-    activeToolCount = transition.activeToolCount
+    toolIdleState = transition.state
     if (transition.clearIdleTimer) pauseIdleForTool()
     if (transition.resetIdleTimer) resetIdleTimer()
   }
@@ -259,8 +276,9 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   const options: any = {
     cwd: workspacePath,
     abortController,
-    canUseTool: async (toolName: string, input: any) => {
+    canUseTool: async (toolName: string, input: any, permissionContext?: ToolPermissionContext) => {
       if (toolName === READ_DOCUMENT_TOOL_NAME || toolName === GET_DOCUMENT_SKILL_TOOL_NAME) {
+        applyToolPermissionAllowed(permissionContext)
         return { behavior: 'allow', updatedInput: input }
       }
       const approvalId = randomUUID()
@@ -288,6 +306,9 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
         }>((resolve) => {
           ctx.pendingApprovals.set(approvalId, resolve)
         })
+        if (decision.behavior === 'allow') {
+          applyToolPermissionAllowed(permissionContext)
+        }
       } finally {
         resumeTimersAfterApproval()
       }

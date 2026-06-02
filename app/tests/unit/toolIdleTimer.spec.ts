@@ -1,13 +1,17 @@
 import { test, expect } from 'vitest'
 import type { AgentEvent } from '../../electron/shared/events'
-import { updateToolIdleState } from '../../electron/main/query/toolIdleTimer'
+import {
+  createToolIdleState,
+  markToolPermissionAllowed,
+  updateToolIdleState,
+} from '../../electron/main/query/toolIdleTimer'
 
-function toolStarted(toolName: string): Extract<AgentEvent, { type: 'tool.started' }> {
+function toolStarted(toolUseId: string, toolName = 'Bash'): Extract<AgentEvent, { type: 'tool.started' }> {
   return {
     type: 'tool.started',
     sessionId: 'session',
     turnId: 'turn',
-    itemId: `tool:${toolName}`,
+    itemId: `tool:${toolUseId}`,
     toolName,
     input: {},
     seq: 1,
@@ -15,12 +19,12 @@ function toolStarted(toolName: string): Extract<AgentEvent, { type: 'tool.starte
   }
 }
 
-function toolResult(): Extract<AgentEvent, { type: 'tool.result' }> {
+function toolResult(toolUseId: string): Extract<AgentEvent, { type: 'tool.result' }> {
   return {
     type: 'tool.result',
     sessionId: 'session',
     turnId: 'turn',
-    itemId: 'tool:Bash',
+    itemId: `tool:${toolUseId}`,
     output: 'done',
     isError: false,
     seq: 2,
@@ -28,64 +32,83 @@ function toolResult(): Extract<AgentEvent, { type: 'tool.result' }> {
   }
 }
 
-test.describe('updateToolIdleState', () => {
-  test('pauses and resumes idle for a non-anvil tool', () => {
-    const started = updateToolIdleState(0, toolStarted('Bash'), true)
-    expect(started).toEqual({
-      activeToolCount: 1,
-      clearIdleTimer: true,
-      resetIdleTimer: false,
-    })
+function activeCount(state = createToolIdleState()): number {
+  return state.activeToolItemIds.size
+}
 
-    const finished = updateToolIdleState(started.activeToolCount, toolResult(), true)
-    expect(finished).toEqual({
-      activeToolCount: 0,
-      clearIdleTimer: false,
-      resetIdleTimer: true,
-    })
+test.describe('tool idle timer state', () => {
+  test('pauses and resumes idle for a non-anvil tool from protocol events', () => {
+    const started = updateToolIdleState(createToolIdleState(), toolStarted('bash-1', 'Bash'), true)
+    expect(activeCount(started.state)).toBe(1)
+    expect(started.clearIdleTimer).toBe(true)
+    expect(started.resetIdleTimer).toBe(false)
+
+    const finished = updateToolIdleState(started.state, toolResult('bash-1'), true)
+    expect(activeCount(finished.state)).toBe(0)
+    expect(finished.clearIdleTimer).toBe(false)
+    expect(finished.resetIdleTimer).toBe(true)
+  })
+
+  test('marks an approved tool active before the protocol tool.started event arrives', () => {
+    const allowed = markToolPermissionAllowed(createToolIdleState(), 'tool:create-docx-1')
+    expect(activeCount(allowed.state)).toBe(1)
+    expect(allowed.clearIdleTimer).toBe(true)
+    expect(allowed.resetIdleTimer).toBe(false)
+
+    const started = updateToolIdleState(
+      allowed.state,
+      toolStarted('create-docx-1', 'mcp__anvil__create_docx_from_skill'),
+      true,
+    )
+    expect(activeCount(started.state)).toBe(1)
+    expect(started.clearIdleTimer).toBe(false)
+    expect(started.resetIdleTimer).toBe(false)
+
+    const finished = updateToolIdleState(started.state, toolResult('create-docx-1'), true)
+    expect(activeCount(finished.state)).toBe(0)
+    expect(finished.resetIdleTimer).toBe(true)
+  })
+
+  test('does not double count when protocol tool.started arrives before permission allow', () => {
+    const started = updateToolIdleState(createToolIdleState(), toolStarted('bash-1', 'Bash'), true)
+    const allowed = markToolPermissionAllowed(started.state, 'tool:bash-1')
+    expect(activeCount(allowed.state)).toBe(1)
+    expect(allowed.clearIdleTimer).toBe(false)
+
+    const finished = updateToolIdleState(allowed.state, toolResult('bash-1'), true)
+    expect(activeCount(finished.state)).toBe(0)
+    expect(finished.resetIdleTimer).toBe(true)
   })
 
   test('keeps idle paused until all concurrent tools finish', () => {
-    const first = updateToolIdleState(0, toolStarted('Bash'), true)
-    const second = updateToolIdleState(first.activeToolCount, toolStarted('Read'), true)
+    const first = markToolPermissionAllowed(createToolIdleState(), 'tool:bash-1')
+    const second = markToolPermissionAllowed(first.state, 'tool:read-1')
+    expect(activeCount(second.state)).toBe(2)
     expect(first.clearIdleTimer).toBe(true)
-    expect(second).toEqual({
-      activeToolCount: 2,
-      clearIdleTimer: false,
-      resetIdleTimer: false,
-    })
+    expect(second.clearIdleTimer).toBe(false)
 
-    const firstResult = updateToolIdleState(second.activeToolCount, toolResult(), true)
-    expect(firstResult).toEqual({
-      activeToolCount: 1,
-      clearIdleTimer: false,
-      resetIdleTimer: false,
-    })
+    const firstResult = updateToolIdleState(second.state, toolResult('bash-1'), true)
+    expect(activeCount(firstResult.state)).toBe(1)
+    expect(firstResult.resetIdleTimer).toBe(false)
 
-    const secondResult = updateToolIdleState(firstResult.activeToolCount, toolResult(), true)
-    expect(secondResult).toEqual({
-      activeToolCount: 0,
-      clearIdleTimer: false,
-      resetIdleTimer: true,
-    })
+    const secondResult = updateToolIdleState(firstResult.state, toolResult('read-1'), true)
+    expect(activeCount(secondResult.state)).toBe(0)
+    expect(secondResult.resetIdleTimer).toBe(true)
   })
 
   test('does not re-arm idle when another pause source is active', () => {
-    const started = updateToolIdleState(0, toolStarted('Bash'), true)
-    const finishedDuringApproval = updateToolIdleState(started.activeToolCount, toolResult(), false)
+    const allowed = markToolPermissionAllowed(createToolIdleState(), 'tool:bash-1')
+    const finishedDuringApproval = updateToolIdleState(allowed.state, toolResult('bash-1'), false)
 
-    expect(finishedDuringApproval).toEqual({
-      activeToolCount: 0,
-      clearIdleTimer: false,
-      resetIdleTimer: false,
-    })
+    expect(activeCount(finishedDuringApproval.state)).toBe(0)
+    expect(finishedDuringApproval.clearIdleTimer).toBe(false)
+    expect(finishedDuringApproval.resetIdleTimer).toBe(false)
   })
 
   test('ignores unmatched tool results', () => {
-    expect(updateToolIdleState(0, toolResult(), true)).toEqual({
-      activeToolCount: 0,
-      clearIdleTimer: false,
-      resetIdleTimer: false,
-    })
+    const transition = updateToolIdleState(createToolIdleState(), toolResult('missing'), true)
+    expect(activeCount(transition.state)).toBe(0)
+    expect(transition.clearIdleTimer).toBe(false)
+    expect(transition.resetIdleTimer).toBe(false)
   })
 })
