@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
 export type MockAnvilOptions = {
+  platform?: string
   settings?: {
     hasApiKey?: boolean
     workspacePath?: string
@@ -60,6 +61,7 @@ export async function setupMockAnvil(page: Page, options: MockAnvilOptions = {})
     }
 
     const anvil = {
+      platform: opts.platform ?? 'darwin',
       settings: {
         get: async () => {
           record('settings:get', null)
@@ -165,6 +167,12 @@ export async function setupMockAnvil(page: Page, options: MockAnvilOptions = {})
         readDocxBytes: async (filePath: string) => {
           record('files:readDocxBytes', filePath)
           return { ok: false, error: 'mock 预览不可用' }
+        },
+      },
+      window: {
+        setTheme: async (theme: 'light' | 'dark') => {
+          record('window:setTheme', theme)
+          return { ok: true }
         },
       },
       onAgentEvent: (callback: (envelope: unknown) => void) => {

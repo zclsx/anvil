@@ -11,6 +11,8 @@ import type {
 import type { UpdateSnapshot } from '../shared/updates'
 
 const anvil = {
+  platform: process.platform,
+
   settings: {
     get: (): Promise<PublicSettings> => ipcRenderer.invoke('settings:get'),
     set: (patch: Partial<AnvilSettings>): Promise<PublicSettings> =>
@@ -73,6 +75,11 @@ const anvil = {
       ipcRenderer.invoke('files:show-in-folder', filePath),
     readDocxBytes: (filePath: string): Promise<{ ok: boolean; bytes?: Uint8Array; error?: string }> =>
       ipcRenderer.invoke('files:read-docx-bytes', filePath),
+  },
+
+  window: {
+    setTheme: (theme: 'light' | 'dark'): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('window:set-theme', theme),
   },
 
   onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => {

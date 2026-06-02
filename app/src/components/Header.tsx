@@ -13,6 +13,7 @@ export function Header({
   hasAnvil,
   updateSnapshot,
   theme,
+  platform,
   onCheckUpdate,
   onDownloadUpdate,
   onInstallUpdate,
@@ -25,14 +26,19 @@ export function Header({
   hasAnvil: boolean
   updateSnapshot: UpdateSnapshot | null
   theme: 'light' | 'dark'
+  platform?: string
   onCheckUpdate: () => void
   onDownloadUpdate: () => void
   onInstallUpdate: () => void
   onToggleSettings: () => void
   onToggleTheme: () => void
 }) {
+  const headerPaddingClass =
+    platform === 'darwin' ? 'pl-[80px] pr-3' : platform === 'win32' ? 'pl-3 pr-[140px]' : 'px-3'
+
   return (
-    <header className="glass-panel flex h-12 w-full shrink-0 items-center border-b pl-[80px] pr-3 text-primary app-header relative z-10">
+    <header className={`glass-panel flex h-12 w-full shrink-0 items-center border-b text-primary app-header relative z-10 ${headerPaddingClass}`}>
+
       <div className="no-drag mr-5 flex items-center gap-2.5">
         <LogoIcon className="h-[22px] w-[22px] shrink-0 text-primary" />
         <div className="flex items-baseline gap-2">

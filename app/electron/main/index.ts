@@ -13,6 +13,7 @@ import { registerDialogIpc } from './ipc/dialog'
 import { registerApprovalIpc } from './ipc/approval'
 import { registerAgentIpc } from './ipc/agent'
 import { registerFilesIpc } from './ipc/files'
+import { registerWindowIpc } from './ipc/window'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
@@ -35,8 +36,9 @@ registerDialogIpc(ipcMain, ctx)
 registerApprovalIpc(ipcMain, ctx)
 registerAgentIpc(ipcMain, ctx)
 registerFilesIpc(ipcMain)
+registerWindowIpc(ipcMain, ctx)
 
-app.whenReady().then(() => {
+void app.whenReady().then(() => {
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null)
   }

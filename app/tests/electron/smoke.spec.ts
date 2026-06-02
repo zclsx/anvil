@@ -58,8 +58,29 @@ test('app boots and exposes window.anvil via preload', async () => {
     return w.anvil ? Object.keys(w.anvil).sort() : []
   })
   expect(anvilKeys).toEqual(
-    expect.arrayContaining(['settings', 'sessions', 'query', 'cancel', 'approval', 'dialog']),
+    expect.arrayContaining(['platform', 'settings', 'sessions', 'query', 'cancel', 'approval', 'dialog', 'window']),
   )
+})
+
+test('window:set-theme IPC accepts the renderer theme', async () => {
+  if (!electronApp) return
+  const win = await getAppWindow(electronApp)
+
+  const result = await win.evaluate(async () => {
+    const w = window as unknown as {
+      anvil: {
+        platform: string
+        window: { setTheme: (theme: 'light' | 'dark') => Promise<{ ok: boolean; error?: string }> }
+      }
+    }
+    return {
+      platform: w.anvil.platform,
+      setTheme: await w.anvil.window.setTheme('light'),
+    }
+  })
+
+  expect(typeof result.platform).toBe('string')
+  expect(result.setTheme).toEqual({ ok: true })
 })
 
 test('settings:get IPC returns a valid settings object', async () => {

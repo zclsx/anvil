@@ -60,6 +60,7 @@ type PromptMode = 'new' | 'send'
 declare global {
   interface Window {
     anvil?: {
+      platform: string
       settings: {
         get: () => Promise<PublicSettings>
         set: (patch: Partial<AnvilSettings>) => Promise<PublicSettings>
@@ -99,6 +100,9 @@ declare global {
         showInFolder: (filePath: string) => Promise<{ ok: boolean; error?: string }>
         readDocxBytes: (filePath: string) => Promise<{ ok: boolean; bytes?: Uint8Array; error?: string }>
       }
+      window: {
+        setTheme: (theme: 'light' | 'dark') => Promise<{ ok: boolean; error?: string }>
+      }
       onAgentEvent: (callback: (envelope: AgentEventEnvelope) => void) => () => void
     }
   }
@@ -120,6 +124,7 @@ export function App() {
       document.documentElement.classList.remove('dark')
     }
     localStorage.setItem('anvil-theme', theme)
+    void window.anvil?.window?.setTheme(theme)
   }, [theme])
 
   const toggleTheme = useCallback(() => {
@@ -863,6 +868,7 @@ export function App() {
         hasAnvil={hasAnvil}
         updateSnapshot={updateSnapshot}
         theme={theme}
+        platform={window.anvil?.platform}
         onCheckUpdate={checkForUpdates}
         onDownloadUpdate={downloadUpdate}
         onInstallUpdate={installUpdate}
