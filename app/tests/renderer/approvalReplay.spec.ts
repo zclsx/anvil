@@ -54,7 +54,7 @@ test('session replay does not resurrect stale approval requests as actionable ap
 
   await page.getByText('Interrupted approval session').click()
 
-  await expect(page.getByText(/Awaiting Approval/)).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Allow once' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Deny' })).toHaveCount(0)
+  await expect(page.getByText(/等待审批/)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '允许' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '拒绝' })).toHaveCount(0)
 })

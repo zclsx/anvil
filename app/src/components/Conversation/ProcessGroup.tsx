@@ -1,5 +1,6 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Cpu } from 'lucide-react'
 import type { Item } from '../../store'
+import { RoleIconTile, RoleLabel } from '../RoleIconTile'
 import { MainItemView } from './MainItemView'
 import { StatusDot } from '../StatusDot'
 
@@ -26,21 +27,24 @@ export function ProcessGroup({
         type="button"
         aria-expanded={isExpanded}
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-surface-container-low focus-ring"
+        className="grid w-full grid-cols-[32px_minmax(0,1fr)] items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-surface-container-low focus-ring"
       >
-        <ChevronRight
-          size={13}
-          className={`shrink-0 text-on-surface-variant transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-        />
-        <span className="font-label-caps text-[10px] uppercase tracking-wider text-on-surface-variant">
-          过程
+        <RoleIconTile icon={Cpu} tone="process" />
+        <span className="flex min-w-0 items-center gap-2">
+          <ChevronRight
+            size={13}
+            className={`shrink-0 text-on-surface-variant transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+          />
+          <RoleLabel tone="process">
+            过程
+          </RoleLabel>
+          <span className="font-mono-label text-[10px] text-on-surface-variant/75">
+            · {items.length} 步
+          </span>
+          {isRunning && (
+            <StatusDot tone="running" label="运行中" className="ml-auto font-mono-label text-[9px] uppercase text-on-surface-variant" />
+          )}
         </span>
-        <span className="font-mono-label text-[10px] text-on-surface-variant/75">
-          · {items.length} 步
-        </span>
-        {isRunning && (
-          <StatusDot tone="running" label="运行中" className="ml-auto font-mono-label text-[9px] uppercase text-on-surface-variant" />
-        )}
       </button>
 
       {isExpanded && (

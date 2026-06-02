@@ -1,0 +1,84 @@
+import type { LucideIcon } from 'lucide-react'
+
+export type RoleTone =
+  | 'user'
+  | 'process'
+  | 'final'
+  | 'approvalHigh'
+  | 'approvalMedium'
+  | 'approvalLow'
+  | 'file'
+
+const toneClasses: Record<RoleTone, { tile: string; icon: string; label: string }> = {
+  user: {
+    tile: 'border-status-success-border bg-status-success-bg/45',
+    icon: 'text-status-success-text',
+    label: 'text-status-success-text',
+  },
+  process: {
+    tile: 'border-info-border bg-info-bg/35',
+    icon: 'text-info-text-accent',
+    label: 'text-info-text-accent',
+  },
+  final: {
+    tile: 'border-info-border bg-info-bg/55',
+    icon: 'text-primary',
+    label: 'text-primary',
+  },
+  approvalHigh: {
+    tile: 'border-status-error-border bg-status-error-bg/55',
+    icon: 'text-status-error-text',
+    label: 'text-status-error-text',
+  },
+  approvalMedium: {
+    tile: 'border-status-warning-border bg-status-warning-bg/55',
+    icon: 'text-status-warning-text',
+    label: 'text-status-warning-text',
+  },
+  approvalLow: {
+    tile: 'border-outline-variant bg-surface-container-low',
+    icon: 'text-on-surface-variant',
+    label: 'text-on-surface-variant',
+  },
+  file: {
+    tile: 'border-info-border bg-info-bg/55',
+    icon: 'text-info-text-accent',
+    label: 'text-info-text-accent',
+  },
+}
+
+export function RoleIconTile({
+  icon: Icon,
+  tone,
+  className = '',
+}: {
+  icon: LucideIcon
+  tone: RoleTone
+  className?: string
+}) {
+  const classes = toneClasses[tone]
+  return (
+    <span
+      className={`flex h-8 w-8 shrink-0 items-center justify-center border ${classes.tile} ${className}`}
+      aria-hidden="true"
+    >
+      <Icon size={14} strokeWidth={1.8} className={classes.icon} />
+    </span>
+  )
+}
+
+export function RoleLabel({
+  tone,
+  children,
+  className = '',
+}: {
+  tone: RoleTone
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <span className={`font-label-caps text-[10px] uppercase tracking-wider ${toneClasses[tone].label} ${className}`}>
+      {children}
+    </span>
+  )
+}

@@ -16,7 +16,7 @@ export function ApprovalsPanel({
       <div className="flex items-center gap-2 mb-2">
         <Shield size={14} className="text-status-warning-text" />
         <span className="font-mono-label text-[10px] text-status-warning-text uppercase tracking-wider">
-          Awaiting Approval ({approvals.length})
+          等待审批 ({approvals.length})
         </span>
       </div>
       <div className="flex flex-col gap-2">

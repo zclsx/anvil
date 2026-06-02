@@ -1,4 +1,6 @@
+import { Bot, Cpu, UserRound } from 'lucide-react'
 import type { Item } from '../../store'
+import { RoleIconTile, RoleLabel, type RoleTone } from '../RoleIconTile'
 import { MarkdownText } from './MarkdownText'
 import { ToolStep } from './ToolStep'
 
@@ -8,6 +10,18 @@ function textRoleLabel(item: Item, textVariant: TextVariant): string {
   if (item.role === 'assistant') return textVariant === 'final' ? '最终回答' : '回复'
   if (item.role === 'user') return '用户输入'
   return item.role
+}
+
+function textRoleTone(item: Item, textVariant: TextVariant): RoleTone {
+  if (item.role === 'user') return 'user'
+  if (item.role === 'assistant' && textVariant === 'final') return 'final'
+  return 'process'
+}
+
+function textRoleIcon(item: Item, textVariant: TextVariant) {
+  if (item.role === 'user') return UserRound
+  if (item.role === 'assistant' && textVariant === 'final') return Bot
+  return Cpu
 }
 
 export function MainItemView({
@@ -25,20 +39,25 @@ export function MainItemView({
 
   if (item.kind === 'text') {
     const isFinalAssistant = item.role === 'assistant' && textVariant === 'final'
+    const roleTone = textRoleTone(item, textVariant)
+    const RoleIcon = textRoleIcon(item, textVariant)
     return (
       <div
         onClick={onSelect}
-        className={`cursor-pointer border bg-surface transition-colors ${selectedClass} ${
+        className={`grid cursor-pointer grid-cols-[32px_minmax(0,1fr)] gap-3 border bg-surface transition-colors ${selectedClass} ${
           isFinalAssistant ? 'border-l-2 border-l-primary px-4 py-3.5' : 'px-3 py-2.5'
         }`}
       >
-        <div className={`mb-2 font-label-caps text-[10px] uppercase tracking-wider ${
-          isFinalAssistant ? 'text-primary' : 'text-on-surface-variant'
-        }`}>
-          {textRoleLabel(item, textVariant)}
-        </div>
-        <div className={isFinalAssistant ? 'text-[13px] leading-relaxed text-on-surface' : 'text-[12px] text-on-surface'}>
-          <MarkdownText text={item.text || '...'} />
+        <RoleIconTile icon={RoleIcon} tone={roleTone} />
+        <div className="min-w-0">
+          <div className="mb-2">
+            <RoleLabel tone={roleTone}>
+              {textRoleLabel(item, textVariant)}
+            </RoleLabel>
+          </div>
+          <div className={isFinalAssistant ? 'text-[13px] leading-relaxed text-on-surface' : 'text-[12px] text-on-surface'}>
+            <MarkdownText text={item.text || '...'} />
+          </div>
         </div>
       </div>
     )

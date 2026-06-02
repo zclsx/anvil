@@ -1,5 +1,6 @@
 import type { PendingApproval } from '../../store'
-import { KeyRound, ShieldAlert, X } from 'lucide-react'
+import { KeyRound, TriangleAlert, X } from 'lucide-react'
+import { RoleIconTile, RoleLabel, type RoleTone } from '../RoleIconTile'
 
 function riskLabel(risk: PendingApproval['risk']): string {
   if (risk === 'high') return '高 (high)'
@@ -41,6 +42,12 @@ function riskClasses(risk: PendingApproval['risk']): {
   }
 }
 
+function riskRoleTone(risk: PendingApproval['risk']): RoleTone {
+  if (risk === 'high') return 'approvalHigh'
+  if (risk === 'medium') return 'approvalMedium'
+  return 'approvalLow'
+}
+
 export function ApprovalCard({
   approval,
   onDecide,
@@ -49,6 +56,7 @@ export function ApprovalCard({
   onDecide: (id: string, d: 'allow' | 'deny') => void
 }) {
   const tone = riskClasses(approval.risk)
+  const roleTone = riskRoleTone(approval.risk)
   const inputString =
     typeof approval.input === 'string'
       ? approval.input
@@ -57,14 +65,21 @@ export function ApprovalCard({
   return (
     <div className={`relative overflow-hidden border bg-surface ${tone.border}`}>
       <div className={`absolute left-0 top-0 h-full w-1 ${tone.accent}`} aria-hidden="true" />
-      <div className={`flex items-center justify-between border-b px-4 py-2 pl-5 ${tone.strip}`}>
-        <span className={`inline-flex items-center gap-1.5 font-label-caps text-[10px] font-semibold uppercase tracking-wider ${tone.text}`}>
-          <ShieldAlert size={12} />
-          审批检查点
-        </span>
-        <span className={`font-mono-label text-[9px] uppercase tracking-wider ${tone.text}`}>
-          RISK: {riskLabel(approval.risk)}
-        </span>
+      <div className={`grid grid-cols-[32px_minmax(0,1fr)] gap-3 border-b px-4 py-3 pl-5 ${tone.strip}`}>
+        <RoleIconTile icon={TriangleAlert} tone={roleTone} />
+        <div className="min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <RoleLabel tone={roleTone}>
+              审批
+            </RoleLabel>
+            <span className={`font-mono-label text-[9px] uppercase tracking-wider ${tone.text}`}>
+              RISK: {riskLabel(approval.risk)}
+            </span>
+          </div>
+          <div className={`mt-1 font-label-caps text-[10px] font-semibold uppercase tracking-wider ${tone.text}`}>
+            审批检查点
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 p-4 pl-5">

@@ -177,7 +177,7 @@ test.describe('approval panel', () => {
       })
     })
 
-    await expect(page.getByText(/Awaiting Approval/).first()).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText(/等待审批/).first()).toBeVisible({ timeout: 5_000 })
     await expect(page.getByText('Bash').first()).toBeVisible()
     await expect(page.getByText(/RISK: 高 \(high\)/).first()).toBeVisible()
 
