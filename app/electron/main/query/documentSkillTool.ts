@@ -8,6 +8,7 @@ import {
 } from './documentSkill'
 import { generateDocxFromTemplate } from './documentTemplate'
 import { generateDocx, isWriteTargetWithinWorkspace, resolveWritePath } from './documentWriter'
+import type { DocumentToolLifecycle } from './documentTool'
 
 const MAX_SKILL_TEXT_CHARS = 4000
 
@@ -22,7 +23,10 @@ const GET_SKILL_DESCRIPTION = [
   'Does not return low-level style settings — those are applied by create_docx_from_skill itself.',
 ].join(' ')
 
-export function createGetDocumentSkillTool(getWorkspacePath: () => string) {
+export function createGetDocumentSkillTool(
+  getWorkspacePath: () => string,
+  lifecycle: DocumentToolLifecycle = {},
+) {
   return tool(
     'get_document_skill',
     GET_SKILL_DESCRIPTION,
@@ -33,35 +37,40 @@ export function createGetDocumentSkillTool(getWorkspacePath: () => string) {
         .describe(`Skill name (default "${DEFAULT_SKILL_NAME}"). Use list of available skills if unsure.`),
     },
     async ({ skill = DEFAULT_SKILL_NAME }) => {
-      const workspacePath = getWorkspacePath()
-      const available = await listAvailableSkillNames(workspacePath)
+      lifecycle.onStart?.()
+      try {
+        const workspacePath = getWorkspacePath()
+        const available = await listAvailableSkillNames(workspacePath)
 
-      if (!isValidSkillName(skill)) {
-        return errorResult(`无效的 skill 名称：${skill}（仅允许字母、数字、_ 和 -）`)
+        if (!isValidSkillName(skill)) {
+          return errorResult(`无效的 skill 名称：${skill}（仅允许字母、数字、_ 和 -）`)
+        }
+
+        const loaded = await loadSkill(skill, workspacePath)
+        if (!loaded) {
+          return errorResult(
+            `未找到文档 skill：${skill}。可用 skill：${available.join(', ') || '(无)'}`,
+          )
+        }
+
+        const rules = loaded.writingRules.map((r, i) => `${i + 1}. ${r}`).join('\n')
+        let text = [
+          `文档 skill：${loaded.name}`,
+          loaded.purpose ? `用途：${loaded.purpose}` : '',
+          rules ? `写作规则：\n${rules}` : '写作规则：(无)',
+          `可用 skill：${available.join(', ')}`,
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+
+        if (text.length > MAX_SKILL_TEXT_CHARS) {
+          text = `${text.slice(0, MAX_SKILL_TEXT_CHARS)}\n…（已截断）`
+        }
+
+        return { content: [{ type: 'text' as const, text }] }
+      } finally {
+        lifecycle.onFinish?.()
       }
-
-      const loaded = await loadSkill(skill, workspacePath)
-      if (!loaded) {
-        return errorResult(
-          `未找到文档 skill：${skill}。可用 skill：${available.join(', ') || '(无)'}`,
-        )
-      }
-
-      const rules = loaded.writingRules.map((r, i) => `${i + 1}. ${r}`).join('\n')
-      let text = [
-        `文档 skill：${loaded.name}`,
-        loaded.purpose ? `用途：${loaded.purpose}` : '',
-        rules ? `写作规则：\n${rules}` : '写作规则：(无)',
-        `可用 skill：${available.join(', ')}`,
-      ]
-        .filter(Boolean)
-        .join('\n\n')
-
-      if (text.length > MAX_SKILL_TEXT_CHARS) {
-        text = `${text.slice(0, MAX_SKILL_TEXT_CHARS)}\n…（已截断）`
-      }
-
-      return { content: [{ type: 'text' as const, text }] }
     },
     {
       annotations: { title: 'Get document skill', readOnlyHint: true, openWorldHint: false },
@@ -77,7 +86,10 @@ const CREATE_FROM_SKILL_DESCRIPTION = [
   'The skill’s style or template is applied automatically. Do NOT use Bash, python, or pandoc.',
 ].join(' ')
 
-export function createWriteFromSkillTool(getWorkspacePath: () => string) {
+export function createWriteFromSkillTool(
+  getWorkspacePath: () => string,
+  lifecycle: DocumentToolLifecycle = {},
+) {
   return tool(
     'create_docx_from_skill',
     CREATE_FROM_SKILL_DESCRIPTION,
@@ -89,27 +101,28 @@ export function createWriteFromSkillTool(getWorkspacePath: () => string) {
       overwrite: z.boolean().optional().describe('Allow overwriting an existing file. Default false.'),
     },
     async ({ skill = DEFAULT_SKILL_NAME, path: rawPath, markdown, title, overwrite = false }) => {
-      const workspacePath = getWorkspacePath()
-
-      if (!isValidSkillName(skill)) {
-        return errorResult(`无效的 skill 名称：${skill}`)
-      }
-      const loaded = await loadSkill(skill, workspacePath)
-      if (!loaded) {
-        const available = await listAvailableSkillNames(workspacePath)
-        return errorResult(`未找到文档 skill：${skill}。可用 skill：${available.join(', ') || '(无)'}`)
-      }
-      if (loaded.templateError) {
-        return errorResult(loaded.templateError)
-      }
-
-      const resolved = resolveWritePath(rawPath, workspacePath)
-      if (!resolved.ok) return errorResult(resolved.error)
-      if (!(await isWriteTargetWithinWorkspace(resolved.absPath, workspacePath))) {
-        return errorResult('输出路径越过 workspace 边界（可能经由符号链接），已拒绝写入')
-      }
-
+      lifecycle.onStart?.()
       try {
+        const workspacePath = getWorkspacePath()
+
+        if (!isValidSkillName(skill)) {
+          return errorResult(`无效的 skill 名称：${skill}`)
+        }
+        const loaded = await loadSkill(skill, workspacePath)
+        if (!loaded) {
+          const available = await listAvailableSkillNames(workspacePath)
+          return errorResult(`未找到文档 skill：${skill}。可用 skill：${available.join(', ') || '(无)'}`)
+        }
+        if (loaded.templateError) {
+          return errorResult(loaded.templateError)
+        }
+
+        const resolved = resolveWritePath(rawPath, workspacePath)
+        if (!resolved.ok) return errorResult(resolved.error)
+        if (!(await isWriteTargetWithinWorkspace(resolved.absPath, workspacePath))) {
+          return errorResult('输出路径越过 workspace 边界（可能经由符号链接），已拒绝写入')
+        }
+
         const blockCount = loaded.templatePath
           ? await generateDocxFromTemplate(resolved.absPath, markdown, title, loaded.templatePath, { overwrite })
           : await generateDocx(resolved.absPath, markdown, title, {
@@ -130,6 +143,8 @@ export function createWriteFromSkillTool(getWorkspacePath: () => string) {
         }
         const message = error instanceof Error ? error.message : String(error)
         return errorResult(`生成文档失败：${message}`)
+      } finally {
+        lifecycle.onFinish?.()
       }
     },
     {

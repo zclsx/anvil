@@ -147,6 +147,8 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   const abortController = new AbortController()
   let receivedAnyMessage = false
   let alreadyFinished = false
+  let pendingApprovalCount = 0
+  let activeLocalToolCount = 0
 
   function finishFailed(source: FailureSource, normalized?: NormalizedError) {
     if (alreadyFinished) return
@@ -191,6 +193,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
 
   let idleTimer: NodeJS.Timeout | null = null
   function resetIdleTimer() {
+    if (pendingApprovalCount > 0 || activeLocalToolCount > 0) return
     if (idleTimer) clearTimeout(idleTimer)
     idleTimer = setTimeout(() => {
       if (!alreadyFinished) {
@@ -212,7 +215,6 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   }
   startHardTimer()
 
-  let pendingApprovalCount = 0
   function pauseTimersForApproval() {
     if (pendingApprovalCount === 0) {
       if (idleTimer) {
@@ -229,10 +231,30 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   }
   function resumeTimersAfterApproval() {
     pendingApprovalCount = Math.max(0, pendingApprovalCount - 1)
-    if (pendingApprovalCount === 0 && !alreadyFinished) {
+    if (pendingApprovalCount === 0 && activeLocalToolCount === 0 && !alreadyFinished) {
       resetIdleTimer()
       startHardTimer()
     }
+  }
+
+  function pauseIdleTimerForLocalTool() {
+    if (activeLocalToolCount === 0 && idleTimer) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
+    activeLocalToolCount++
+  }
+
+  function resumeIdleTimerAfterLocalTool() {
+    activeLocalToolCount = Math.max(0, activeLocalToolCount - 1)
+    if (activeLocalToolCount === 0 && pendingApprovalCount === 0 && !alreadyFinished) {
+      resetIdleTimer()
+    }
+  }
+
+  const documentToolLifecycle = {
+    onStart: pauseIdleTimerForLocalTool,
+    onFinish: resumeIdleTimerAfterLocalTool,
   }
 
   const options: any = {
@@ -309,10 +331,10 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
       name: 'anvil',
       version: app.getVersion(),
       tools: [
-        createReadDocumentTool(() => workspacePath, () => referencedPaths),
-        createWriteDocumentTool(() => workspacePath),
-        createGetDocumentSkillTool(() => workspacePath),
-        createWriteFromSkillTool(() => workspacePath),
+        createReadDocumentTool(() => workspacePath, () => referencedPaths, documentToolLifecycle),
+        createWriteDocumentTool(() => workspacePath, documentToolLifecycle),
+        createGetDocumentSkillTool(() => workspacePath, documentToolLifecycle),
+        createWriteFromSkillTool(() => workspacePath, documentToolLifecycle),
       ],
       alwaysLoad: true,
     }),

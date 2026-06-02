@@ -12,6 +12,11 @@ import { generateDocx, isWriteTargetWithinWorkspace, resolveWritePath } from './
 
 const DEFAULT_MAX_CHARS = 12000
 
+export interface DocumentToolLifecycle {
+  onStart?: () => void
+  onFinish?: () => void
+}
+
 const READ_DOCUMENT_DESCRIPTION = [
   'Read text content from a Microsoft Office Word (.docx) or Excel (.xlsx) document at a given path.',
   'Use this whenever the user references such a file — the built-in Read tool cannot decode Office formats.',
@@ -40,6 +45,7 @@ async function symlinkEscapesWorkspace(absPath: string, workspacePath: string): 
 export function createReadDocumentTool(
   getWorkspacePath: () => string,
   getReferencedPaths: () => string[],
+  lifecycle: DocumentToolLifecycle = {},
 ) {
   return tool(
     'read_document',
@@ -63,43 +69,48 @@ export function createReadDocumentTool(
         .describe(`Maximum characters to return. Default ${DEFAULT_MAX_CHARS}.`),
     },
     async ({ path: rawPath, offset = 0, maxChars = DEFAULT_MAX_CHARS }) => {
-      const workspacePath = getWorkspacePath()
-      const resolved = resolveDocumentPath(rawPath, workspacePath, getReferencedPaths())
-      if (!resolved.ok) return errorResult(resolved.error)
-
-      if (!isSupportedDocument(resolved.absPath)) {
-        return errorResult('仅支持读取 .docx / .xlsx 文档')
-      }
-
+      lifecycle.onStart?.()
       try {
-        await fs.access(resolved.absPath)
-      } catch {
-        return errorResult(`文件不存在：${rawPath}`)
+        const workspacePath = getWorkspacePath()
+        const resolved = resolveDocumentPath(rawPath, workspacePath, getReferencedPaths())
+        if (!resolved.ok) return errorResult(resolved.error)
+
+        if (!isSupportedDocument(resolved.absPath)) {
+          return errorResult('仅支持读取 .docx / .xlsx 文档')
+        }
+
+        try {
+          await fs.access(resolved.absPath)
+        } catch {
+          return errorResult(`文件不存在：${rawPath}`)
+        }
+
+        // For workspace-scoped reads, re-check the *real* path: a symlink inside
+        // the workspace could otherwise point a read-only, auto-approved tool at
+        // a file outside it. Referenced paths are user-authorized, so skip.
+        if (resolved.source === 'workspace' && (await symlinkEscapesWorkspace(resolved.absPath, workspacePath))) {
+          return errorResult('该路径通过符号链接指向 workspace 外，已拒绝读取')
+        }
+
+        let fullText: string
+        try {
+          fullText = await extractDocumentText(resolved.absPath)
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error)
+          return errorResult(`解析文档失败：${message}`)
+        }
+
+        const page = paginateText(fullText, offset, maxChars)
+        const range = `${page.offset}–${page.offset + page.returnedChars}`
+        const more = page.hasMore
+          ? `（还有更多内容，下次用 offset=${page.nextOffset} 继续读取）`
+          : '（已读取到文档结尾）'
+        const header = `[read_document] ${rawPath}\n总字符数 ${page.totalChars}，本次返回 ${range}${more}\n\n`
+
+        return { content: [{ type: 'text' as const, text: header + page.text }] }
+      } finally {
+        lifecycle.onFinish?.()
       }
-
-      // For workspace-scoped reads, re-check the *real* path: a symlink inside
-      // the workspace could otherwise point a read-only, auto-approved tool at
-      // a file outside it. Referenced paths are user-authorized, so skip.
-      if (resolved.source === 'workspace' && (await symlinkEscapesWorkspace(resolved.absPath, workspacePath))) {
-        return errorResult('该路径通过符号链接指向 workspace 外，已拒绝读取')
-      }
-
-      let fullText: string
-      try {
-        fullText = await extractDocumentText(resolved.absPath)
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error)
-        return errorResult(`解析文档失败：${message}`)
-      }
-
-      const page = paginateText(fullText, offset, maxChars)
-      const range = `${page.offset}–${page.offset + page.returnedChars}`
-      const more = page.hasMore
-        ? `（还有更多内容，下次用 offset=${page.nextOffset} 继续读取）`
-        : '（已读取到文档结尾）'
-      const header = `[read_document] ${rawPath}\n总字符数 ${page.totalChars}，本次返回 ${range}${more}\n\n`
-
-      return { content: [{ type: 'text' as const, text: header + page.text }] }
     },
     {
       annotations: {
@@ -119,7 +130,10 @@ const CREATE_DOCX_DESCRIPTION = [
   'Tables and images are not supported and will be flattened to text.',
 ].join(' ')
 
-export function createWriteDocumentTool(getWorkspacePath: () => string) {
+export function createWriteDocumentTool(
+  getWorkspacePath: () => string,
+  lifecycle: DocumentToolLifecycle = {},
+) {
   return tool(
     'create_docx',
     CREATE_DOCX_DESCRIPTION,
@@ -137,15 +151,16 @@ export function createWriteDocumentTool(getWorkspacePath: () => string) {
         .describe('Allow overwriting an existing file. Default false; set true to replace.'),
     },
     async ({ path: rawPath, markdown, title, overwrite = false }) => {
-      const workspacePath = getWorkspacePath()
-      const resolved = resolveWritePath(rawPath, workspacePath)
-      if (!resolved.ok) return errorResult(resolved.error)
-
-      if (!(await isWriteTargetWithinWorkspace(resolved.absPath, workspacePath))) {
-        return errorResult('输出路径越过 workspace 边界（可能经由符号链接），已拒绝写入')
-      }
-
+      lifecycle.onStart?.()
       try {
+        const workspacePath = getWorkspacePath()
+        const resolved = resolveWritePath(rawPath, workspacePath)
+        if (!resolved.ok) return errorResult(resolved.error)
+
+        if (!(await isWriteTargetWithinWorkspace(resolved.absPath, workspacePath))) {
+          return errorResult('输出路径越过 workspace 边界（可能经由符号链接），已拒绝写入')
+        }
+
         const blockCount = await generateDocx(resolved.absPath, markdown, title, { overwrite })
         return {
           content: [
@@ -161,6 +176,8 @@ export function createWriteDocumentTool(getWorkspacePath: () => string) {
         }
         const message = error instanceof Error ? error.message : String(error)
         return errorResult(`生成文档失败：${message}`)
+      } finally {
+        lifecycle.onFinish?.()
       }
     },
     {
