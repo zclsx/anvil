@@ -19,6 +19,7 @@ import { resolveQueryWorkspace } from '../query/workspace'
 import { getClaudeExecutablePath } from '../query/claudeExecutable'
 import { toolRisk } from '../query/toolRisk'
 import { loadLocalMcpServers } from '../query/localMcpServers'
+import { updateToolIdleState } from '../query/toolIdleTimer'
 import type { MainRuntimeContext } from '../runtimeContext'
 
 const READ_DOCUMENT_TOOL_NAME = 'mcp__anvil__read_document'
@@ -148,7 +149,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   let receivedAnyMessage = false
   let alreadyFinished = false
   let pendingApprovalCount = 0
-  let activeLocalToolCount = 0
+  let activeToolCount = 0
 
   function finishFailed(source: FailureSource, normalized?: NormalizedError) {
     if (alreadyFinished) return
@@ -193,7 +194,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
 
   let idleTimer: NodeJS.Timeout | null = null
   function resetIdleTimer() {
-    if (pendingApprovalCount > 0 || activeLocalToolCount > 0) return
+    if (pendingApprovalCount > 0 || activeToolCount > 0) return
     if (idleTimer) clearTimeout(idleTimer)
     idleTimer = setTimeout(() => {
       if (!alreadyFinished) {
@@ -231,30 +232,28 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   }
   function resumeTimersAfterApproval() {
     pendingApprovalCount = Math.max(0, pendingApprovalCount - 1)
-    if (pendingApprovalCount === 0 && activeLocalToolCount === 0 && !alreadyFinished) {
-      resetIdleTimer()
+    if (pendingApprovalCount === 0 && !alreadyFinished) {
+      if (activeToolCount === 0) resetIdleTimer()
       startHardTimer()
     }
   }
 
-  function pauseIdleTimerForLocalTool() {
-    if (activeLocalToolCount === 0 && idleTimer) {
+  function pauseIdleForTool() {
+    if (idleTimer) {
       clearTimeout(idleTimer)
       idleTimer = null
     }
-    activeLocalToolCount++
   }
 
-  function resumeIdleTimerAfterLocalTool() {
-    activeLocalToolCount = Math.max(0, activeLocalToolCount - 1)
-    if (activeLocalToolCount === 0 && pendingApprovalCount === 0 && !alreadyFinished) {
-      resetIdleTimer()
-    }
-  }
-
-  const documentToolLifecycle = {
-    onStart: pauseIdleTimerForLocalTool,
-    onFinish: resumeIdleTimerAfterLocalTool,
+  function applyToolIdleEvent(event: AgentEvent) {
+    const transition = updateToolIdleState(
+      activeToolCount,
+      event,
+      pendingApprovalCount === 0 && !alreadyFinished,
+    )
+    activeToolCount = transition.activeToolCount
+    if (transition.clearIdleTimer) pauseIdleForTool()
+    if (transition.resetIdleTimer) resetIdleTimer()
   }
 
   const options: any = {
@@ -331,10 +330,10 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
       name: 'anvil',
       version: app.getVersion(),
       tools: [
-        createReadDocumentTool(() => workspacePath, () => referencedPaths, documentToolLifecycle),
-        createWriteDocumentTool(() => workspacePath, documentToolLifecycle),
-        createGetDocumentSkillTool(() => workspacePath, documentToolLifecycle),
-        createWriteFromSkillTool(() => workspacePath, documentToolLifecycle),
+        createReadDocumentTool(() => workspacePath, () => referencedPaths),
+        createWriteDocumentTool(() => workspacePath),
+        createGetDocumentSkillTool(() => workspacePath),
+        createWriteFromSkillTool(() => workspacePath),
       ],
       alwaysLoad: true,
     }),
@@ -362,6 +361,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
       const envelopes = adapter.ingest(msg)
       for (const env of envelopes) {
         sendEnvelope(env)
+        applyToolIdleEvent(env.event)
         if (env.event.type === 'turn.started' && !sentUserPromptEcho) {
           sentUserPromptEcho = true
           for (const userEnv of createUserPromptEchoEvents(env.event)) {
