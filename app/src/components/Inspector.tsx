@@ -70,7 +70,7 @@ export function Inspector({ item }: { item: Item }) {
             </span>
           </div>
           <pre
-            className="max-h-[48vh] overflow-auto border border-outline-variant bg-surface-container-low p-3 font-mono-code text-[10px] leading-relaxed text-on-surface-variant select-text"
+            className="code-panel max-h-[48vh] overflow-auto p-3 font-mono-code text-[10px] leading-relaxed select-text"
             dangerouslySetInnerHTML={{ __html: highlightedHtml }}
           />
         </section>

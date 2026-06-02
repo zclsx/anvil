@@ -63,7 +63,7 @@ export function ToolStep({
             <span className="truncate font-mono-code text-[11px]">{summary.label}</span>
           </span>
           <span className="min-w-0 inline-flex items-center gap-2">
-            <StatusDot tone={state.tone} label={state.label} className="font-mono-label text-[9px] uppercase text-on-surface-variant" />
+            <StatusDot tone={state.tone} label={state.label} />
             {summary.risk && (
               <span
                 className={`text-[9px] uppercase ${
@@ -104,19 +104,19 @@ export function ToolStep({
       {expanded && (
         <div className="flex flex-col gap-2 border-t border-outline-variant bg-surface-container-low px-3 py-2 font-mono-code text-[11px]">
           <div>
-            <div className="mb-1 font-label-caps text-[9px] uppercase tracking-wider text-on-surface-variant">input</div>
-            <pre className="max-h-60 overflow-auto border border-outline-variant bg-surface-container-lowest p-2 whitespace-pre-wrap break-all text-on-surface-variant">
+            <div className="mb-1 font-label-caps text-[9px] uppercase tracking-wider code-label">input</div>
+            <pre className="code-panel max-h-60 overflow-auto p-2 whitespace-pre-wrap break-all">
               {inputText}
             </pre>
           </div>
           {(outputText || running) && (
             <div>
-              <div className="mb-1 font-label-caps text-[9px] uppercase tracking-wider text-on-surface-variant">
+              <div className="mb-1 font-label-caps text-[9px] uppercase tracking-wider code-label">
                 output{summary.isError ? ' (error)' : ''}
               </div>
               <pre
-                className={`max-h-80 overflow-auto border border-outline-variant bg-surface-container-lowest p-2 whitespace-pre-wrap break-all ${
-                  summary.isError ? 'text-status-danger' : 'text-on-surface'
+                className={`code-panel max-h-80 overflow-auto p-2 whitespace-pre-wrap break-all ${
+                  summary.isError ? 'code-panel-error' : ''
                 }`}
               >
                 {running ? '…' : outputText.slice(0, MAX_OUTPUT_CHARS)}

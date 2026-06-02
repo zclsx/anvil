@@ -42,7 +42,7 @@ export function ProcessGroup({
             · {items.length} 步
           </span>
           {isRunning && (
-            <StatusDot tone="running" label="运行中" className="ml-auto font-mono-label text-[9px] uppercase text-on-surface-variant" />
+            <StatusDot tone="running" label="运行中" className="ml-auto" />
           )}
         </span>
       </button>

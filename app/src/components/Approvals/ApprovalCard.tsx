@@ -96,7 +96,7 @@ export function ApprovalCard({
           <div className="mb-1.5 font-label-caps text-[10px] uppercase tracking-wider text-on-surface-variant">
             参数
           </div>
-          <pre className="max-h-48 overflow-auto border border-outline-variant bg-code-surface p-3 font-mono-code text-[11px] leading-relaxed text-on-surface select-text">
+          <pre className="code-panel max-h-48 overflow-auto p-3 font-mono-code text-[11px] leading-relaxed select-text">
             <code>{inputString}</code>
           </pre>
         </div>

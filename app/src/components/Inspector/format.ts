@@ -17,9 +17,9 @@ export function syntaxHighlightJson(json: string): string {
           cls = 'token string'
         }
       } else if (match === 'true' || match === 'false') {
-        cls = 'token number font-semibold'
+        cls = 'token boolean font-semibold'
       } else if (match === 'null') {
-        cls = 'token punctuation opacity-60'
+        cls = 'token null'
       }
 
       if (cls === 'token property') {

@@ -61,13 +61,7 @@ export function Header({
             <span className="truncate font-mono-code">{settings.model}</span>
           </span>
         )}
-        <span className={`inline-flex items-center gap-1.5 border px-2 py-1 font-mono-label text-[9px] uppercase tracking-wider ${
-          hasAnvil
-            ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-            : 'border-status-error-border bg-status-error-bg text-status-error-text'
-        }`}>
-          <StatusDot tone={hasAnvil ? 'success' : 'danger'} label={hasAnvil ? '已连接' : '未连接'} />
-        </span>
+        <StatusDot tone={hasAnvil ? 'success' : 'danger'} label={hasAnvil ? '已连接' : '未连接'} />
         {updateSnapshot?.enabled && (
           <UpdateActionButton
             snapshot={updateSnapshot}

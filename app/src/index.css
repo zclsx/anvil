@@ -29,10 +29,17 @@
   --color-process-purple: #a855f7;
   --color-warning-amber: #f59e0b;
 
-  --color-token-property: #1D4ED8;
-  --color-token-string: #0F4C81;
-  --color-token-number: #1D4ED8;
-  --color-token-punctuation: #374151;
+  --color-token-property: #475569;
+  --color-token-property-bg: rgba(71, 85, 105, 0.08);
+  --color-token-string: #7C4A35;
+  --color-token-string-bg: rgba(124, 74, 53, 0.1);
+  --color-token-number: #5B5F7A;
+  --color-token-number-bg: rgba(91, 95, 122, 0.09);
+  --color-token-boolean: #6F5D86;
+  --color-token-boolean-bg: rgba(111, 93, 134, 0.1);
+  --color-token-null: #6B7280;
+  --color-token-null-bg: rgba(107, 114, 128, 0.08);
+  --color-token-punctuation: #64748B;
 
   /* Adaptive Status & Alert Tokens */
   --color-status-success-bg: #DCFCE7;
@@ -90,13 +97,26 @@
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
   --color-code-surface: #F2F4F7;
+  --color-code-border: #D7DDE8;
+  --color-code-text: #263244;
+  --color-code-label: #647083;
+  --color-code-error-surface: rgba(239, 68, 68, 0.08);
+  --color-status-idle-bg: rgba(125, 133, 146, 0.1);
+  --color-status-idle-text: #4B5563;
+  --color-status-idle-border: rgba(125, 133, 146, 0.24);
+  --color-status-running-bg: rgba(29, 78, 216, 0.1);
+  --color-status-running-text: #1D4ED8;
+  --color-status-running-border: rgba(29, 78, 216, 0.24);
   --color-status-running: #1D4ED8;
   --color-status-success: var(--color-status-success-text);
   --color-status-success-muted: var(--color-status-success-bg);
+  --color-status-success-chip-bg: rgba(16, 185, 129, 0.1);
   --color-status-warning: var(--color-status-warning-text);
   --color-status-warning-muted: var(--color-status-warning-bg);
+  --color-status-warning-chip-bg: rgba(245, 158, 11, 0.1);
   --color-status-danger: var(--color-status-error-text);
   --color-status-danger-muted: var(--color-status-error-bg);
+  --color-status-danger-chip-bg: rgba(239, 68, 68, 0.1);
   --color-status-info: var(--color-info-text);
   --color-status-info-muted: var(--color-info-bg);
 
@@ -153,10 +173,17 @@
   --color-process-purple: #a855f7;
   --color-warning-amber: #f59e0b;
 
-  --color-token-property: #AFC4FF;
-  --color-token-string: #FFD0BF;
-  --color-token-number: #C7D4FF;
-  --color-token-punctuation: #7F8797;
+  --color-token-property: #AAB6D9;
+  --color-token-property-bg: rgba(170, 182, 217, 0.1);
+  --color-token-string: #D6B2A2;
+  --color-token-string-bg: rgba(214, 178, 162, 0.1);
+  --color-token-number: #B9B6D9;
+  --color-token-number-bg: rgba(185, 182, 217, 0.1);
+  --color-token-boolean: #C7B8D9;
+  --color-token-boolean-bg: rgba(199, 184, 217, 0.1);
+  --color-token-null: #8C93A3;
+  --color-token-null-bg: rgba(140, 147, 163, 0.08);
+  --color-token-punctuation: #737B8B;
 
   /* Adaptive Status & Alert Tokens */
   --color-status-success-bg: rgba(16, 185, 129, 0.11);
@@ -214,13 +241,26 @@
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
   --color-code-surface: #0F1117;
+  --color-code-border: #242632;
+  --color-code-text: #D8DAE8;
+  --color-code-label: #8D93A4;
+  --color-code-error-surface: rgba(239, 68, 68, 0.1);
+  --color-status-idle-bg: rgba(138, 145, 163, 0.1);
+  --color-status-idle-text: #A6ADBA;
+  --color-status-idle-border: rgba(138, 145, 163, 0.24);
+  --color-status-running-bg: rgba(179, 197, 255, 0.1);
+  --color-status-running-text: #B3C5FF;
+  --color-status-running-border: rgba(179, 197, 255, 0.24);
   --color-status-running: #B3C5FF;
   --color-status-success: var(--color-status-success-text);
   --color-status-success-muted: var(--color-status-success-bg);
+  --color-status-success-chip-bg: rgba(80, 214, 154, 0.1);
   --color-status-warning: var(--color-status-warning-text);
   --color-status-warning-muted: var(--color-status-warning-bg);
+  --color-status-warning-chip-bg: rgba(247, 185, 85, 0.1);
   --color-status-danger: var(--color-status-error-text);
   --color-status-danger-muted: var(--color-status-error-bg);
+  --color-status-danger-chip-bg: rgba(255, 138, 138, 0.1);
   --color-status-info: var(--color-info-text);
   --color-status-info-muted: var(--color-info-bg);
 }
@@ -299,13 +339,26 @@
   --color-link: var(--color-link);
   --color-document-preview-bg: var(--color-document-preview-bg);
   --color-code-surface: var(--color-code-surface);
+  --color-code-border: var(--color-code-border);
+  --color-code-text: var(--color-code-text);
+  --color-code-label: var(--color-code-label);
+  --color-code-error-surface: var(--color-code-error-surface);
+  --color-status-idle-bg: var(--color-status-idle-bg);
+  --color-status-idle-text: var(--color-status-idle-text);
+  --color-status-idle-border: var(--color-status-idle-border);
+  --color-status-running-bg: var(--color-status-running-bg);
+  --color-status-running-text: var(--color-status-running-text);
+  --color-status-running-border: var(--color-status-running-border);
   --color-status-running: var(--color-status-running);
   --color-status-success: var(--color-status-success);
   --color-status-success-muted: var(--color-status-success-muted);
+  --color-status-success-chip-bg: var(--color-status-success-chip-bg);
   --color-status-warning: var(--color-status-warning);
   --color-status-warning-muted: var(--color-status-warning-muted);
+  --color-status-warning-chip-bg: var(--color-status-warning-chip-bg);
   --color-status-danger: var(--color-status-danger);
   --color-status-danger-muted: var(--color-status-danger-muted);
+  --color-status-danger-chip-bg: var(--color-status-danger-chip-bg);
   --color-status-info: var(--color-status-info);
   --color-status-info-muted: var(--color-status-info-muted);
 
@@ -467,8 +520,31 @@ body {
   -webkit-app-region: no-drag;
 }
 
+.code-panel {
+  background-color: var(--color-code-surface);
+  border: 1px solid var(--color-code-border);
+  border-radius: var(--radius-control);
+  color: var(--color-code-text);
+}
+
+.code-panel-error {
+  background-color: var(--color-code-error-surface);
+  border-color: var(--color-status-error-border);
+  color: var(--color-status-error-text);
+}
+
+.code-label {
+  color: var(--color-code-label);
+}
+
 /* Code highlight tweaks */
-.token.property { color: var(--color-token-property); }
-.token.string { color: var(--color-token-string); }
-.token.number { color: var(--color-token-number); }
-.token.punctuation { color: var(--color-token-punctuation); }
+.token {
+  border-radius: var(--radius-control);
+  padding: 0 2px;
+}
+.token.property { background: var(--color-token-property-bg); color: var(--color-token-property); }
+.token.string { background: var(--color-token-string-bg); color: var(--color-token-string); }
+.token.number { background: var(--color-token-number-bg); color: var(--color-token-number); }
+.token.boolean { background: var(--color-token-boolean-bg); color: var(--color-token-boolean); }
+.token.null { background: var(--color-token-null-bg); color: var(--color-token-null); }
+.token.punctuation { color: var(--color-token-punctuation); padding: 0; }
