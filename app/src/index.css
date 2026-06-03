@@ -101,6 +101,16 @@
   --color-code-text: #263244;
   --color-code-label: #647083;
   --color-code-error-surface: rgba(239, 68, 68, 0.08);
+  --color-glass-surface: rgba(255, 255, 255, 0.78);
+  --color-glass-surface-strong: rgba(255, 255, 255, 0.9);
+  --color-glass-surface-muted: rgba(240, 242, 245, 0.72);
+  --color-glass-border: rgba(125, 133, 146, 0.22);
+  --color-glass-highlight: rgba(255, 255, 255, 0.72);
+  --color-trace-rail: rgba(29, 78, 216, 0.18);
+  --color-trace-rail-glow: rgba(29, 78, 216, 0.08);
+  --color-artifact-surface: rgba(234, 242, 255, 0.8);
+  --color-artifact-border: rgba(29, 78, 216, 0.24);
+  --color-artifact-highlight: rgba(255, 255, 255, 0.88);
   --color-status-idle-bg: rgba(125, 133, 146, 0.1);
   --color-status-idle-text: #4B5563;
   --color-status-idle-border: rgba(125, 133, 146, 0.24);
@@ -245,6 +255,16 @@
   --color-code-text: #D8DAE8;
   --color-code-label: #8D93A4;
   --color-code-error-surface: rgba(239, 68, 68, 0.1);
+  --color-glass-surface: rgba(17, 17, 21, 0.76);
+  --color-glass-surface-strong: rgba(20, 20, 25, 0.9);
+  --color-glass-surface-muted: rgba(24, 24, 29, 0.72);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-glass-highlight: rgba(255, 255, 255, 0.08);
+  --color-trace-rail: rgba(179, 197, 255, 0.22);
+  --color-trace-rail-glow: rgba(0, 102, 255, 0.2);
+  --color-artifact-surface: rgba(23, 32, 51, 0.78);
+  --color-artifact-border: rgba(179, 197, 255, 0.28);
+  --color-artifact-highlight: rgba(255, 255, 255, 0.1);
   --color-status-idle-bg: rgba(138, 145, 163, 0.1);
   --color-status-idle-text: #A6ADBA;
   --color-status-idle-border: rgba(138, 145, 163, 0.24);
@@ -343,6 +363,16 @@
   --color-code-text: var(--color-code-text);
   --color-code-label: var(--color-code-label);
   --color-code-error-surface: var(--color-code-error-surface);
+  --color-glass-surface: var(--color-glass-surface);
+  --color-glass-surface-strong: var(--color-glass-surface-strong);
+  --color-glass-surface-muted: var(--color-glass-surface-muted);
+  --color-glass-border: var(--color-glass-border);
+  --color-glass-highlight: var(--color-glass-highlight);
+  --color-trace-rail: var(--color-trace-rail);
+  --color-trace-rail-glow: var(--color-trace-rail-glow);
+  --color-artifact-surface: var(--color-artifact-surface);
+  --color-artifact-border: var(--color-artifact-border);
+  --color-artifact-highlight: var(--color-artifact-highlight);
   --color-status-idle-bg: var(--color-status-idle-bg);
   --color-status-idle-text: var(--color-status-idle-text);
   --color-status-idle-border: var(--color-status-idle-border);
@@ -489,6 +519,65 @@ body {
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+@layer components {
+  .app-glass-backdrop {
+    background:
+      radial-gradient(circle at 22% 0%, var(--color-trace-rail-glow), transparent 32%),
+      radial-gradient(circle at 88% 8%, var(--color-glass-highlight), transparent 28%),
+      var(--color-background);
+  }
+
+  .glass-panel {
+    background: var(--color-glass-surface);
+    border-color: var(--color-glass-border);
+    backdrop-filter: blur(20px);
+  }
+
+  .glass-card {
+    background: var(--color-glass-surface-muted);
+    border-color: var(--color-glass-border);
+    backdrop-filter: blur(16px);
+  }
+
+  .glass-card-strong {
+    background: var(--color-glass-surface-strong);
+    border-color: var(--color-glass-border);
+    backdrop-filter: blur(18px);
+  }
+
+  .trace-turn {
+    position: relative;
+  }
+
+  .trace-turn::before {
+    background: linear-gradient(to bottom, transparent, var(--color-trace-rail) 18px, var(--color-trace-rail) calc(100% - 18px), transparent);
+    bottom: -12px;
+    content: "";
+    left: 15px;
+    pointer-events: none;
+    position: absolute;
+    top: 30px;
+    width: 1px;
+  }
+
+  .trace-turn::after {
+    background: var(--color-trace-rail-glow);
+    bottom: -12px;
+    content: "";
+    filter: blur(8px);
+    left: 12px;
+    pointer-events: none;
+    position: absolute;
+    top: 30px;
+    width: 7px;
+  }
+
+  .trace-turn:last-of-type::before,
+  .trace-turn:last-of-type::after {
+    bottom: 18px;
+  }
 }
 
 /* Custom Scrollbars for Mac Feel */

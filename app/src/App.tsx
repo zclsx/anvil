@@ -844,7 +844,7 @@ export function App() {
   })
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col font-body-sm bg-background text-on-surface select-none relative">
+    <div className="app-glass-backdrop h-screen overflow-hidden flex flex-col font-body-sm text-on-surface select-none relative">
 
       <Header
         settings={settings}
@@ -898,7 +898,7 @@ export function App() {
         />
 
         {/* Main — Conversation */}
-        <main className="flex-1 flex flex-col bg-background overflow-hidden no-drag">
+        <main className="flex-1 flex flex-col overflow-hidden no-drag">
 
           <RightPanelContext.Provider value={rightPanelApi}>
             <Conversation
@@ -963,7 +963,7 @@ export function App() {
 
         <div
           onMouseDown={startRightPanelResize}
-          className="w-1 shrink-0 cursor-col-resize bg-outline-variant/40 hover:bg-primary/60 transition-colors no-drag"
+          className="w-1 shrink-0 cursor-col-resize bg-glass-border hover:bg-primary/60 transition-colors no-drag"
           aria-hidden="true"
         />
         <RightPanel

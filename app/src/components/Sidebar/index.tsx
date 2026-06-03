@@ -16,8 +16,8 @@ export function Sidebar({
   onDeleteSession: (s: SessionMeta, e: React.MouseEvent) => void
 }) {
   return (
-    <nav className="no-drag z-0 flex w-[260px] shrink-0 flex-col border-r border-outline-variant bg-surface-container text-primary">
-      <div className="flex shrink-0 flex-col gap-2 border-b border-outline-variant px-3 py-3">
+    <nav className="glass-panel no-drag z-0 flex w-[260px] shrink-0 flex-col border-r text-primary">
+      <div className="flex shrink-0 flex-col gap-2 border-b border-glass-border px-3 py-3">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 font-label-caps text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
             <History size={11} />
@@ -26,7 +26,7 @@ export function Sidebar({
           </span>
           <button
             onClick={onRefresh}
-            className="cursor-pointer border border-transparent p-1 text-on-surface-variant transition-colors hover:border-outline-variant hover:bg-surface-container-high hover:text-primary"
+            className="cursor-pointer border border-transparent p-1 text-on-surface-variant transition-colors hover:border-glass-border hover:bg-glass-surface-muted hover:text-primary"
             title="刷新"
           >
             <RotateCw size={11} />

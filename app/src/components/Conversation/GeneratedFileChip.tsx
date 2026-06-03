@@ -51,15 +51,15 @@ export function GeneratedFileChip({
   }
 
   const actionClass =
-    'rounded-[var(--radius-control)] border border-info-border bg-surface px-2 py-1 text-[10px] font-mono-label text-info-text-accent transition-colors hover:border-primary hover:text-primary focus-ring cursor-pointer'
+    'rounded-[var(--radius-control)] border border-artifact-border bg-artifact-highlight px-2 py-1 text-[10px] font-mono-label text-info-text-accent transition-colors hover:border-primary hover:text-primary focus-ring cursor-pointer'
 
   return (
     <div
       onClick={stop}
-      className={`${compact ? '' : 'mt-2'} inline-flex max-w-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-info-border bg-info-bg text-info-text transition-colors hover:bg-info-hover/60`}
+      className={`${compact ? '' : 'mt-2'} inline-flex max-w-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-artifact-border bg-glass-surface-strong text-info-text transition-colors hover:bg-info-hover/60`}
     >
       <div className="flex min-w-0 items-center gap-3 px-3 py-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-info-border bg-surface text-info-text-accent">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-artifact-border bg-artifact-surface text-info-text-accent">
           <FileText size={16} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2">
@@ -115,7 +115,7 @@ export function GeneratedFileChip({
         </div>
       </div>
       {expanded && (
-        <div className="flex max-w-full flex-col gap-1.5 border-t border-info-border bg-accent-muted/40 px-3 py-3 font-mono-code text-[11px] text-on-surface-variant break-all">
+        <div className="flex max-w-full flex-col gap-1.5 border-t border-artifact-border bg-artifact-surface/70 px-3 py-3 font-mono-code text-[11px] text-on-surface-variant break-all">
           {relPath && (
             <div>
               <span className="text-info-text-secondary">Workspace 路径：</span>

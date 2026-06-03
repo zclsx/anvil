@@ -19,7 +19,7 @@ export function Inspector({ item }: { item: Item }) {
 
   return (
     <>
-      <div className="flex shrink-0 items-center border-b border-outline-variant bg-surface-container-low px-4 py-2">
+      <div className="flex shrink-0 items-center border-b border-glass-border bg-glass-surface-muted px-4 py-2">
         <div className="min-w-0 flex-1">
           <div className="font-label-caps text-[10px] font-semibold uppercase tracking-wider text-primary">详情</div>
           <div className="mt-0.5 truncate font-mono-code text-[10px] text-on-surface-variant">
@@ -28,14 +28,14 @@ export function Inspector({ item }: { item: Item }) {
         </div>
         <button
           onClick={() => void navigator.clipboard.writeText(jsonString)}
-          className="inline-flex cursor-pointer items-center gap-1.5 border border-outline-variant bg-surface px-2.5 py-1 font-mono-label text-[10px] text-on-surface transition-colors hover:border-primary hover:text-primary focus-ring"
+          className="inline-flex cursor-pointer items-center gap-1.5 border border-glass-border bg-glass-surface-strong px-2.5 py-1 font-mono-label text-[10px] text-on-surface transition-colors hover:border-primary hover:text-primary focus-ring"
         >
           <Clipboard size={11} />
           复制 JSON
         </button>
       </div>
 
-      <div className="flex-1 overflow-auto bg-surface-container-lowest px-4 pb-4 font-mono-code text-[11px] text-on-surface">
+      <div className="flex-1 overflow-auto bg-transparent px-4 pb-4 font-mono-code text-[11px] text-on-surface">
         <Section title="项目">
           <Row label="类型"><MonoValue value={itemTitle} /></Row>
           <Row label="角色"><MonoValue value={roleLabel(item.role)} /></Row>

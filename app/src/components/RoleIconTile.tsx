@@ -59,7 +59,7 @@ export function RoleIconTile({
   const classes = toneClasses[tone]
   return (
     <span
-      className={`flex h-8 w-8 shrink-0 items-center justify-center border ${classes.tile} ${className}`}
+      className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border backdrop-blur-sm ${classes.tile} ${className}`}
       aria-hidden="true"
     >
       <Icon size={14} strokeWidth={1.8} className={classes.icon} />

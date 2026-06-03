@@ -86,7 +86,7 @@ export function PromptInput({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`p-4 border-t bg-surface-container-lowest flex flex-col gap-2 shrink-0 transition-colors ${
+      className={`glass-panel p-4 border-t flex flex-col gap-2 shrink-0 transition-colors ${
         isFileDragActive ? 'border-drag-border bg-drag-bg' : 'border-outline-variant'
       }`}
     >
@@ -123,7 +123,7 @@ export function PromptInput({
         value={prompt}
         onChange={(e) => onPromptChange(e.target.value)}
         onKeyDown={onPromptKeyDown}
-        className="w-full bg-background border border-outline-variant text-on-surface text-[12px] p-2 focus:border-primary focus:outline-none resize-none font-mono-code leading-normal"
+        className="w-full bg-glass-surface-strong border border-glass-border text-on-surface text-[12px] p-2 focus:border-action focus:outline-none resize-none font-mono-code leading-normal"
         rows={3}
         placeholder={
           running

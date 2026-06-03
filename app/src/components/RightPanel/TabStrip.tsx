@@ -17,13 +17,13 @@ export function TabStrip({
   onClose: (id: string) => void
 }) {
   return (
-    <div className="flex shrink-0 overflow-x-auto border-b border-outline-variant bg-surface-container-low">
+    <div className="flex shrink-0 overflow-x-auto border-b border-glass-border bg-glass-surface-muted">
       {tabs.map((tab) => (
         <div
           key={tab.id}
-          className={`group relative flex max-w-[180px] shrink-0 items-center gap-1.5 border-r border-outline-variant px-2 py-1.5 transition-colors ${
+          className={`group relative flex max-w-[180px] shrink-0 items-center gap-1.5 border-r border-glass-border px-2 py-1.5 transition-colors ${
             tab.id === activeTabId
-              ? 'bg-surface-container text-primary'
+              ? 'bg-glass-surface-strong text-primary'
               : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
           }`}
         >

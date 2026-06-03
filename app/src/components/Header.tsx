@@ -32,7 +32,7 @@ export function Header({
   onToggleTheme: () => void
 }) {
   return (
-    <header className="flex h-12 w-full shrink-0 items-center border-b border-outline-variant bg-surface-container-lowest pl-[80px] pr-3 text-primary app-header relative z-10">
+    <header className="glass-panel flex h-12 w-full shrink-0 items-center border-b pl-[80px] pr-3 text-primary app-header relative z-10">
       <div className="no-drag mr-5 flex items-center gap-2.5">
         <LogoIcon className="h-[22px] w-[22px] shrink-0 text-primary" />
         <div className="flex items-baseline gap-2">
@@ -45,7 +45,7 @@ export function Header({
       <div className="flex-grow" />
       <div className="no-drag flex items-center gap-1.5">
         {(settings || displayWorkspace) && (
-          <span className="inline-flex max-w-[280px] items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 text-[10px] text-on-surface-variant">
+          <span className="inline-flex max-w-[280px] items-center gap-1.5 border border-glass-border bg-glass-surface-muted px-2 py-1 text-[10px] text-on-surface-variant">
             <Folder size={11} className="shrink-0 text-primary" />
             <span className="font-mono-label uppercase tracking-wider">
               {isDraftWorkspace ? '草稿' : '工作区'}
@@ -56,7 +56,7 @@ export function Header({
           </span>
         )}
         {settings && (
-          <span className="inline-flex max-w-[180px] items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 text-[10px] text-on-surface-variant">
+          <span className="inline-flex max-w-[180px] items-center gap-1.5 border border-glass-border bg-glass-surface-muted px-2 py-1 text-[10px] text-on-surface-variant">
             <Cpu size={11} className="shrink-0 text-primary" />
             <span className="truncate font-mono-code">{settings.model}</span>
           </span>
@@ -72,14 +72,14 @@ export function Header({
         )}
         <button
           onClick={onToggleTheme}
-          className="flex cursor-pointer items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 font-mono-label text-[10px] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+          className="flex cursor-pointer items-center gap-1.5 border border-glass-border bg-glass-surface-muted px-2 py-1 font-mono-label text-[10px] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
         >
           {theme === 'dark' ? <Sun size={11} /> : <Moon size={11} />}
           {theme === 'dark' ? '浅色' : '深色'}
         </button>
         <button
           onClick={onToggleSettings}
-          className="flex cursor-pointer items-center gap-1.5 border border-outline-variant bg-surface-container-low px-2 py-1 font-mono-label text-[10px] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+          className="flex cursor-pointer items-center gap-1.5 border border-glass-border bg-glass-surface-muted px-2 py-1 font-mono-label text-[10px] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
         >
           <Settings size={11} />
           设置

@@ -12,7 +12,7 @@ export function ApprovalsPanel({
   if (approvals.length === 0) return null
 
   return (
-    <div className="border-t border-status-warning-border bg-status-warning-bg p-3 shrink-0">
+    <div className="glass-panel border-t border-status-warning-border bg-status-warning-bg/80 p-3 shrink-0">
       <div className="flex items-center gap-2 mb-2">
         <Shield size={14} className="text-status-warning-text" />
         <span className="font-mono-label text-[10px] text-status-warning-text uppercase tracking-wider">

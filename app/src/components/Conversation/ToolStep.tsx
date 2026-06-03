@@ -39,8 +39,8 @@ export function ToolStep({
   const outputClipped = outputText.length > MAX_OUTPUT_CHARS
 
   return (
-    <div className="border border-outline-variant bg-surface-container-lowest transition-colors hover:border-outline">
-      <div className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-mono-label hover:bg-surface-container-low">
+    <div className="border border-glass-border bg-glass-surface transition-colors hover:border-outline">
+      <div className="flex items-center gap-2 px-2.5 py-1.5 text-[11px] font-mono-label hover:bg-glass-surface-strong">
         <div
           role="button"
           tabIndex={0}
@@ -102,7 +102,7 @@ export function ToolStep({
       </div>
 
       {expanded && (
-        <div className="flex flex-col gap-2 border-t border-outline-variant bg-surface-container-low px-3 py-2 font-mono-code text-[11px]">
+        <div className="flex flex-col gap-2 border-t border-glass-border bg-glass-surface-muted px-3 py-2 font-mono-code text-[11px]">
           <div>
             <div className="mb-1 font-label-caps text-[9px] uppercase tracking-wider code-label">input</div>
             <pre className="code-panel max-h-60 overflow-auto p-2 whitespace-pre-wrap break-all">

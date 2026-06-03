@@ -41,8 +41,8 @@ export function SessionItem({
       onClick={() => onOpen(session)}
       className={`group flex cursor-pointer flex-col gap-1 border-l-2 px-3 py-2.5 text-[11px] transition-colors ${
         isActive
-          ? 'border-primary bg-surface-container-high text-primary'
-          : 'border-transparent text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+          ? 'border-primary bg-glass-surface-strong text-primary'
+          : 'border-transparent text-on-surface-variant hover:bg-glass-surface-muted hover:text-on-surface'
       }`}
     >
       <div className="flex items-center justify-between gap-2">

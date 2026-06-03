@@ -25,7 +25,7 @@ export function RightPanel({
   return (
     <aside
       style={{ width }}
-      className="shrink-0 border-l border-outline-variant bg-surface-container-lowest overflow-hidden no-drag flex flex-col"
+      className="glass-panel shrink-0 border-l overflow-hidden no-drag flex flex-col"
     >
       {tabs.length > 0 && (
         <TabStrip tabs={tabs} activeTabId={activeTabId} onActivate={onActivate} onClose={onClose} />

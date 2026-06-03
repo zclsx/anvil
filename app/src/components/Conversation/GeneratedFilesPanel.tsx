@@ -20,7 +20,7 @@ function PendingGeneratedFileRow({ name }: { name: string }) {
     <div
       role="status"
       aria-live="polite"
-      className="flex min-w-0 items-center gap-2 border border-status-running-border bg-status-running-bg px-2.5 py-2 text-[11px] text-status-running-text"
+      className="flex min-w-0 items-center gap-2 border border-status-running-border bg-status-running-bg/75 px-2.5 py-2 text-[11px] text-status-running-text"
     >
       <span aria-hidden="true" className="inline-block w-4 font-mono-code text-[14px]">
         {SPINNER_FRAMES[frame]}
@@ -60,7 +60,7 @@ export function GeneratedFilesPanel({
   return (
     <div
       data-testid="generated-files-panel"
-      className="border border-info-border bg-info-bg/50 px-3 py-3"
+      className="border border-artifact-border bg-artifact-surface px-3 py-3 backdrop-blur-md"
     >
       <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
         <RoleIconTile icon={FileText} tone="file" />

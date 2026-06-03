@@ -15,7 +15,7 @@ export function Footer({
   onToggleDebug: () => void
 }) {
   return (
-    <footer className="relative z-10 flex h-8 w-full shrink-0 items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-4 font-mono-code text-[10px] text-on-surface-variant">
+    <footer className="glass-panel relative z-10 flex h-8 w-full shrink-0 items-center justify-between border-t px-4 font-mono-code text-[10px] text-on-surface-variant">
       <div className="flex items-center gap-3">
         <StatusDot tone={sessionId ? 'success' : 'idle'} label={sessionId ? '会话在线' : '未选择会话'} />
         <span className="text-outline-variant/70">/</span>

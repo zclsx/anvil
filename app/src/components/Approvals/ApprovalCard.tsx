@@ -63,7 +63,7 @@ export function ApprovalCard({
       : JSON.stringify(approval.input, null, 2)
 
   return (
-    <div className={`relative overflow-hidden border bg-surface ${tone.border}`}>
+    <div className={`glass-card-strong relative overflow-hidden border ${tone.border}`}>
       <div className={`absolute left-0 top-0 h-full w-1 ${tone.accent}`} aria-hidden="true" />
       <div className={`grid grid-cols-[32px_minmax(0,1fr)] gap-3 border-b px-4 py-3 pl-5 ${tone.strip}`}>
         <RoleIconTile icon={TriangleAlert} tone={roleTone} />
@@ -104,14 +104,14 @@ export function ApprovalCard({
         <div className="flex justify-end gap-2">
           <button
             onClick={() => onDecide(approval.approvalId, 'deny')}
-            className="inline-flex cursor-pointer items-center gap-1.5 border border-status-error-border bg-status-error-bg px-3 py-1.5 font-mono-label text-[10px] text-status-error-text transition-colors hover:bg-status-error-hover focus-ring"
+            className="inline-flex cursor-pointer items-center gap-1.5 border border-status-error-border bg-status-error-bg/85 px-3 py-1.5 font-mono-label text-[10px] text-status-error-text transition-colors hover:bg-status-error-hover focus-ring"
           >
             <X size={12} />
             拒绝
           </button>
           <button
             onClick={() => onDecide(approval.approvalId, 'allow')}
-            className="inline-flex cursor-pointer items-center gap-1.5 border border-status-success-border bg-status-success-bg px-3 py-1.5 font-mono-label text-[10px] text-status-success-text transition-colors hover:bg-status-success-hover focus-ring"
+            className="inline-flex cursor-pointer items-center gap-1.5 border border-status-success-border bg-status-success-bg/85 px-3 py-1.5 font-mono-label text-[10px] text-status-success-text transition-colors hover:bg-status-success-hover focus-ring"
           >
             <KeyRound size={12} />
             允许

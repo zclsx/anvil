@@ -81,7 +81,7 @@ export function Conversation({
         <div className="sticky top-0 z-10 flex justify-end pointer-events-none -mt-2">
           <button
             onClick={onToggleProcessExpand}
-            className="pointer-events-auto font-mono-label text-[10px] text-on-surface-variant hover:text-primary bg-surface-container border border-outline-variant px-2 py-0.5 cursor-pointer"
+            className="glass-card pointer-events-auto font-mono-label text-[10px] text-on-surface-variant hover:text-primary border px-2 py-0.5 cursor-pointer"
           >
             {processExpandMode === 'expanded' ? '收起过程' : '展开过程'} <span className="opacity-50">⌘E</span>
           </button>
@@ -93,7 +93,7 @@ export function Conversation({
         const { userItems, processItems, finalAnswer } = splitTurnItems(turn, items)
         const processExpanded = isProcessExpanded(turn)
         return (
-          <div key={turn.id} className="flex flex-col gap-2.5">
+          <div key={turn.id} className="trace-turn flex flex-col gap-2.5">
             {userItems.map((item) => (
               <MainItemView
                 key={item.id}
