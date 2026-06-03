@@ -19,7 +19,12 @@ import { resolveQueryWorkspace } from '../query/workspace'
 import { getClaudeExecutablePath } from '../query/claudeExecutable'
 import { toolRisk } from '../query/toolRisk'
 import { loadLocalMcpServers } from '../query/localMcpServers'
-import { createToolIdleState, markToolPermissionAllowed, updateToolIdleState } from '../query/toolIdleTimer'
+import {
+  createToolIdleState,
+  hasActiveToolIdlePause,
+  markToolPermissionAllowed,
+  updateToolIdleState,
+} from '../query/toolIdleTimer'
 import type { MainRuntimeContext } from '../runtimeContext'
 
 const READ_DOCUMENT_TOOL_NAME = 'mcp__anvil__read_document'
@@ -198,7 +203,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
 
   let idleTimer: NodeJS.Timeout | null = null
   function resetIdleTimer() {
-    if (pendingApprovalCount > 0 || toolIdleState.activeToolItemIds.size > 0) return
+    if (pendingApprovalCount > 0 || hasActiveToolIdlePause(toolIdleState)) return
     if (idleTimer) clearTimeout(idleTimer)
     idleTimer = setTimeout(() => {
       if (!alreadyFinished) {
@@ -237,7 +242,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   function resumeTimersAfterApproval() {
     pendingApprovalCount = Math.max(0, pendingApprovalCount - 1)
     if (pendingApprovalCount === 0 && !alreadyFinished) {
-      if (toolIdleState.activeToolItemIds.size === 0) resetIdleTimer()
+      if (!hasActiveToolIdlePause(toolIdleState)) resetIdleTimer()
       startHardTimer()
     }
   }
@@ -256,7 +261,6 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
 
   function applyToolPermissionAllowed(permissionContext?: ToolPermissionContext) {
     const itemId = toolItemIdFromPermission(permissionContext)
-    if (!itemId) return
     const transition = markToolPermissionAllowed(toolIdleState, itemId)
     toolIdleState = transition.state
     if (transition.clearIdleTimer) pauseIdleForTool()

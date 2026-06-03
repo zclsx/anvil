@@ -2,6 +2,7 @@ import { test, expect } from 'vitest'
 import type { AgentEvent } from '../../electron/shared/events'
 import {
   createToolIdleState,
+  hasActiveToolIdlePause,
   markToolPermissionAllowed,
   updateToolIdleState,
 } from '../../electron/main/query/toolIdleTimer'
@@ -34,6 +35,10 @@ function toolResult(toolUseId: string): Extract<AgentEvent, { type: 'tool.result
 
 function activeCount(state = createToolIdleState()): number {
   return state.activeToolItemIds.size
+}
+
+function permissionlessCount(state = createToolIdleState()): number {
+  return state.permissionlessToolCount
 }
 
 test.describe('tool idle timer state', () => {
@@ -69,6 +74,38 @@ test.describe('tool idle timer state', () => {
     expect(finished.resetIdleTimer).toBe(true)
   })
 
+  test('pauses idle when tool approval has no permission context', () => {
+    const allowed = markToolPermissionAllowed(createToolIdleState(), null)
+    expect(activeCount(allowed.state)).toBe(0)
+    expect(permissionlessCount(allowed.state)).toBe(1)
+    expect(hasActiveToolIdlePause(allowed.state)).toBe(true)
+    expect(allowed.clearIdleTimer).toBe(true)
+    expect(allowed.resetIdleTimer).toBe(false)
+  })
+
+  test('converts a permissionless pause to a concrete tool when protocol start arrives', () => {
+    const allowed = markToolPermissionAllowed(createToolIdleState(), null)
+    const started = updateToolIdleState(allowed.state, toolStarted('bash-1'), true)
+
+    expect(permissionlessCount(started.state)).toBe(0)
+    expect(activeCount(started.state)).toBe(1)
+    expect(started.clearIdleTimer).toBe(false)
+    expect(started.resetIdleTimer).toBe(false)
+
+    const finished = updateToolIdleState(started.state, toolResult('bash-1'), true)
+    expect(hasActiveToolIdlePause(finished.state)).toBe(false)
+    expect(finished.resetIdleTimer).toBe(true)
+  })
+
+  test('releases a permissionless pause on an unmatched tool result', () => {
+    const allowed = markToolPermissionAllowed(createToolIdleState(), null)
+    const finished = updateToolIdleState(allowed.state, toolResult('unknown'), true)
+
+    expect(permissionlessCount(finished.state)).toBe(0)
+    expect(hasActiveToolIdlePause(finished.state)).toBe(false)
+    expect(finished.resetIdleTimer).toBe(true)
+  })
+
   test('does not double count when protocol tool.started arrives before permission allow', () => {
     const started = updateToolIdleState(createToolIdleState(), toolStarted('bash-1', 'Bash'), true)
     const allowed = markToolPermissionAllowed(started.state, 'tool:bash-1')
@@ -77,6 +114,19 @@ test.describe('tool idle timer state', () => {
 
     const finished = updateToolIdleState(allowed.state, toolResult('bash-1'), true)
     expect(activeCount(finished.state)).toBe(0)
+    expect(finished.resetIdleTimer).toBe(true)
+  })
+
+  test('does not add a permissionless pause when an active protocol tool already covers it', () => {
+    const started = updateToolIdleState(createToolIdleState(), toolStarted('bash-1', 'Bash'), true)
+    const allowed = markToolPermissionAllowed(started.state, null)
+
+    expect(activeCount(allowed.state)).toBe(1)
+    expect(permissionlessCount(allowed.state)).toBe(0)
+    expect(allowed.clearIdleTimer).toBe(false)
+
+    const finished = updateToolIdleState(allowed.state, toolResult('bash-1'), true)
+    expect(hasActiveToolIdlePause(finished.state)).toBe(false)
     expect(finished.resetIdleTimer).toBe(true)
   })
 
