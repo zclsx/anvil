@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, ExternalLink, Folder, Copy, Eye } from 'lucide-react'
 import { useAgentStore } from '../../store'
 import { getWorkspaceRelativePath } from '../../lib/pathUtils'
 import { useRightPanel } from '../RightPanel/context'
@@ -51,33 +51,41 @@ export function GeneratedFileChip({
   }
 
   const actionClass =
-    'rounded-[var(--radius-control)] border border-artifact-border bg-artifact-highlight px-2 py-1 text-[10px] font-mono-label text-info-text-accent transition-colors hover:border-primary hover:text-primary focus-ring cursor-pointer'
+    'flex items-center gap-1 text-on-surface-variant hover:text-primary text-label-mono font-label-mono text-xs transition-colors cursor-pointer bg-transparent border-none p-0 focus-ring'
 
   return (
     <div
       onClick={stop}
-      className={`${compact ? '' : 'mt-2'} inline-flex max-w-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-artifact-border bg-glass-surface-strong text-info-text transition-colors hover:bg-info-hover/60`}
+      className={`w-full flex flex-col overflow-hidden rounded border border-glass-border bg-surface-container-lowest/40 hover:bg-surface-container-high/40 transition-colors group/file ${
+        compact ? '' : 'mt-2'
+      }`}
     >
-      <div className="flex min-w-0 items-center gap-3 px-3 py-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-artifact-border bg-artifact-highlight font-headline text-[14px] font-semibold text-info-text-accent">
+      <div className="flex min-w-0 items-center p-3">
+        {/* W Logo */}
+        <div className="w-10 h-10 rounded bg-[#185abd]/10 flex items-center justify-center mr-3 border border-[#185abd]/25 text-[#185abd] font-bold text-lg font-headline flex-shrink-0">
           W
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2">
-          <span className="font-mono-code max-w-[240px] truncate text-[12px] font-medium text-info-text">
+
+        {/* Info */}
+        <div className="flex-grow min-w-0">
+          <div className="text-body-md font-body-md text-on-surface truncate font-medium">
             {fileName}
-          </span>
-          <span className="font-mono-label text-[9px] uppercase tracking-wider text-info-text-secondary">
+          </div>
+          <div className="text-label-mono font-label-mono text-on-surface-variant/70 text-xs mt-0.5">
             DOCX · 已生成
-          </span>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+
+        {/* Actions */}
+        <div className="flex gap-3 ml-4 pl-4 border-l border-glass-border items-center shrink-0">
           {rightPanel && (
             <button
               onClick={handlePreview}
               className={actionClass}
               title="预览文档"
             >
-              预览
+              <Eye size={12} />
+              <span>预览</span>
             </button>
           )}
           <button
@@ -85,21 +93,24 @@ export function GeneratedFileChip({
             className={actionClass}
             title="打开文档"
           >
-            打开
+            <ExternalLink size={12} />
+            <span>打开</span>
           </button>
           <button
             onClick={handleReveal}
             className={actionClass}
             title="在文件夹中定位"
           >
-            定位
+            <Folder size={12} />
+            <span>定位</span>
           </button>
           <button
             onClick={handleCopy}
             className={actionClass}
             title="复制路径"
           >
-            复制路径
+            <Copy size={12} />
+            <span>复制</span>
           </button>
           <button
             onClick={(e) => {
@@ -108,22 +119,23 @@ export function GeneratedFileChip({
             }}
             aria-expanded={expanded}
             aria-label={expanded ? '收起路径' : '展开路径'}
-            className="rounded-[var(--radius-control)] border border-transparent px-1.5 py-1 text-on-surface-variant transition-colors hover:border-info-border hover:text-primary focus-ring cursor-pointer"
+            className="text-on-surface-variant hover:text-primary transition-colors cursor-pointer p-0.5 focus-ring"
           >
-            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </div>
       </div>
+
       {expanded && (
-        <div className="flex max-w-full flex-col gap-1.5 border-t border-artifact-border bg-artifact-surface/70 px-3 py-3 font-mono-code text-[11px] text-on-surface-variant break-all">
+        <div className="flex max-w-full flex-col gap-1.5 border-t border-glass-border bg-surface-container-low/30 px-3 py-3 font-mono-code text-[11px] text-on-surface-variant break-all">
           {relPath && (
             <div>
-              <span className="text-info-text-secondary">Workspace 路径：</span>
+              <span className="text-on-surface-variant/70">Workspace 路径：</span>
               {relPath}
             </div>
           )}
           <div>
-            <span className="text-info-text-secondary">完整路径：</span>
+            <span className="text-on-surface-variant/70">完整路径：</span>
             {absPath}
           </div>
         </div>

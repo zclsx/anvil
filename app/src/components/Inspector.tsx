@@ -49,14 +49,14 @@ export function Inspector({ item }: { item: Item }) {
             <Row label="风险"><MonoValue value={riskLabel(item.approvalRisk)} /></Row>
             <Row label="审批"><MonoValue value={approvalLabel(item)} /></Row>
             <Row label="错误"><MonoValue value={errorLabel(item.toolIsError)} /></Row>
-            <Row label="输入"><BlockValue value={previewText(item.toolInput)} /></Row>
-            <Row label="输出"><BlockValue value={previewText(item.toolOutput)} /></Row>
+            <Row label="输入" isBlock><BlockValue value={previewText(item.toolInput)} /></Row>
+            <Row label="输出" isBlock><BlockValue value={previewText(item.toolOutput)} /></Row>
           </Section>
         )}
 
         {item.text && (
           <Section title="内容">
-            <Row label="文本"><BlockValue value={previewText(item.text)} /></Row>
+            <Row label="文本" isBlock><BlockValue value={previewText(item.text)} /></Row>
           </Section>
         )}
 

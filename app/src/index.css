@@ -554,34 +554,6 @@ body {
   .trace-turn {
     position: relative;
   }
-
-  .trace-turn::before {
-    background: linear-gradient(to bottom, transparent, var(--color-trace-rail) 18px, var(--color-trace-rail) calc(100% - 18px), transparent);
-    bottom: -12px;
-    content: "";
-    left: 15px;
-    pointer-events: none;
-    position: absolute;
-    top: 30px;
-    width: 1px;
-  }
-
-  .trace-turn::after {
-    background: var(--color-trace-rail-glow);
-    bottom: -12px;
-    content: "";
-    filter: blur(8px);
-    left: 12px;
-    pointer-events: none;
-    position: absolute;
-    top: 30px;
-    width: 7px;
-  }
-
-  .trace-turn:last-of-type::before,
-  .trace-turn:last-of-type::after {
-    bottom: 18px;
-  }
 }
 
 /* Custom Scrollbars for Mac Feel */

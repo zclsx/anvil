@@ -2,24 +2,31 @@ import type { ReactNode } from 'react'
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-b border-glass-border py-3 last:border-b-0">
-      <div className="mb-2 font-label-caps text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
-        {title}
+    <section className="glass-card rounded-xl border border-outline-variant overflow-hidden mb-4">
+      <div className="px-4 py-2.5 border-b border-outline-variant bg-surface-container-highest/20 flex items-center gap-2">
+        <span className="text-label-caps font-label-caps text-on-surface-variant uppercase tracking-wider text-[10px] font-semibold">{title}</span>
       </div>
-      <div className="overflow-hidden border border-glass-border bg-glass-surface">
+      <div className="p-4 space-y-3.5">
         {children}
       </div>
     </section>
   )
 }
 
-export function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[92px_minmax(0,1fr)] border-b border-glass-border last:border-b-0">
-      <div className="border-r border-glass-border bg-glass-surface-muted px-2 py-2 font-mono-label text-[9px] uppercase tracking-wider text-on-surface-variant">
-        {label}
+export function Row({ label, children, isBlock = false }: { label: string; children: ReactNode; isBlock?: boolean }) {
+  if (isBlock) {
+    return (
+      <div className="flex flex-col gap-1.5 py-1">
+        <span className="text-label-mono font-label-mono text-on-surface-variant text-[11px] font-medium">{label}</span>
+        <div className="min-w-0 text-on-surface">{children}</div>
       </div>
-      <div className="min-w-0 px-2 py-2 font-mono-code text-[10px] leading-relaxed text-on-surface">
+    )
+  }
+
+  return (
+    <div className="flex justify-between items-center gap-4 min-w-0 py-0.5">
+      <span className="text-label-mono font-label-mono text-on-surface-variant text-[11px] shrink-0">{label}</span>
+      <div className="min-w-0 flex-grow text-right text-on-surface truncate">
         {children}
       </div>
     </div>
@@ -27,9 +34,13 @@ export function Row({ label, children }: { label: string; children: ReactNode })
 }
 
 export function MonoValue({ value }: { value: string }) {
-  return <span className="block truncate">{value}</span>
+  return <span className="truncate font-mono-code text-[11px] font-medium block">{value}</span>
 }
 
 export function BlockValue({ value }: { value: string }) {
-  return <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-on-surface-variant">{value}</pre>
+  return (
+    <pre className="code-panel max-h-48 overflow-auto p-3 whitespace-pre-wrap break-all font-mono-code text-[10.5px] leading-relaxed w-full">
+      {value}
+    </pre>
+  )
 }
