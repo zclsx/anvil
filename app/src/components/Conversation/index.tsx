@@ -66,7 +66,14 @@ export function Conversation({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+    <div
+      className="relative flex-1 overflow-y-auto p-6 flex flex-col gap-8 scrollable"
+      style={{ scrollbarGutter: 'stable' }}
+    >
+      {/* Activity Timeline Axis Connector Line */}
+      {turns.length > 0 && (
+        <div className="absolute left-[48px] top-8 bottom-8 w-[2px] bg-gradient-to-b from-outline-variant/60 to-outline-variant/10 pointer-events-none z-0" />
+      )}
       {turns.length === 0 && !running && (
         <div className="text-center text-on-surface-variant italic text-[12px] opacity-75 py-12 flex flex-col items-center gap-2">
           <FileSearch size={28} />

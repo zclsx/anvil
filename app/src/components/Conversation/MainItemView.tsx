@@ -40,39 +40,75 @@ export function MainItemView({
   const selectedClass = isSelected ? 'border-primary ring-1 ring-primary/35' : 'border-glass-border hover:border-outline'
 
   if (item.kind === 'text') {
-    const isFinalAssistant = item.role === 'assistant' && textVariant === 'final'
-    const roleTone = textRoleTone(item, textVariant)
+    const isUser = item.role === 'user'
+    const isAssistant = item.role === 'assistant'
     const RoleIcon = textRoleIcon(item, textVariant)
-    const card = (
-      <div
-        onClick={onSelect}
-        className={`min-w-0 cursor-pointer border transition-colors ${
-          isFinalAssistant ? 'glass-card-strong border-l-2 border-l-primary px-4 py-3.5' : 'glass-card px-3 py-2.5'
-        } ${selectedClass} ${
-          isFinalAssistant ? 'relative overflow-hidden' : ''
-        }`}
-      >
-        <div className="min-w-0 relative z-[1]">
-          <div className="mb-2">
-            <RoleLabel tone={roleTone}>
-              {textRoleLabel(item, textVariant)}
-            </RoleLabel>
+    const timestamp = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+
+    if (isUser) {
+      const userCard = (
+        <div
+          onClick={onSelect}
+          className={`glass-card p-4 rounded-lg rounded-tl-none border transition-colors min-w-0 ${selectedClass}`}
+        >
+          <div className="flex justify-between items-center mb-2">
+            <div className="text-label-mono font-label-mono text-on-surface-variant">{textRoleLabel(item, textVariant)}</div>
+            <span className="text-label-mono font-label-mono text-on-surface-variant/50">{timestamp}</span>
           </div>
-          <div className={isFinalAssistant ? 'text-[13px] leading-relaxed text-on-surface' : 'text-[12px] text-on-surface'}>
+          <div className="text-body-md font-body-md text-on-surface leading-relaxed">
             <MarkdownText text={item.text || '...'} />
           </div>
         </div>
-      </div>
-    )
+      )
 
-    if (!showRailIcon) return card
+      if (!showRailIcon) return userCard
 
-    return (
-      <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
-        <RoleIconTile icon={RoleIcon} tone={roleTone} className="mt-0.5" />
-        {card}
-      </div>
-    )
+      return (
+        <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group">
+          {/* User Avatar */}
+          <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-primary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-primary/5">
+            <RoleIcon size={18} className="text-primary" />
+          </div>
+          <div className="flex-grow pt-1 min-w-0">
+            {userCard}
+          </div>
+        </div>
+      )
+    }
+
+    if (isAssistant) {
+      const isFinal = textVariant === 'final'
+      const assistantCard = (
+        <div
+          onClick={onSelect}
+          className={`glass-card p-4 rounded-lg rounded-tl-none border transition-colors min-w-0 ${selectedClass}`}
+        >
+          <div className="flex justify-between items-center mb-3">
+            <div className="text-label-mono font-label-mono text-on-surface-variant">
+              {textRoleLabel(item, textVariant)}
+            </div>
+            <span className="text-label-mono font-label-mono text-on-surface-variant/50">{timestamp}</span>
+          </div>
+          <div className="text-body-md font-body-md text-on-surface leading-relaxed">
+            <MarkdownText text={item.text || '...'} />
+          </div>
+        </div>
+      )
+
+      if (!showRailIcon) return assistantCard
+
+      return (
+        <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group">
+          {/* Assistant Avatar */}
+          <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
+            <RoleIcon size={18} className="text-secondary" />
+          </div>
+          <div className="flex-grow pt-1 min-w-0">
+            {assistantCard}
+          </div>
+        </div>
+      )
+    }
   }
 
   if (item.kind === 'thinking') {
@@ -88,9 +124,14 @@ export function MainItemView({
     if (!showRailIcon) return details
 
     return (
-      <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
-        <RoleIconTile icon={Cpu} tone="process" className="mt-0.5" />
-        {details}
+      <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group">
+        {/* Process/Thinking Avatar */}
+        <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
+          <Cpu size={18} className="text-secondary" />
+        </div>
+        <div className="flex-grow pt-1 min-w-0">
+          {details}
+        </div>
       </div>
     )
   }
@@ -111,9 +152,14 @@ export function MainItemView({
   if (!showRailIcon) return fallback
 
   return (
-    <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
-      <RoleIconTile icon={Cpu} tone="process" className="mt-0.5" />
-      {fallback}
+    <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group">
+      {/* Process/Fallback Avatar */}
+      <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
+        <Cpu size={18} className="text-secondary" />
+      </div>
+      <div className="flex-grow pt-1 min-w-0">
+        {fallback}
+      </div>
     </div>
   )
 }

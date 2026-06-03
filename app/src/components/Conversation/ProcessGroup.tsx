@@ -22,8 +22,11 @@ export function ProcessGroup({
   if (items.length === 0) return null
 
   return (
-    <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
-      <RoleIconTile icon={Cpu} tone="process" className="mt-0.5" />
+    <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group">
+      {/* Process Group Avatar */}
+      <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
+        <Cpu size={18} className="text-secondary" />
+      </div>
       <div className="glass-card min-w-0 overflow-hidden border">
         <button
           type="button"

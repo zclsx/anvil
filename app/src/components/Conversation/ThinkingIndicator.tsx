@@ -62,15 +62,20 @@ export function ThinkingIndicator({
       role="status"
       aria-live="polite"
       aria-atomic="false"
-      className="flex items-center gap-2 px-1 py-1 font-mono-code text-[12px] leading-relaxed opacity-80"
+      className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10"
     >
-      <span aria-hidden="true" className={`${spinnerColor} text-[15px] w-4 inline-block`}>
-        {SPINNER_FRAMES[frame]}
-      </span>
-      <span className={phaseColor}>{label}…</span>
-      <span aria-hidden="true" className={`${elapsedColor} text-[11px]`}>
-        ({elapsed}s · Esc 或点击「取消」中断)
-      </span>
+      {/* Spinner/Thinking Avatar */}
+      <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
+        <span aria-hidden="true" className={`${spinnerColor} text-[18px] font-mono-code leading-none flex items-center justify-center`}>
+          {SPINNER_FRAMES[frame]}
+        </span>
+      </div>
+      <div className="flex items-center font-mono-code text-[12px] leading-relaxed opacity-80 min-w-0">
+        <span className={phaseColor}>{label}…</span>
+        <span aria-hidden="true" className={`${elapsedColor} text-[11px] ml-2`}>
+          ({elapsed}s · Esc 或点击「取消」中断)
+        </span>
+      </div>
     </div>
   )
 }
