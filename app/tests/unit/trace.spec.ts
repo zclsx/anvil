@@ -12,8 +12,8 @@ function item(id: string, role: Item['role'], kind: Item['kind'], text = ''): It
   }
 }
 
-function turn(itemIds: string[]): Pick<Turn, 'itemIds'> {
-  return { itemIds }
+function turn(itemIds: string[], status: Turn['status'] = 'completed'): Pick<Turn, 'itemIds' | 'status'> {
+  return { itemIds, status }
 }
 
 describe('splitTurnItems', () => {
@@ -43,6 +43,20 @@ describe('splitTurnItems', () => {
 
     expect(result.userItems.map((i) => i.id)).toEqual(['user'])
     expect(result.processItems.map((i) => i.id)).toEqual(['tool'])
+    expect(result.finalAnswer).toBeNull()
+  })
+
+  test('keeps assistant text in process while the turn is running', () => {
+    const items = {
+      user: item('user', 'user', 'text', '问题'),
+      text: item('text', 'assistant', 'text', '正在生成文档'),
+      tool: item('tool', 'tool', 'tool_use'),
+    }
+
+    const result = splitTurnItems(turn(['user', 'text', 'tool'], 'running'), items)
+
+    expect(result.userItems.map((i) => i.id)).toEqual(['user'])
+    expect(result.processItems.map((i) => i.id)).toEqual(['text', 'tool'])
     expect(result.finalAnswer).toBeNull()
   })
 })

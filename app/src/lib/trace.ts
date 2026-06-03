@@ -6,15 +6,17 @@ export type SplitTurnItemsResult = {
   finalAnswer: Item | null
 }
 
-export function splitTurnItems(turn: Pick<Turn, 'itemIds'>, items: Record<string, Item>): SplitTurnItemsResult {
+export function splitTurnItems(turn: Pick<Turn, 'itemIds' | 'status'>, items: Record<string, Item>): SplitTurnItemsResult {
   const turnItems = turn.itemIds
     .map((id) => items[id])
     .filter((item): item is Item => item != null)
 
   let finalAnswerId: string | null = null
-  for (const item of turnItems) {
-    if (item.role === 'assistant' && item.kind === 'text') {
-      finalAnswerId = item.id
+  if (turn.status !== 'running') {
+    for (const item of turnItems) {
+      if (item.role === 'assistant' && item.kind === 'text') {
+        finalAnswerId = item.id
+      }
     }
   }
 

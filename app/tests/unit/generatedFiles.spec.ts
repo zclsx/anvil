@@ -1,5 +1,9 @@
 import { test, expect } from 'vitest'
-import { parseCreatedDocxPath, getGeneratedDocxPath } from '../../src/lib/generatedFiles'
+import {
+  parseCreatedDocxPath,
+  getGeneratedDocxPath,
+  getGeneratedDocxArtifactsForTurn,
+} from '../../src/lib/generatedFiles'
 
 test.describe('parseCreatedDocxPath', () => {
   test('parses an absolute posix path from create_docx text output', () => {
@@ -69,5 +73,110 @@ test.describe('getGeneratedDocxPath', () => {
     expect(
       getGeneratedDocxPath({ toolName: 'mcp__anvil__create_docx_from_skill', toolOutput: out, toolIsError: false }),
     ).toBe('/ws/report.docx')
+  })
+})
+
+test.describe('getGeneratedDocxArtifactsForTurn', () => {
+  test('derives pending, success, and failed artifacts from tool items', () => {
+    const artifacts = getGeneratedDocxArtifactsForTurn(
+      { itemIds: ['pending', 'success', 'failed'] },
+      {
+        pending: {
+          id: 'pending',
+          toolName: 'mcp__anvil__create_docx_from_skill',
+          toolInput: { path: './pending-report.docx' },
+          toolOutput: undefined,
+          toolIsError: false,
+        },
+        success: {
+          id: 'success',
+          toolName: 'mcp__anvil__create_docx',
+          toolInput: { path: './input-name.docx' },
+          toolOutput: [{ type: 'text', text: '已生成 Word 文档：/ws/output-name.docx\n包含 1 个内容块。' }],
+          toolIsError: false,
+        },
+        failed: {
+          id: 'failed',
+          toolName: 'mcp__anvil__create_docx',
+          toolInput: { output_path: './failed-report.docx' },
+          toolOutput: [{ type: 'text', text: '生成文档失败：文件已存在' }],
+          toolIsError: true,
+        },
+      },
+    )
+
+    expect(artifacts).toEqual([
+      { itemId: 'pending', status: 'pending', name: 'pending-report.docx' },
+      { itemId: 'success', status: 'success', name: 'output-name.docx', path: '/ws/output-name.docx' },
+      { itemId: 'failed', status: 'failed', name: 'failed-report.docx', error: '生成文档失败：文件已存在' },
+    ])
+  })
+
+  test('keeps clickable success path output-derived and ignores assistant prose', () => {
+    const artifacts = getGeneratedDocxArtifactsForTurn(
+      { itemIds: ['assistant', 'tool'] },
+      {
+        assistant: {
+          id: 'assistant',
+          toolName: undefined,
+          toolInput: undefined,
+          toolOutput: '见 /ws/fake.docx',
+          toolIsError: false,
+        },
+        tool: {
+          id: 'tool',
+          toolName: 'mcp__anvil__create_docx',
+          toolInput: { path: './input.docx' },
+          toolOutput: [{ type: 'text', text: '已生成 Word 文档：/ws/real.docx\n包含 1 个内容块。' }],
+          toolIsError: false,
+        },
+      },
+    )
+
+    expect(artifacts).toEqual([
+      { itemId: 'tool', status: 'success', name: 'real.docx', path: '/ws/real.docx' },
+    ])
+  })
+
+  test('deduplicates repeated success paths but keeps pending rows by item', () => {
+    const artifacts = getGeneratedDocxArtifactsForTurn(
+      { itemIds: ['pending-a', 'pending-b', 'success-a', 'success-b'] },
+      {
+        'pending-a': {
+          id: 'pending-a',
+          toolName: 'mcp__anvil__create_docx',
+          toolInput: { path: './a.docx' },
+          toolOutput: undefined,
+          toolIsError: false,
+        },
+        'pending-b': {
+          id: 'pending-b',
+          toolName: 'mcp__anvil__create_docx',
+          toolInput: { path: './b.docx' },
+          toolOutput: undefined,
+          toolIsError: false,
+        },
+        'success-a': {
+          id: 'success-a',
+          toolName: 'mcp__anvil__create_docx',
+          toolInput: { path: './one.docx' },
+          toolOutput: [{ type: 'text', text: '已生成 Word 文档：/ws/same.docx' }],
+          toolIsError: false,
+        },
+        'success-b': {
+          id: 'success-b',
+          toolName: 'mcp__anvil__create_docx_from_skill',
+          toolInput: { path: './two.docx' },
+          toolOutput: [{ type: 'text', text: '已生成 Word 文档：/ws/same.docx' }],
+          toolIsError: false,
+        },
+      },
+    )
+
+    expect(artifacts).toEqual([
+      { itemId: 'pending-a', status: 'pending', name: 'a.docx' },
+      { itemId: 'pending-b', status: 'pending', name: 'b.docx' },
+      { itemId: 'success-a', status: 'success', name: 'same.docx', path: '/ws/same.docx' },
+    ])
   })
 })

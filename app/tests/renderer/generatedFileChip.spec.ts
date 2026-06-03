@@ -116,6 +116,149 @@ async function emitCompletedTurn(
   }, options)
 }
 
+async function emitRunningCreateDocxTurn(
+  page: Page,
+  options: {
+    itemId?: string
+    input?: unknown
+    assistantText?: string
+    toolName?: string
+  } = {},
+) {
+  await page.evaluate((opts) => {
+    const ctl = (
+      window as unknown as {
+        __anvilTestControl: { emitEvent: (env: unknown) => void }
+      }
+    ).__anvilTestControl
+    let seq = 1
+    const stamp = () => ({
+      sessionId: 's1',
+      turnId: 't-running-doc',
+      seq: seq++,
+      timestamp: new Date().toISOString(),
+    })
+    ctl.emitEvent({ event: { type: 'turn.started', ...stamp() } })
+    if (opts.assistantText) {
+      ctl.emitEvent({
+        event: { type: 'item.added', ...stamp(), itemId: 'assistant-running', role: 'assistant', kind: 'text' },
+      })
+      ctl.emitEvent({
+        event: { type: 'text.delta', ...stamp(), itemId: 'assistant-running', text: opts.assistantText },
+      })
+    }
+    const itemId = opts.itemId ?? 'tool-running'
+    ctl.emitEvent({
+      event: { type: 'item.added', ...stamp(), itemId, role: 'tool', kind: 'tool_use' },
+    })
+    ctl.emitEvent({
+      event: {
+        type: 'tool.started',
+        ...stamp(),
+        itemId,
+        toolName: opts.toolName ?? 'mcp__anvil__create_docx_from_skill',
+        input: opts.input ?? { path: './running-report.docx' },
+      },
+    })
+  }, options)
+}
+
+async function finishRunningCreateDocxTurn(
+  page: Page,
+  options: {
+    itemId?: string
+    output: unknown
+    isError?: boolean
+    status?: 'completed' | 'failed' | 'cancelled'
+  },
+) {
+  await page.evaluate((opts) => {
+    const ctl = (
+      window as unknown as {
+        __anvilTestControl: { emitEvent: (env: unknown) => void }
+      }
+    ).__anvilTestControl
+    const stamp = (seq: number) => ({
+      sessionId: 's1',
+      turnId: 't-running-doc',
+      seq,
+      timestamp: new Date().toISOString(),
+    })
+    ctl.emitEvent({
+      event: {
+        type: 'tool.result',
+        ...stamp(20),
+        itemId: opts.itemId ?? 'tool-running',
+        output: opts.output,
+        isError: opts.isError === true,
+      },
+    })
+    ctl.emitEvent({
+      event: {
+        type: 'turn.finished',
+        ...stamp(21),
+        status: opts.status ?? (opts.isError === true ? 'failed' : 'completed'),
+        stats: { durationMs: 1300, outputTokens: 32 },
+      },
+    })
+  }, options)
+}
+
+async function emitMixedArtifactTurn(page: Page) {
+  await page.evaluate(() => {
+    const ctl = (
+      window as unknown as {
+        __anvilTestControl: { emitEvent: (env: unknown) => void }
+      }
+    ).__anvilTestControl
+    let seq = 1
+    const stamp = () => ({
+      sessionId: 's1',
+      turnId: 't-mixed-docs',
+      seq: seq++,
+      timestamp: new Date().toISOString(),
+    })
+    ctl.emitEvent({ event: { type: 'turn.started', ...stamp() } })
+
+    const startTool = (itemId: string, path: string) => {
+      ctl.emitEvent({
+        event: { type: 'item.added', ...stamp(), itemId, role: 'tool', kind: 'tool_use' },
+      })
+      ctl.emitEvent({
+        event: {
+          type: 'tool.started',
+          ...stamp(),
+          itemId,
+          toolName: 'mcp__anvil__create_docx',
+          input: { path },
+        },
+      })
+    }
+
+    startTool('tool-pending', './pending.docx')
+    startTool('tool-success', './success-input.docx')
+    ctl.emitEvent({
+      event: {
+        type: 'tool.result',
+        ...stamp(),
+        itemId: 'tool-success',
+        output: [{ type: 'text', text: '已生成 Word 文档：/Users/test/proj/success-output.docx' }],
+        isError: false,
+      },
+    })
+    startTool('tool-failed', './failed.docx')
+    ctl.emitEvent({
+      event: {
+        type: 'tool.result',
+        ...stamp(),
+        itemId: 'tool-failed',
+        output: [{ type: 'text', text: '生成文档失败：模板不可用' }],
+        isError: true,
+      },
+    })
+  })
+}
+
 test('successful create_docx renders a generated file chip with working actions', async ({ page }) => {
   await setupMockAnvil(page, {
     settings: { hasApiKey: true, workspacePath: '/Users/test/proj' },
@@ -172,8 +315,52 @@ test('errored create_docx does not render a chip', async ({ page }) => {
 
   // the tool step shows (compact, cleaned name), but no generated-file chip
   await expect(page.getByText('create_docx').first()).toBeVisible({ timeout: 5_000 })
+  const panel = page.getByTestId('generated-files-panel')
+  await expect(panel.getByText('生成 Word 文档失败：out.docx')).toBeVisible()
+  await expect(panel.getByText('生成文档失败：文件已存在')).toBeVisible()
   await expect(page.getByRole('button', { name: '打开' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '定位' })).toHaveCount(0)
+})
+
+test('running create_docx shows pending generated-file progress and no final answer anchor', async ({ page }) => {
+  await setupMockAnvil(page, {
+    settings: { hasApiKey: true, workspacePath: '/Users/test/proj' },
+    workspaceExists: true,
+  })
+  await page.goto('/')
+  await expect(page.getByText('Workspace 已就绪：').first()).toBeVisible({ timeout: 5_000 })
+
+  await emitRunningCreateDocxTurn(page, {
+    assistantText: '最终结果：正在生成运行报告。',
+    input: { path: './running-report.docx' },
+  })
+
+  const panel = page.getByTestId('generated-files-panel')
+  await expect(panel.getByText('正在生成 Word 文档：running-report.docx…')).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText('最终结果：正在生成运行报告。')).toBeVisible()
+  await expect(page.getByText('最终回答')).toHaveCount(0)
+})
+
+test('successful tool result replaces pending document progress with a real chip', async ({ page }) => {
+  await setupMockAnvil(page, {
+    settings: { hasApiKey: true, workspacePath: '/Users/test/proj' },
+    workspaceExists: true,
+  })
+  await page.goto('/')
+  await expect(page.getByText('Workspace 已就绪：').first()).toBeVisible({ timeout: 5_000 })
+
+  await emitRunningCreateDocxTurn(page, {
+    input: { path: './draft-name.docx' },
+  })
+  await expect(page.getByText('正在生成 Word 文档：draft-name.docx…')).toBeVisible({ timeout: 5_000 })
+
+  await finishRunningCreateDocxTurn(page, {
+    output: [{ type: 'text', text: '已生成 Word 文档：/Users/test/proj/final-name.docx\n包含 3 个内容块。' }],
+  })
+
+  const panel = page.getByTestId('generated-files-panel')
+  await expect(panel.getByText('正在生成 Word 文档：draft-name.docx…')).toHaveCount(0)
+  await expect(panel.getByText('final-name.docx')).toBeVisible()
 })
 
 test('successful create_docx is summarized at the bottom of the completed turn', async ({ page }) => {
@@ -199,7 +386,7 @@ test('successful create_docx is summarized at the bottom of the completed turn',
   await expect(panel.getByText('final-report.docx')).toBeVisible()
 })
 
-test('completed turn summary supports multiple generated files and ignores errored outputs', async ({ page }) => {
+test('completed turn summary supports multiple generated files and reports errored outputs', async ({ page }) => {
   await setupMockAnvil(page, {
     settings: { hasApiKey: true, workspacePath: '/Users/test/proj' },
     workspaceExists: true,
@@ -228,7 +415,8 @@ test('completed turn summary supports multiple generated files and ignores error
   await expect(panel.getByText('生成文件')).toBeVisible({ timeout: 5_000 })
   await expect(panel.getByText('a.docx')).toBeVisible()
   await expect(panel.getByText('b.docx')).toBeVisible()
-  await expect(panel.getByText('c.docx')).toHaveCount(0)
+  await expect(panel.getByText('生成 Word 文档失败：out-3.docx')).toBeVisible()
+  await expect(panel.getByText('生成文档失败：文件已存在 /Users/test/proj/c.docx')).toBeVisible()
 })
 
 test('completed turn without final text still shows generated file fallback area', async ({ page }) => {
@@ -250,4 +438,43 @@ test('completed turn without final text still shows generated file fallback area
   const panel = page.getByTestId('generated-files-panel')
   await expect(panel.getByText('生成文件')).toBeVisible({ timeout: 5_000 })
   await expect(panel.getByText('no-final.docx')).toBeVisible()
+})
+
+test('mixed document artifacts render pending, success, and failed rows together', async ({ page }) => {
+  await setupMockAnvil(page, {
+    settings: { hasApiKey: true, workspacePath: '/Users/test/proj' },
+    workspaceExists: true,
+  })
+  await page.goto('/')
+  await expect(page.getByText('Workspace 已就绪：').first()).toBeVisible({ timeout: 5_000 })
+
+  await emitMixedArtifactTurn(page)
+
+  const panel = page.getByTestId('generated-files-panel')
+  await expect(panel.getByText('正在生成 Word 文档：pending.docx…')).toBeVisible({ timeout: 5_000 })
+  await expect(panel.getByText('success-output.docx')).toBeVisible()
+  await expect(panel.getByText('生成 Word 文档失败：failed.docx')).toBeVisible()
+  await expect(panel.getByText('生成文档失败：模板不可用')).toBeVisible()
+})
+
+test('assistant prose paths do not create generated-file chips', async ({ page }) => {
+  await setupMockAnvil(page, {
+    settings: { hasApiKey: true, workspacePath: '/Users/test/proj' },
+    workspaceExists: true,
+  })
+  await page.goto('/')
+  await expect(page.getByText('Workspace 已就绪：').first()).toBeVisible({ timeout: 5_000 })
+
+  await emitCompletedTurn(page, {
+    outputs: [
+      {
+        output: [{ type: 'text', text: '已生成 Word 文档：/Users/test/proj/real-output.docx\n包含 3 个内容块。' }],
+      },
+    ],
+    finalText: '生成路径：/Users/test/proj/fake-prose.docx',
+  })
+
+  const panel = page.getByTestId('generated-files-panel')
+  await expect(panel.getByText('real-output.docx')).toBeVisible({ timeout: 5_000 })
+  await expect(panel.getByText('fake-prose.docx')).toHaveCount(0)
 })

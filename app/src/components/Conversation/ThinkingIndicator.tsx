@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { SPINNER_FRAMES } from '../../lib/spinner'
 
-const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const THINKING_VERBS = ['思考中', '推理中', '整理中', '计算中']
 
 export function ThinkingIndicator({

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FileSearch } from 'lucide-react'
 import type { Item, Turn } from '../../store'
 import { formatWorkspaceShort } from '../../lib/pathUtils'
-import { getGeneratedDocxPathsForTurn } from '../../lib/generatedFiles'
+import { getGeneratedDocxArtifactsForTurn } from '../../lib/generatedFiles'
 import { splitTurnItems } from '../../lib/trace'
 import type { ProcessExpandMode } from '../../hooks/useConversationExpand'
 import { MainItemView } from './MainItemView'
@@ -89,7 +89,7 @@ export function Conversation({
       )}
       {turns.map((turn) => {
         if (turn.status === 'running' && turn.itemIds.length === 0) return null
-        const generatedDocxPaths = getGeneratedDocxPathsForTurn(turn, items)
+        const generatedDocxArtifacts = getGeneratedDocxArtifactsForTurn(turn, items)
         const { userItems, processItems, finalAnswer } = splitTurnItems(turn, items)
         const processExpanded = isProcessExpanded(turn)
         return (
@@ -119,8 +119,8 @@ export function Conversation({
                 textVariant="final"
               />
             )}
-            {turn.status !== 'running' && generatedDocxPaths.length > 0 && (
-              <GeneratedFilesPanel paths={generatedDocxPaths} workspacePath={displayWorkspace} />
+            {generatedDocxArtifacts.length > 0 && (
+              <GeneratedFilesPanel artifacts={generatedDocxArtifacts} workspacePath={displayWorkspace} />
             )}
             {turn.status !== 'running' && turn.stats && (
               <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
