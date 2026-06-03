@@ -1,7 +1,7 @@
 {
   "name": "anvil",
   "private": true,
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Anvil — AI Agent Workbench",
   "main": "dist-electron/main/index.js",
   "type": "module",
