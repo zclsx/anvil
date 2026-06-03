@@ -148,8 +148,10 @@
   --font-mono-code: "JetBrains Mono", ui-monospace, monospace;
   --font-mono-label: "JetBrains Mono", ui-monospace, monospace;
   --font-body-lg: "Geist", var(--font-sans);
+  --font-body-md: "Geist", var(--font-sans);
   --font-body-sm: "Geist", var(--font-sans);
   --font-label-caps: "JetBrains Mono", ui-monospace, monospace;
+  --font-label-mono: "JetBrains Mono", ui-monospace, monospace;
   --font-headline: "Sora", var(--font-sans);
   --font-display: "Sora", var(--font-sans);
 }
@@ -409,10 +411,15 @@
   --font-mono-code: var(--font-mono-code);
   --font-mono-label: var(--font-mono-label);
   --font-body-lg: var(--font-body-lg);
+  --font-body-md: var(--font-body-md);
   --font-body-sm: var(--font-body-sm);
   --font-label-caps: var(--font-label-caps);
+  --font-label-mono: var(--font-label-mono);
   --font-headline: var(--font-headline);
   --font-display: var(--font-display);
+
+  --font-size-body-md: 13px;
+  --font-size-label-mono: 10px;
 }
 
 .app-title {

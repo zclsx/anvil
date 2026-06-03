@@ -113,11 +113,20 @@ export function MainItemView({
 
   if (item.kind === 'thinking') {
     const details = (
-      <details onClick={onSelect} className="glass-card border px-3 py-1.5 opacity-75">
-        <summary className="cursor-pointer font-mono-label text-[10px] text-on-surface-variant">
-          思考过程 · {item.text.length} chars
+      <details
+        onClick={onSelect}
+        className="glass-card border border-glass-border rounded p-3 bg-surface-container-lowest/20 hover:bg-surface-container-high/20 transition-colors"
+      >
+        <summary className="cursor-pointer font-medium text-body-md text-on-surface flex items-center gap-2 select-none">
+          <Sparkles size={14} className="text-secondary shrink-0" />
+          <span>思考过程</span>
+          <span className="text-label-mono font-label-mono text-on-surface-variant/50 ml-auto">
+            {item.text.length} 字符
+          </span>
         </summary>
-        <div className="mt-2 whitespace-pre-wrap text-[12px] italic text-on-surface-variant">{item.text}</div>
+        <div className="mt-3 whitespace-pre-wrap text-[12px] leading-relaxed text-on-surface-variant border-t border-glass-border/40 pt-2.5 font-mono-code">
+          {item.text}
+        </div>
       </details>
     )
 
@@ -143,9 +152,16 @@ export function MainItemView({
   }
 
   const fallback = (
-    <div onClick={onSelect} className={`glass-card cursor-pointer border px-3 py-2 opacity-75 transition-colors ${selectedClass}`}>
-      <div className="font-mono-label text-[9px] uppercase text-on-surface-variant">{item.role} · {item.kind}</div>
-      <div className="text-on-surface text-[11px] whitespace-pre-wrap">{item.text}</div>
+    <div
+      onClick={onSelect}
+      className={`glass-card cursor-pointer border rounded p-3 transition-colors bg-surface-container-lowest/30 hover:bg-surface-container-high/30 ${selectedClass}`}
+    >
+      <div className="font-label-mono text-label-mono text-on-surface-variant uppercase mb-1.5">
+        {item.role} · {item.kind}
+      </div>
+      <div className="text-body-md font-body-md text-on-surface whitespace-pre-wrap break-words leading-relaxed">
+        {item.text}
+      </div>
     </div>
   )
 
