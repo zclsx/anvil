@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FileText } from 'lucide-react'
 import type { GeneratedDocxArtifact } from '../../lib/generatedFiles'
 import { SPINNER_FRAMES } from '../../lib/spinner'
+import { RoleIconTile, RoleLabel } from '../RoleIconTile'
 import { StatusDot } from '../StatusDot'
 import { GeneratedFileChip } from './GeneratedFileChip'
 
@@ -61,14 +62,13 @@ export function GeneratedFilesPanel({
       data-testid="generated-files-panel"
       className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group"
     >
-      {/* File Avatar */}
-      <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-on-surface/10 bg-surface-container-lowest/50">
-        <FileText size={18} className="text-on-surface-variant" />
-      </div>
+      <RoleIconTile icon={FileText} tone="file" size="lg" shape="circle" elevated />
       <div className="flex-grow pt-1 min-w-0">
         <div className="glass-card p-4 rounded-lg rounded-tl-none border border-outline-variant hover:border-primary/30 transition-colors min-w-0">
           <div className="flex justify-between items-center mb-3">
-            <div className="text-label-mono font-label-mono text-on-surface-variant">生成文件</div>
+            <RoleLabel tone="file" className="text-label-mono font-label-mono">
+              生成文件
+            </RoleLabel>
             <span className="text-label-mono font-label-mono text-on-surface-variant/50">
               {artifacts.length} 个结果
             </span>

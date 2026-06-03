@@ -70,7 +70,6 @@ export function Conversation({
       className="relative flex-1 overflow-y-auto p-6 flex flex-col gap-8 scrollable"
       style={{ scrollbarGutter: 'stable' }}
     >
-      {/* Connector line is rendered locally inside each turn container */}
       {turns.length === 0 && !running && (
         <div className="text-center text-on-surface-variant italic text-[12px] opacity-75 py-12 flex flex-col items-center gap-2">
           <FileSearch size={28} />
@@ -100,7 +99,6 @@ export function Conversation({
         const hasMultipleItems = totalItemsCount > 1
         return (
           <div key={turn.id} className="trace-turn relative flex flex-col gap-8">
-            {/* Round Activity Timeline Line Connector */}
             {hasMultipleItems && (
               <div className="absolute left-[24px] -translate-x-1/2 top-6 bottom-6 w-[1.5px] bg-gradient-to-b from-outline-variant/35 to-outline-variant/5 pointer-events-none z-0" />
             )}

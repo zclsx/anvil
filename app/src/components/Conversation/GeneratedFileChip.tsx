@@ -61,12 +61,10 @@ export function GeneratedFileChip({
       }`}
     >
       <div className="flex min-w-0 items-center p-3">
-        {/* W Logo */}
-        <div className="w-10 h-10 rounded bg-[#185abd]/10 flex items-center justify-center mr-3 border border-[#185abd]/25 text-[#185abd] font-bold text-lg font-headline flex-shrink-0">
+        <div className="w-10 h-10 rounded bg-document-word-bg flex items-center justify-center mr-3 border border-document-word-border text-document-word-text font-bold text-lg font-headline flex-shrink-0">
           W
         </div>
 
-        {/* Info */}
         <div className="flex-grow min-w-0">
           <div className="text-body-md font-body-md text-on-surface truncate font-medium">
             {fileName}
@@ -76,7 +74,6 @@ export function GeneratedFileChip({
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3 ml-4 pl-4 border-l border-glass-border items-center shrink-0">
           {rightPanel && (
             <button

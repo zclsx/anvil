@@ -108,9 +108,16 @@
   --color-glass-highlight: rgba(255, 255, 255, 0.72);
   --color-trace-rail: rgba(29, 78, 216, 0.18);
   --color-trace-rail-glow: rgba(29, 78, 216, 0.08);
+  --color-trace-node-shadow: rgba(255, 255, 255, 0.05);
+  --color-backdrop-glow-left: rgba(255, 255, 255, 0.12);
+  --color-backdrop-glow-right: rgba(29, 78, 216, 0.08);
+  --color-backdrop-action-sheen: rgba(0, 102, 255, 0.08);
   --color-artifact-surface: rgba(234, 242, 255, 0.8);
   --color-artifact-border: rgba(29, 78, 216, 0.24);
   --color-artifact-highlight: rgba(255, 255, 255, 0.88);
+  --color-document-word-bg: rgba(24, 90, 189, 0.1);
+  --color-document-word-border: rgba(24, 90, 189, 0.25);
+  --color-document-word-text: #185ABD;
   --color-status-idle-bg: rgba(125, 133, 146, 0.1);
   --color-status-idle-text: #4B5563;
   --color-status-idle-border: rgba(125, 133, 146, 0.24);
@@ -264,9 +271,16 @@
   --color-glass-highlight: rgba(255, 255, 255, 0.06);
   --color-trace-rail: rgba(74, 222, 128, 0.34);
   --color-trace-rail-glow: rgba(0, 102, 255, 0.28);
+  --color-trace-node-shadow: rgba(255, 255, 255, 0.05);
+  --color-backdrop-glow-left: rgba(27, 43, 63, 0.8);
+  --color-backdrop-glow-right: rgba(11, 28, 48, 0.9);
+  --color-backdrop-action-sheen: rgba(0, 102, 255, 0.08);
   --color-artifact-surface: rgba(16, 32, 52, 0.88);
   --color-artifact-border: rgba(74, 222, 128, 0.34);
   --color-artifact-highlight: rgba(255, 255, 255, 0.08);
+  --color-document-word-bg: rgba(24, 90, 189, 0.1);
+  --color-document-word-border: rgba(24, 90, 189, 0.25);
+  --color-document-word-text: #185ABD;
   --color-status-idle-bg: rgba(138, 145, 163, 0.1);
   --color-status-idle-text: #A6ADBA;
   --color-status-idle-border: rgba(138, 145, 163, 0.24);
@@ -372,9 +386,16 @@
   --color-glass-highlight: var(--color-glass-highlight);
   --color-trace-rail: var(--color-trace-rail);
   --color-trace-rail-glow: var(--color-trace-rail-glow);
+  --color-trace-node-shadow: var(--color-trace-node-shadow);
+  --color-backdrop-glow-left: var(--color-backdrop-glow-left);
+  --color-backdrop-glow-right: var(--color-backdrop-glow-right);
+  --color-backdrop-action-sheen: var(--color-backdrop-action-sheen);
   --color-artifact-surface: var(--color-artifact-surface);
   --color-artifact-border: var(--color-artifact-border);
   --color-artifact-highlight: var(--color-artifact-highlight);
+  --color-document-word-bg: var(--color-document-word-bg);
+  --color-document-word-border: var(--color-document-word-border);
+  --color-document-word-text: var(--color-document-word-text);
   --color-status-idle-bg: var(--color-status-idle-bg);
   --color-status-idle-text: var(--color-status-idle-text);
   --color-status-idle-border: var(--color-status-idle-border);
@@ -547,14 +568,15 @@ body {
     background:
       radial-gradient(circle at 20% 2%, var(--color-trace-rail-glow), transparent 34%),
       radial-gradient(circle at 82% 6%, var(--color-glass-highlight), transparent 30%),
-      linear-gradient(135deg, rgba(0, 102, 255, 0.08), transparent 42%),
+      linear-gradient(135deg, var(--color-backdrop-action-sheen), transparent 42%),
       var(--color-background);
   }
 
   .dark .app-glass-backdrop {
-    background-image: radial-gradient(circle at 15% 50%, rgba(27, 43, 63, 0.8), transparent 25%),
-                      radial-gradient(circle at 85% 30%, rgba(11, 28, 48, 0.9), transparent 25%);
-    background-color: #031427;
+    background:
+      radial-gradient(circle at 15% 50%, var(--color-backdrop-glow-left), transparent 25%),
+      radial-gradient(circle at 85% 30%, var(--color-backdrop-glow-right), transparent 25%),
+      var(--color-background);
   }
 
   .glass-panel {

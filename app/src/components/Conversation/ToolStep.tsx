@@ -36,6 +36,7 @@ export function ToolStep({
   }
   const outputText = fullToolOutputText(item.toolOutput)
   const outputClipped = outputText.length > MAX_OUTPUT_CHARS
+  const toggleExpanded = () => setExpanded((current) => !current)
 
   const statusColors: Record<typeof state.tone, string> = {
     danger: 'text-status-danger bg-status-danger-chip-bg border-status-danger/30',
@@ -47,17 +48,19 @@ export function ToolStep({
 
   return (
     <div className="w-full border border-glass-border bg-surface-container-lowest/30 hover:bg-surface-container-high/30 rounded transition-colors overflow-hidden flex flex-col group/step">
-      <div
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between p-3 cursor-pointer text-body-md font-body-md"
-      >
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Wrench size={14} className="shrink-0 text-secondary" />
+      <div className="flex items-center justify-between gap-4 p-3 text-body-md font-body-md">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={toggleExpanded}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left focus-ring"
+        >
+          <Wrench size={14} className="shrink-0 text-info-text-accent" />
           <span className="font-label-mono text-label-mono text-on-surface shrink-0">tool_use {summary.label}</span>
           <span className="text-body-md font-body-md text-on-surface-variant ml-4 truncate min-w-0">
             {summary.argPreview || '无参数'}
           </span>
-        </div>
+        </button>
 
         <div className="flex items-center gap-4 shrink-0">
           <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold border ${statusColors[state.tone]}`}>
@@ -75,9 +78,15 @@ export function ToolStep({
             <ExternalLink size={12} />
           </button>
 
-          <div className="text-on-surface-variant p-0.5">
+          <button
+            type="button"
+            aria-label={expanded ? '收起工具详情' : '展开工具详情'}
+            aria-expanded={expanded}
+            onClick={toggleExpanded}
+            className="text-on-surface-variant p-0.5 focus-ring"
+          >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
+          </button>
         </div>
       </div>
 

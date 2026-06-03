@@ -21,9 +21,9 @@ const toneClasses: Record<RoleTone, { tile: string; icon: string; label: string 
     label: 'text-info-text-accent',
   },
   final: {
-    tile: 'border-info-border bg-info-bg/55',
-    icon: 'text-primary',
-    label: 'text-primary',
+    tile: 'border-status-success-border/30 bg-status-success-chip-bg',
+    icon: 'text-status-success',
+    label: 'text-status-success',
   },
   approvalHigh: {
     tile: 'border-status-error-border bg-status-error-bg/55',
@@ -47,22 +47,36 @@ const toneClasses: Record<RoleTone, { tile: string; icon: string; label: string 
   },
 }
 
+type RoleIconTileSize = 'sm' | 'lg'
+type RoleIconTileShape = 'square' | 'circle'
+
 export function RoleIconTile({
   icon: Icon,
   tone,
+  size = 'sm',
+  shape = 'square',
+  elevated = false,
   className = '',
 }: {
   icon: LucideIcon
   tone: RoleTone
+  size?: RoleIconTileSize
+  shape?: RoleIconTileShape
+  elevated?: boolean
   className?: string
 }) {
   const classes = toneClasses[tone]
+  const sizeClass = size === 'lg' ? 'h-12 w-12' : 'h-8 w-8'
+  const iconSize = size === 'lg' ? 18 : 14
+  const shapeClass = shape === 'circle' ? 'rounded-full' : 'rounded-[var(--radius-control)]'
+  const shadowClass = elevated ? 'shadow-[0_0_15px_var(--color-trace-node-shadow)]' : ''
+
   return (
     <span
-      className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border backdrop-blur-sm ${classes.tile} ${className}`}
+      className={`relative z-[1] flex shrink-0 items-center justify-center border backdrop-blur-sm ${sizeClass} ${shapeClass} ${shadowClass} ${classes.tile} ${className}`}
       aria-hidden="true"
     >
-      <Icon size={14} strokeWidth={1.8} className={classes.icon} />
+      <Icon size={iconSize} strokeWidth={1.8} className={classes.icon} />
     </span>
   )
 }

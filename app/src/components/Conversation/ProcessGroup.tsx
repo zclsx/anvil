@@ -1,5 +1,6 @@
 import { ChevronRight, Cpu } from 'lucide-react'
 import type { Item } from '../../store'
+import { RoleIconTile, RoleLabel } from '../RoleIconTile'
 import { MainItemView } from './MainItemView'
 
 export function ProcessGroup({
@@ -21,11 +22,8 @@ export function ProcessGroup({
 
   return (
     <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group">
-      {/* Process Group Avatar */}
-      <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
-        <Cpu size={18} className="text-secondary" />
-      </div>
-      <div className="glass-card min-w-0 overflow-hidden border border-outline-variant rounded-lg rounded-tl-none group-hover:border-secondary/30 transition-colors">
+      <RoleIconTile icon={Cpu} tone="process" size="lg" shape="circle" elevated />
+      <div className="glass-card min-w-0 overflow-hidden border border-outline-variant rounded-lg rounded-tl-none group-hover:border-info-border transition-colors">
         <button
           type="button"
           aria-expanded={isExpanded}
@@ -33,7 +31,9 @@ export function ProcessGroup({
           className="flex w-full items-center justify-between px-4 py-3 bg-surface-container-high/20 cursor-pointer hover:bg-surface-container-high/40 transition-colors focus-ring"
         >
           <div className="flex items-center gap-3">
-            <span className="text-body-md font-body-md font-medium text-on-surface">过程执行</span>
+            <RoleLabel tone="process" className="text-label-mono font-label-mono">
+              过程执行
+            </RoleLabel>
             {isRunning ? (
               <span className="px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold bg-status-running-bg/25 text-status-running-text border border-status-running-border/30">
                 运行中

@@ -64,8 +64,7 @@ export function ThinkingIndicator({
       aria-atomic="false"
       className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10"
     >
-      {/* Spinner/Thinking Avatar */}
-      <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-info-border bg-info-bg/35 shadow-[0_0_15px_var(--color-trace-node-shadow)] backdrop-blur-sm">
         <span aria-hidden="true" className={`${spinnerColor} text-[18px] font-mono-code leading-none flex items-center justify-center`}>
           {SPINNER_FRAMES[frame]}
         </span>
