@@ -156,16 +156,16 @@
 
 .dark {
   /* Premium Restrained Dark Mode */
-  --color-background: #0B0B0C;
-  --color-surface: #111115;
-  --color-surface-container: #18181D;
-  --color-surface-container-low: #141419;
-  --color-surface-container-lowest: #0E0E12;
-  --color-surface-container-high: #23232A;
-  --color-surface-container-highest: #2E2E37;
-  --color-surface-dim: #0B0B0C;
-  --color-surface-variant: #2B2D36;
-  --color-surface-bright: #363842;
+  --color-background: #031427;
+  --color-surface: #07182A;
+  --color-surface-container: #102034;
+  --color-surface-container-low: #0B1C30;
+  --color-surface-container-lowest: #000F21;
+  --color-surface-container-high: #1B2B3F;
+  --color-surface-container-highest: #24364D;
+  --color-surface-dim: #031427;
+  --color-surface-variant: #1B2B3F;
+  --color-surface-bright: #2A405A;
 
   --color-primary: #B3C5FF;
   --color-on-surface: #ECECF2;
@@ -175,9 +175,9 @@
   --color-on-secondary: #30323A;
   --color-on-primary-container: #F6F8FF;
 
-  --color-outline: #8A91A3;
-  --color-outline-variant: #1D1D22;
-  --color-secondary-container: #3E4350;
+  --color-outline: #93A4BA;
+  --color-outline-variant: rgba(255, 255, 255, 0.1);
+  --color-secondary-container: #1B2B3F;
 
   --color-success-emerald: #10b981;
   --color-process-purple: #a855f7;
@@ -211,8 +211,8 @@
   --color-status-warning-text: #F7B955;
   --color-status-warning-hover: rgba(245, 158, 11, 0.16);
 
-  --color-info-bg: #172033;
-  --color-info-border: rgba(179, 197, 255, 0.32);
+  --color-info-bg: rgba(0, 102, 255, 0.13);
+  --color-info-border: rgba(179, 197, 255, 0.36);
   --color-info-text: #E8EEFF;
   --color-info-text-secondary: #A7BAF7;
   --color-info-text-accent: #B3C5FF;
@@ -226,11 +226,11 @@
   --color-btn-primary-hover: var(--color-action-hover);
   --color-btn-primary-text: var(--color-on-action);
 
-  --color-btn-disabled-bg: #202127;
+  --color-btn-disabled-bg: #102034;
   --color-btn-disabled-text: #666D7A;
 
   /* Drag Active Dropzone Tokens */
-  --color-drag-bg: #111827;
+  --color-drag-bg: #0B1C30;
   --color-drag-border: #B3C5FF;
 
   --color-surface-base: var(--color-background);
@@ -250,21 +250,21 @@
   --color-focus-ring: var(--color-action);
   --color-link: var(--color-info-text-secondary);
   --color-document-preview-bg: #E5E5EA;
-  --color-code-surface: #0F1117;
-  --color-code-border: #242632;
+  --color-code-surface: rgba(0, 15, 33, 0.92);
+  --color-code-border: rgba(255, 255, 255, 0.1);
   --color-code-text: #D8DAE8;
   --color-code-label: #8D93A4;
   --color-code-error-surface: rgba(239, 68, 68, 0.1);
-  --color-glass-surface: rgba(17, 17, 21, 0.76);
-  --color-glass-surface-strong: rgba(20, 20, 25, 0.9);
-  --color-glass-surface-muted: rgba(24, 24, 29, 0.72);
-  --color-glass-border: rgba(255, 255, 255, 0.1);
-  --color-glass-highlight: rgba(255, 255, 255, 0.08);
-  --color-trace-rail: rgba(179, 197, 255, 0.22);
-  --color-trace-rail-glow: rgba(0, 102, 255, 0.2);
-  --color-artifact-surface: rgba(23, 32, 51, 0.78);
-  --color-artifact-border: rgba(179, 197, 255, 0.28);
-  --color-artifact-highlight: rgba(255, 255, 255, 0.1);
+  --color-glass-surface: rgba(7, 24, 42, 0.78);
+  --color-glass-surface-strong: rgba(16, 32, 52, 0.9);
+  --color-glass-surface-muted: rgba(11, 28, 48, 0.74);
+  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-glass-highlight: rgba(74, 222, 128, 0.09);
+  --color-trace-rail: rgba(74, 222, 128, 0.34);
+  --color-trace-rail-glow: rgba(0, 102, 255, 0.28);
+  --color-artifact-surface: rgba(16, 32, 52, 0.88);
+  --color-artifact-border: rgba(74, 222, 128, 0.34);
+  --color-artifact-highlight: rgba(74, 222, 128, 0.12);
   --color-status-idle-bg: rgba(138, 145, 163, 0.1);
   --color-status-idle-text: #A6ADBA;
   --color-status-idle-border: rgba(138, 145, 163, 0.24);
@@ -524,8 +524,9 @@ body {
 @layer components {
   .app-glass-backdrop {
     background:
-      radial-gradient(circle at 22% 0%, var(--color-trace-rail-glow), transparent 32%),
-      radial-gradient(circle at 88% 8%, var(--color-glass-highlight), transparent 28%),
+      radial-gradient(circle at 20% 2%, var(--color-trace-rail-glow), transparent 34%),
+      radial-gradient(circle at 82% 6%, var(--color-glass-highlight), transparent 30%),
+      linear-gradient(135deg, rgba(0, 102, 255, 0.08), transparent 42%),
       var(--color-background);
   }
 
@@ -533,18 +534,21 @@ body {
     background: var(--color-glass-surface);
     border-color: var(--color-glass-border);
     backdrop-filter: blur(20px);
+    box-shadow: inset 0 1px 0 var(--color-glass-highlight);
   }
 
   .glass-card {
     background: var(--color-glass-surface-muted);
     border-color: var(--color-glass-border);
     backdrop-filter: blur(16px);
+    box-shadow: inset 0 1px 0 var(--color-glass-highlight);
   }
 
   .glass-card-strong {
     background: var(--color-glass-surface-strong);
     border-color: var(--color-glass-border);
     backdrop-filter: blur(18px);
+    box-shadow: inset 0 1px 0 var(--color-glass-highlight);
   }
 
   .trace-turn {

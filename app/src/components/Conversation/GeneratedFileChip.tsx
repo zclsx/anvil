@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileText, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useAgentStore } from '../../store'
 import { getWorkspaceRelativePath } from '../../lib/pathUtils'
 import { useRightPanel } from '../RightPanel/context'
@@ -59,8 +59,8 @@ export function GeneratedFileChip({
       className={`${compact ? '' : 'mt-2'} inline-flex max-w-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-artifact-border bg-glass-surface-strong text-info-text transition-colors hover:bg-info-hover/60`}
     >
       <div className="flex min-w-0 items-center gap-3 px-3 py-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-artifact-border bg-artifact-surface text-info-text-accent">
-          <FileText size={16} />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-artifact-border bg-artifact-highlight font-headline text-[14px] font-semibold text-info-text-accent">
+          W
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2">
           <span className="font-mono-code max-w-[240px] truncate text-[12px] font-medium text-info-text">
