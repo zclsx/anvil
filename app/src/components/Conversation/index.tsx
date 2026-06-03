@@ -72,7 +72,7 @@ export function Conversation({
     >
       {/* Activity Timeline Axis Connector Line */}
       {turns.length > 0 && (
-        <div className="absolute left-[48px] -translate-x-1/2 top-8 bottom-8 w-[2px] bg-gradient-to-b from-outline-variant/60 to-outline-variant/10 pointer-events-none z-0" />
+        <div className="absolute left-[48px] -translate-x-1/2 top-8 bottom-8 w-[1.5px] bg-gradient-to-b from-outline-variant/35 to-outline-variant/5 pointer-events-none z-0" />
       )}
       {turns.length === 0 && !running && (
         <div className="text-center text-on-surface-variant italic text-[12px] opacity-75 py-12 flex flex-col items-center gap-2">

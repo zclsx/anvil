@@ -1,4 +1,4 @@
-import { Cpu, Sparkles, UserRound } from 'lucide-react'
+import { Cpu, Sparkles, UserRound, CheckCircle2 } from 'lucide-react'
 import type { Item } from '../../store'
 import { RoleIconTile, RoleLabel, type RoleTone } from '../RoleIconTile'
 import { MarkdownText } from './MarkdownText'
@@ -20,7 +20,7 @@ function textRoleTone(item: Item, textVariant: TextVariant): RoleTone {
 
 function textRoleIcon(item: Item, textVariant: TextVariant) {
   if (item.role === 'user') return UserRound
-  if (item.role === 'assistant' && textVariant === 'final') return Sparkles
+  if (item.role === 'assistant' && textVariant === 'final') return CheckCircle2
   return Cpu
 }
 
@@ -95,13 +95,16 @@ export function MainItemView({
         </div>
       )
 
+      const avatarBorderClass = isFinal ? 'border-status-success-border/30 bg-status-success-chip-bg' : 'border-secondary/20 bg-secondary/5 shadow-[0_0_15px_rgba(255,255,255,0.05)]'
+      const avatarIconClass = isFinal ? 'text-status-success' : 'text-secondary'
+
       if (!showRailIcon) return assistantCard
 
       return (
         <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4 relative z-10 group">
           {/* Assistant Avatar */}
-          <div className="w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border border-secondary/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] bg-secondary/5">
-            <RoleIcon size={18} className="text-secondary" />
+          <div className={`w-12 h-12 rounded-full glass-card flex-shrink-0 flex items-center justify-center border ${avatarBorderClass}`}>
+            <RoleIcon size={18} className={avatarIconClass} />
           </div>
           <div className="flex-grow pt-1 min-w-0">
             {assistantCard}

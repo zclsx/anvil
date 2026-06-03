@@ -261,12 +261,12 @@
   --color-glass-surface-strong: rgba(16, 32, 52, 0.9);
   --color-glass-surface-muted: rgba(11, 28, 48, 0.74);
   --color-glass-border: rgba(255, 255, 255, 0.12);
-  --color-glass-highlight: rgba(74, 222, 128, 0.09);
+  --color-glass-highlight: rgba(255, 255, 255, 0.06);
   --color-trace-rail: rgba(74, 222, 128, 0.34);
   --color-trace-rail-glow: rgba(0, 102, 255, 0.28);
   --color-artifact-surface: rgba(16, 32, 52, 0.88);
   --color-artifact-border: rgba(74, 222, 128, 0.34);
-  --color-artifact-highlight: rgba(74, 222, 128, 0.12);
+  --color-artifact-highlight: rgba(255, 255, 255, 0.08);
   --color-status-idle-bg: rgba(138, 145, 163, 0.1);
   --color-status-idle-text: #A6ADBA;
   --color-status-idle-border: rgba(138, 145, 163, 0.24);
@@ -420,6 +420,20 @@
 
   --font-size-body-md: 13px;
   --font-size-label-mono: 10px;
+}
+
+.text-body-md {
+  font-family: var(--font-body-md);
+  font-size: var(--font-size-body-md);
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+.text-label-mono {
+  font-family: var(--font-label-mono);
+  font-size: var(--font-size-label-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .app-title {
