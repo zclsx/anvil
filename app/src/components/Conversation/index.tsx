@@ -123,7 +123,7 @@ export function Conversation({
               <GeneratedFilesPanel artifacts={generatedDocxArtifacts} workspacePath={displayWorkspace} />
             )}
             {turn.status !== 'running' && turn.stats && (
-              <div className="text-[10px] font-mono-label text-on-surface-variant flex gap-3 px-1">
+              <div className="ml-[44px] flex gap-3 px-1 font-mono-label text-[10px] text-on-surface-variant">
                 <span className={
                   turn.status === 'failed' ? 'text-status-danger' : 'text-status-success'
                 }>{turn.status}</span>

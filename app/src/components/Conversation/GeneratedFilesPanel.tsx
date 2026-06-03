@@ -60,35 +60,33 @@ export function GeneratedFilesPanel({
   return (
     <div
       data-testid="generated-files-panel"
-      className="border border-artifact-border bg-artifact-surface px-3 py-3 backdrop-blur-md"
+      className="grid grid-cols-[32px_minmax(0,1fr)] gap-3"
     >
-      <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-3">
-        <RoleIconTile icon={FileText} tone="file" />
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <RoleLabel tone="file">
-              生成文件
-            </RoleLabel>
-            <span className="font-mono-label text-[9px] uppercase tracking-wider text-info-text-secondary">
-              {artifacts.length} 个结果
-            </span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {artifacts.map((artifact) => (
-              artifact.status === 'success' ? (
-                <GeneratedFileChip
-                  key={artifact.path}
-                  absPath={artifact.path}
-                  workspacePath={workspacePath}
-                  compact
-                />
-              ) : artifact.status === 'pending' ? (
-                <PendingGeneratedFileRow key={artifact.itemId} name={artifact.name} />
-              ) : (
-                <FailedGeneratedFileRow key={artifact.itemId} name={artifact.name} error={artifact.error} />
-              )
-            ))}
-          </div>
+      <RoleIconTile icon={FileText} tone="file" className="mt-0.5" />
+      <div className="min-w-0 border border-artifact-border bg-artifact-surface px-3 py-3 backdrop-blur-md">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <RoleLabel tone="file">
+            生成文件
+          </RoleLabel>
+          <span className="font-mono-label text-[9px] uppercase tracking-wider text-info-text-secondary">
+            {artifacts.length} 个结果
+          </span>
+        </div>
+        <div className="flex flex-col gap-2">
+          {artifacts.map((artifact) => (
+            artifact.status === 'success' ? (
+              <GeneratedFileChip
+                key={artifact.path}
+                absPath={artifact.path}
+                workspacePath={workspacePath}
+                compact
+              />
+            ) : artifact.status === 'pending' ? (
+              <PendingGeneratedFileRow key={artifact.itemId} name={artifact.name} />
+            ) : (
+              <FailedGeneratedFileRow key={artifact.itemId} name={artifact.name} error={artifact.error} />
+            )
+          ))}
         </div>
       </div>
     </div>
