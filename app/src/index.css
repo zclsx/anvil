@@ -551,6 +551,12 @@ body {
       var(--color-background);
   }
 
+  .dark .app-glass-backdrop {
+    background-image: radial-gradient(circle at 15% 50%, rgba(27, 43, 63, 0.8), transparent 25%),
+                      radial-gradient(circle at 85% 30%, rgba(11, 28, 48, 0.9), transparent 25%);
+    background-color: #031427;
+  }
+
   .glass-panel {
     background: var(--color-glass-surface);
     border-color: var(--color-glass-border);
