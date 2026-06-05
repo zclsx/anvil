@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import type { RightTab } from '../../hooks/useRightPanelTabs'
 
 function tabLabel(tab: RightTab): string {
+  if (tab.kind === 'task') return '任务'
   return tab.kind === 'preview' ? tab.title : '详情'
 }
 
@@ -33,16 +34,18 @@ export function TabStrip({
           >
             {tabLabel(tab)}
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onClose(tab.id)
-            }}
-            aria-label="关闭标签"
-            className="shrink-0 cursor-pointer text-on-surface-variant opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
-          >
-            <X size={11} />
-          </button>
+          {tab.kind !== 'task' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onClose(tab.id)
+              }}
+              aria-label="关闭标签"
+              className="shrink-0 cursor-pointer text-on-surface-variant opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
+            >
+              <X size={11} />
+            </button>
+          )}
           {tab.id === activeTabId && <span className="absolute bottom-0 left-0 h-[2px] w-full bg-primary" />}
         </div>
       ))}

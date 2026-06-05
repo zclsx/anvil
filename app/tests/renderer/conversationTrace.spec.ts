@@ -55,22 +55,23 @@ test('completed turn folds process by default and keeps user plus final answer v
   await expect(page.getByText('Workspace 已就绪：').first()).toBeVisible({ timeout: 5_000 })
 
   await emitToolThenAnswer(page)
+  const conversation = page.locator('main')
 
-  await expect(page.getByText('请读取文档。')).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('这是最终回答。')).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('最终回答', { exact: true })).toHaveCount(1)
-  await expect(page.getByText('read_document')).toHaveCount(0)
-  await expect(page.getByText('我先检查文档内容。')).toHaveCount(0)
-  await expect(page.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
+  await expect(conversation.getByText('请读取文档。')).toBeVisible({ timeout: 5_000 })
+  await expect(conversation.getByText('这是最终回答。')).toBeVisible({ timeout: 5_000 })
+  await expect(conversation.getByText('最终回答', { exact: true })).toHaveCount(1)
+  await expect(conversation.getByText('read_document')).toHaveCount(0)
+  await expect(conversation.getByText('我先检查文档内容。')).toHaveCount(0)
+  await expect(conversation.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
 
-  await page.getByRole('button', { name: /^过程/ }).click()
-  await expect(page.getByText('read_document').first()).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('我先检查文档内容。')).toBeVisible()
-  await expect(page.getByText('回复')).toBeVisible()
-  await expect(page.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
+  await conversation.getByRole('button', { name: /^过程/ }).click()
+  await expect(conversation.getByText('read_document').first()).toBeVisible({ timeout: 5_000 })
+  await expect(conversation.getByText('我先检查文档内容。')).toBeVisible()
+  await expect(conversation.getByText('回复')).toBeVisible()
+  await expect(conversation.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
 
-  await page.getByText('read_document').first().click()
-  await expect(page.getByText('SECRET_DETAIL_LINE_42')).toBeVisible({ timeout: 5_000 })
+  await conversation.getByText('read_document').first().click()
+  await expect(conversation.getByText('SECRET_DETAIL_LINE_42')).toBeVisible({ timeout: 5_000 })
 })
 
 test('expand-process toggle controls the turn process fold without opening tool detail', async ({ page }) => {
@@ -82,15 +83,16 @@ test('expand-process toggle controls the turn process fold without opening tool 
   await expect(page.getByText('Workspace 已就绪：').first()).toBeVisible({ timeout: 5_000 })
 
   await emitToolThenAnswer(page)
-  await expect(page.getByText('read_document')).toHaveCount(0)
-  await expect(page.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
+  const conversation = page.locator('main')
+  await expect(conversation.getByText('read_document')).toHaveCount(0)
+  await expect(conversation.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
 
   await page.getByRole('button', { name: /展开过程/ }).click()
-  await expect(page.getByText('read_document').first()).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
+  await expect(conversation.getByText('read_document').first()).toBeVisible({ timeout: 5_000 })
+  await expect(conversation.getByText('SECRET_DETAIL_LINE_42')).toHaveCount(0)
 
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+E' : 'Control+E')
-  await expect(page.getByText('read_document')).toHaveCount(0)
+  await expect(conversation.getByText('read_document')).toHaveCount(0)
 })
 
 test('running turn shows process live and collapses it when completed', async ({ page }) => {
@@ -124,7 +126,8 @@ test('running turn shows process live and collapses it when completed', async ({
     })
   })
 
-  await expect(page.getByText('Bash').first()).toBeVisible({ timeout: 5_000 })
+  const conversation = page.locator('main')
+  await expect(conversation.getByText('Bash').first()).toBeVisible({ timeout: 5_000 })
 
   await page.evaluate(() => {
     const ctl = (
@@ -152,6 +155,6 @@ test('running turn shows process live and collapses it when completed', async ({
     })
   })
 
-  await expect(page.getByText('命令已完成。')).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('Bash')).toHaveCount(0)
+  await expect(conversation.getByText('命令已完成。')).toBeVisible({ timeout: 5_000 })
+  await expect(conversation.getByText('Bash')).toHaveCount(0)
 })

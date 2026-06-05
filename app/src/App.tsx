@@ -139,8 +139,18 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const rightPanel = useRightPanelTabs()
+  const {
+    openPreview,
+    openInspector,
+    followInspector,
+    reset: resetRightPanel,
+  } = rightPanel
   const { processExpandMode, toggleProcessExpandMode } = useConversationExpand()
-  const rightPanelApi = useMemo(() => ({ openPreview: rightPanel.openPreview }), [rightPanel.openPreview])
+  const rightPanelApi = useMemo(() => ({ openPreview }), [openPreview])
+  const openItemInspector = useCallback((id: string) => {
+    setSelectedItemId(id)
+    openInspector(id)
+  }, [openInspector])
   const { width: rightPanelWidth, startResize: startRightPanelResize } = useResizablePanel({
     initialWidth: 400,
     min: 280,
@@ -209,11 +219,11 @@ export function App() {
       ingest(env)
       if (autoFollow && env.event && 'itemId' in env.event && env.event.itemId) {
         setSelectedItemId(env.event.itemId as string)
-        rightPanel.followInspector(env.event.itemId as string)
+        followInspector(env.event.itemId as string)
       }
     })
     return off
-  }, [ingest, autoFollow, rightPanel.followInspector])
+  }, [ingest, autoFollow, followInspector])
 
   useGlobalFileDropGuard(() => setIsFileDragActive(false))
 
@@ -266,8 +276,8 @@ export function App() {
   }, [sessionId, activeSessionId])
 
   useEffect(() => {
-    rightPanel.reset()
-  }, [activeSessionId, rightPanel.reset])
+    resetRightPanel()
+  }, [activeSessionId, resetRightPanel])
 
   useEscapeToCancel(running, () => {
     window.anvil?.cancel()
@@ -912,10 +922,7 @@ export function App() {
               awaitingFirstItem={awaitingFirstItem}
               loadingAnchorRef={loadingAnchorRef}
               conversationEndRef={conversationEndRef}
-              onSelectItem={(id) => {
-                setSelectedItemId(id)
-                rightPanel.openInspector(id)
-              }}
+              onSelectItem={openItemInspector}
               displayWorkspace={displayWorkspace}
               processExpandMode={processExpandMode}
               onToggleProcessExpand={toggleProcessExpandMode}
@@ -966,14 +973,20 @@ export function App() {
           className="w-1 shrink-0 cursor-col-resize bg-glass-border hover:bg-primary/60 transition-colors no-drag"
           aria-hidden="true"
         />
-        <RightPanel
-          width={rightPanelWidth}
-          tabs={rightPanel.tabs}
-          activeTabId={rightPanel.activeTabId}
-          items={items}
-          onActivate={rightPanel.setActive}
-          onClose={rightPanel.closeTab}
-        />
+        <RightPanelContext.Provider value={rightPanelApi}>
+          <RightPanel
+            width={rightPanelWidth}
+            tabs={rightPanel.tabs}
+            activeTabId={rightPanel.activeTabId}
+            items={items}
+            turns={turns}
+            pendingApprovals={pendingApprovals}
+            workspacePath={displayWorkspace}
+            onActivate={rightPanel.setActive}
+            onClose={rightPanel.closeTab}
+            onInspectItem={openItemInspector}
+          />
+        </RightPanelContext.Provider>
       </div>
 
       <Footer

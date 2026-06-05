@@ -1,24 +1,33 @@
 import { FileSearch } from 'lucide-react'
-import type { Item } from '../../store'
+import type { Item, PendingApproval, Turn } from '../../store'
 import type { RightTab } from '../../hooks/useRightPanelTabs'
 import { Inspector } from '../Inspector'
 import { TabStrip } from './TabStrip'
 import { DocumentPreview } from './DocumentPreview'
+import { TaskWorkbench } from './TaskWorkbench'
 
 export function RightPanel({
   width,
   tabs,
   activeTabId,
   items,
+  turns,
+  pendingApprovals,
+  workspacePath,
   onActivate,
   onClose,
+  onInspectItem,
 }: {
   width: number
   tabs: RightTab[]
   activeTabId: string | null
   items: Record<string, Item>
+  turns: Turn[]
+  pendingApprovals: PendingApproval[]
+  workspacePath?: string
   onActivate: (id: string) => void
   onClose: (id: string) => void
+  onInspectItem: (itemId: string) => void
 }) {
   const active = tabs.find((t) => t.id === activeTabId) ?? null
 
@@ -31,7 +40,15 @@ export function RightPanel({
         <TabStrip tabs={tabs} activeTabId={activeTabId} onActivate={onActivate} onClose={onClose} />
       )}
       {active ? (
-        active.kind === 'preview' ? (
+        active.kind === 'task' ? (
+          <TaskWorkbench
+            turns={turns}
+            items={items}
+            pendingApprovals={pendingApprovals}
+            workspacePath={workspacePath}
+            onInspectItem={onInspectItem}
+          />
+        ) : active.kind === 'preview' ? (
           <DocumentPreview key={active.id} filePath={active.filePath} />
         ) : items[active.itemId] ? (
           <Inspector item={items[active.itemId]} />

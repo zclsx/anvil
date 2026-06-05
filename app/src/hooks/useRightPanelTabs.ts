@@ -1,6 +1,7 @@
 import { useReducer, useCallback } from 'react'
 
 export type RightTab =
+  | { id: string; kind: 'task' }
   | { id: string; kind: 'inspector'; itemId: string }
   | { id: string; kind: 'preview'; filePath: string; title: string }
 
@@ -18,8 +19,11 @@ export type RightPanelAction =
   | { type: 'reset' }
 
 export const INSPECTOR_TAB_ID = 'inspector'
+export const TASK_TAB_ID = 'task'
 
-export const initialRightPanelState: RightPanelState = { tabs: [], activeTabId: null }
+const TASK_TAB: RightTab = { id: TASK_TAB_ID, kind: 'task' }
+
+export const initialRightPanelState: RightPanelState = { tabs: [TASK_TAB], activeTabId: TASK_TAB_ID }
 
 function previewTabId(filePath: string): string {
   return `preview:${filePath}`
@@ -32,7 +36,7 @@ export function rightPanelReducer(state: RightPanelState, action: RightPanelActi
       const inspector: RightTab = { id: INSPECTOR_TAB_ID, kind: 'inspector', itemId: action.itemId }
       const tabs = existing
         ? state.tabs.map((t) => (t.id === INSPECTOR_TAB_ID ? inspector : t))
-        : [inspector, ...state.tabs]
+        : [TASK_TAB, inspector, ...state.tabs.filter((t) => t.id !== TASK_TAB_ID)]
       return { tabs, activeTabId: INSPECTOR_TAB_ID }
     }
     case 'followInspector': {
@@ -53,17 +57,19 @@ export function rightPanelReducer(state: RightPanelState, action: RightPanelActi
         return { ...state, activeTabId: id }
       }
       const tab: RightTab = { id, kind: 'preview', filePath: action.filePath, title: action.title }
-      return { tabs: [...state.tabs, tab], activeTabId: id }
+      const tabs = state.tabs.some((t) => t.id === TASK_TAB_ID) ? state.tabs : [TASK_TAB, ...state.tabs]
+      return { tabs: [...tabs, tab], activeTabId: id }
     }
     case 'closeTab': {
+      if (action.id === TASK_TAB_ID) return state
       const idx = state.tabs.findIndex((t) => t.id === action.id)
       if (idx === -1) return state
       const tabs = state.tabs.filter((t) => t.id !== action.id)
       let activeTabId = state.activeTabId
       if (state.activeTabId === action.id) {
-        activeTabId = tabs.length === 0 ? null : tabs[Math.min(idx, tabs.length - 1)].id
+        activeTabId = tabs.length === 0 ? TASK_TAB_ID : tabs[Math.min(idx, tabs.length - 1)].id
       }
-      return { tabs, activeTabId }
+      return { tabs: tabs.length === 0 ? [TASK_TAB] : tabs, activeTabId }
     }
     case 'setActive': {
       if (!state.tabs.some((t) => t.id === action.id)) return state

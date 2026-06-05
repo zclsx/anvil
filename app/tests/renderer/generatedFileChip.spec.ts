@@ -273,15 +273,16 @@ test('successful create_docx renders a generated file chip with working actions'
     finish: true,
   })
 
-  await expect(page.getByText('out.docx')).toHaveCount(1, { timeout: 5_000 })
+  const conversation = page.locator('main')
+  await expect(conversation.getByText('out.docx')).toHaveCount(1, { timeout: 5_000 })
 
   // expand to reveal full + workspace-relative path
-  await page.getByRole('button', { name: '展开路径' }).click()
-  await expect(page.getByText('/Users/test/proj/out.docx').first()).toBeVisible()
-  await expect(page.getByText('./out.docx').first()).toBeVisible()
+  await conversation.getByRole('button', { name: '展开路径' }).click()
+  await expect(conversation.getByText('/Users/test/proj/out.docx').first()).toBeVisible()
+  await expect(conversation.getByText('./out.docx').first()).toBeVisible()
 
   // Open goes through the safe IPC with the absolute path
-  await page.getByRole('button', { name: '打开' }).click()
+  await conversation.getByRole('button', { name: '打开' }).click()
   await page.waitForFunction(() => {
     const ctl = (window as unknown as { __anvilTestControl: { getCalls: (c: string) => unknown[] } }).__anvilTestControl
     return ctl.getCalls('files:openPath').length > 0
@@ -293,7 +294,7 @@ test('successful create_docx renders a generated file chip with working actions'
   expect(openCalls[0]).toBe('/Users/test/proj/out.docx')
 
   // Reveal too
-  await page.getByRole('button', { name: '定位' }).click()
+  await conversation.getByRole('button', { name: '定位' }).click()
   await page.waitForFunction(() => {
     const ctl = (window as unknown as { __anvilTestControl: { getCalls: (c: string) => unknown[] } }).__anvilTestControl
     return ctl.getCalls('files:showInFolder').length > 0
