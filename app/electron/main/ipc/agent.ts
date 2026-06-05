@@ -19,6 +19,7 @@ import { resolveQueryWorkspace } from '../query/workspace'
 import { getClaudeExecutablePath } from '../query/claudeExecutable'
 import { toolRisk } from '../query/toolRisk'
 import { loadLocalMcpServers } from '../query/localMcpServers'
+import { isStreamLivenessType } from '../query/streamLiveness'
 import {
   createToolIdleState,
   hasActiveToolIdlePause,
@@ -280,6 +281,7 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
   const options: any = {
     cwd: workspacePath,
     abortController,
+    includePartialMessages: true,
     canUseTool: async (toolName: string, input: any, permissionContext?: ToolPermissionContext) => {
       if (toolName === READ_DOCUMENT_TOOL_NAME || toolName === GET_DOCUMENT_SKILL_TOOL_NAME) {
         applyToolPermissionAllowed(permissionContext)
@@ -371,17 +373,17 @@ async function runAgentQuery(req: QueryRequest, ctx: MainRuntimeContext) {
     let terminalResultStatus: 'completed' | 'failed' | null = null
     let terminalResultError: string | null = null
     for await (const msg of q) {
-      const rawType = (msg as any)?.type
-      const isMeaningful =
-        rawType === 'assistant' ||
-        rawType === 'user' ||
-        rawType === 'result'
+      const rawType = (msg as { type?: unknown } | null | undefined)?.type
+      const isLiveness = isStreamLivenessType(rawType)
 
-      if (isMeaningful && !receivedAnyMessage) {
+      if (isLiveness && !receivedAnyMessage) {
         receivedAnyMessage = true
         clearTimeout(firstResponseTimer)
       }
-      if (isMeaningful) resetIdleTimer()
+      if (isLiveness) resetIdleTimer()
+
+      if (alreadyFinished || query_state.failure) break
+      if (rawType === 'stream_event') continue
 
       const envelopes = adapter.ingest(msg)
       for (const env of envelopes) {
