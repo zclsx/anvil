@@ -27,6 +27,14 @@ test.describe('parseInline', () => {
       { text: ' e' },
     ])
   })
+
+  test('parses inline code without keeping backticks', () => {
+    expect(parseInline('运行 `npm test` 后继续')).toEqual([
+      { text: '运行 ' },
+      { text: 'npm test', code: true },
+      { text: ' 后继续' },
+    ])
+  })
 })
 
 test.describe('parseMarkdownBlocks', () => {
@@ -77,6 +85,30 @@ test.describe('parseMarkdownBlocks', () => {
   test('does not treat a bare thematic break after pipe text as a table', () => {
     const blocks = parseMarkdownBlocks('汇总 | 详情\n---\n正文')
     expect(blocks.map((b) => b.type)).toEqual(['paragraph', 'paragraph', 'paragraph'])
+  })
+
+  test('parses fenced code blocks and callouts', () => {
+    const blocks = parseMarkdownBlocks([
+      '正文',
+      '',
+      '```ts',
+      'const ok = true',
+      'console.log(ok)',
+      '```',
+      '',
+      '> [!note] 关键结论',
+      '> 需要保留证据链。',
+    ].join('\n'))
+
+    expect(blocks).toMatchObject([
+      { type: 'paragraph' },
+      { type: 'codeblock', lines: ['const ok = true', 'console.log(ok)'] },
+      {
+        type: 'callout',
+        label: 'NOTE',
+        lines: [[{ text: '关键结论' }], [{ text: '需要保留证据链。' }]],
+      },
+    ])
   })
 })
 
@@ -224,11 +256,17 @@ test.describe('generateDocx round-trip', () => {
 
     const xml = await readDocumentXml(file)
     const stylesXml = await readStylesXml(file)
+    const footerXml = await readFooterXml(file)
     expectXmlTagAttributes(xml, 'w:pgMar', {
       'w:top': '1440',
       'w:right': '1440',
       'w:bottom': '1440',
       'w:left': '1440',
+    })
+    expectXmlTagAttributes(stylesXml, 'w:rFonts', {
+      'w:ascii': 'Arial',
+      'w:hAnsi': 'Arial',
+      'w:eastAsia': 'Microsoft YaHei',
     })
     expectXmlTagAttributes(stylesXml, 'w:sz', { 'w:val': '22' })
 
@@ -236,6 +274,10 @@ test.describe('generateDocx round-trip', () => {
     expectXmlTagAttributes(titleParagraph, 'w:jc', { 'w:val': 'center' })
     expectXmlTagAttributes(titleParagraph, 'w:spacing', { 'w:after': '240' })
     expectXmlTagAttributes(titleParagraph, 'w:sz', { 'w:val': '44' })
+    expectXmlTagAttributes(titleParagraph, 'w:rFonts', {
+      'w:ascii': 'Arial',
+      'w:eastAsia': 'Microsoft YaHei',
+    })
 
     const bodyParagraph = findParagraphContaining(xml, '正文段落。')
     expectXmlTagAttributes(bodyParagraph, 'w:spacing', {
@@ -246,9 +288,68 @@ test.describe('generateDocx round-trip', () => {
     })
     expectXmlTagAttributes(bodyParagraph, 'w:ind', { 'w:firstLine': '440' })
     expectXmlTagAttributes(bodyParagraph, 'w:jc', { 'w:val': 'both' })
+    expectXmlTagAttributes(bodyParagraph, 'w:rFonts', {
+      'w:ascii': 'Arial',
+      'w:eastAsia': 'Microsoft YaHei',
+    })
 
     const headingParagraph = findParagraphContaining(xml, '第一章')
     expect(headingParagraph).not.toMatch(/\bw:firstLine="440"/)
+    expect(footerXml).toContain('正式报告')
+    expect(footerXml).toContain('PAGE')
+  })
+
+  test('renders inline code and fenced code with mono font and shading', async () => {
+    const file = path.join(tmpDir, 'code-format.docx')
+    await generateDocx(
+      file,
+      [
+        '正文里有 `npm test` 命令。',
+        '',
+        '```ts',
+        'const ok = true',
+        'console.log(ok)',
+        '```',
+      ].join('\n'),
+      '代码报告',
+      { style: DEFAULT_DOCX_STYLE },
+    )
+
+    const xml = await readDocumentXml(file)
+    expect(xml).not.toContain('`npm test`')
+
+    const inlineRun = findRunContaining(xml, 'npm test')
+    expectXmlTagAttributes(inlineRun, 'w:rFonts', {
+      'w:ascii': 'Consolas',
+      'w:hAnsi': 'Consolas',
+      'w:eastAsia': 'Consolas',
+    })
+    expectXmlTagAttributes(inlineRun, 'w:shd', { 'w:fill': 'F5F7FA' })
+
+    const codeParagraph = findParagraphContaining(xml, 'const ok = true')
+    expectXmlTagAttributes(codeParagraph, 'w:shd', { 'w:fill': 'EEF3F8' })
+    expectXmlTagAttributes(codeParagraph, 'w:jc', { 'w:val': 'left' })
+    expect(codeParagraph).not.toMatch(/\bw:firstLine="440"/)
+    expectXmlTagAttributes(findRunContaining(codeParagraph, 'const ok = true'), 'w:rFonts', {
+      'w:ascii': 'Consolas',
+      'w:eastAsia': 'Consolas',
+    })
+  })
+
+  test('renders callout blocks as shaded bordered paragraphs', async () => {
+    const file = path.join(tmpDir, 'callout.docx')
+    await generateDocx(
+      file,
+      '> [!warning] 关键风险\n> 请先复核数据来源。',
+      '风险提示',
+      { style: DEFAULT_DOCX_STYLE },
+    )
+
+    const xml = await readDocumentXml(file)
+    const paragraph = findParagraphContaining(xml, '关键风险')
+    expectXmlTagAttributes(paragraph, 'w:shd', { 'w:fill': 'F5F7FA' })
+    expectXmlTagAttributes(paragraph, 'w:left', { 'w:color': '9AB2D0' })
+    expect(paragraph).toContain('WARNING')
   })
 
   test('keeps unstyled create_docx output free of skill-only layout markers', async () => {
@@ -260,6 +361,7 @@ test.describe('generateDocx round-trip', () => {
     expect(xml).not.toMatch(/\bw:firstLine="440"/)
     expect(xml).not.toMatch(/\bw:line="276"/)
     expect(stylesXml).not.toContain('Microsoft YaHei')
+    await expect(readFooterXml(file)).rejects.toThrow()
   })
 })
 
@@ -275,6 +377,15 @@ async function readStylesXml(file: string): Promise<string> {
   const stylesXml = zip.file('word/styles.xml')
   if (!stylesXml) throw new Error('word/styles.xml not found')
   return stylesXml.async('string')
+}
+
+async function readFooterXml(file: string): Promise<string> {
+  const zip = await JSZip.loadAsync(await fs.readFile(file))
+  const footerPath = Object.keys(zip.files).find((name) => /^word\/footer\d+\.xml$/.test(name))
+  if (!footerPath) throw new Error('footer xml not found')
+  const footerXml = zip.file(footerPath)
+  if (!footerXml) throw new Error('footer xml not found')
+  return footerXml.async('string')
 }
 
 function countOccurrences(text: string, needle: string): number {
@@ -296,6 +407,14 @@ function findParagraphContaining(xml: string, text: string): string {
   const paragraph = paragraphs.find((p) => new RegExp(`<w:t\\b[^>]*>${escapedText}</w:t>`).test(p))
   if (!paragraph) throw new Error(`paragraph not found: ${text}`)
   return paragraph
+}
+
+function findRunContaining(xml: string, text: string): string {
+  const runs = xml.match(/<w:r\b[\s\S]*?<\/w:r>/g) ?? []
+  const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const run = runs.find((r) => new RegExp(`<w:t\\b[^>]*>${escapedText}</w:t>`).test(r))
+  if (!run) throw new Error(`run not found: ${text}`)
+  return run
 }
 
 test.describe('isWriteTargetWithinWorkspace (symlink escape)', () => {

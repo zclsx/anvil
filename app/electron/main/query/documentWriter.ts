@@ -1,11 +1,12 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { DocxAlignment, DocxStyleOptions } from './documentSkill'
+import { DEFAULT_DOCX_STYLE, type DocxAlignment, type DocxStyleOptions } from './documentSkill'
 
 export interface InlineRun {
   text: string
   bold?: boolean
   italic?: boolean
+  code?: boolean
 }
 
 export type DocBlock =
@@ -13,6 +14,8 @@ export type DocBlock =
   | { type: 'paragraph'; runs: InlineRun[] }
   | { type: 'bullet'; runs: InlineRun[] }
   | { type: 'numbered'; runs: InlineRun[] }
+  | { type: 'codeblock'; lines: string[] }
+  | { type: 'callout'; label: string; lines: InlineRun[][] }
   | { type: 'table'; headers: InlineRun[][]; rows: InlineRun[][][] }
 
 export type ResolvedWritePath =
@@ -28,18 +31,19 @@ export type GeneratedDocxBuffer = {
 
 /**
  * Parse a single line's inline markdown into styled runs.
- * Supports **bold** and *italic*; nesting is not handled (first-level only),
- * which is enough for agent-generated reports.
+ * Supports `code`, **bold** and *italic*; nesting is not handled
+ * (first-level only), which is enough for agent-generated reports.
  */
 export function parseInline(text: string): InlineRun[] {
   const runs: InlineRun[] = []
-  const re = /\*\*([^*]+)\*\*|\*([^*]+)\*/g
+  const re = /`([^`\n]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*/g
   let last = 0
   let m: RegExpExecArray | null
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) runs.push({ text: text.slice(last, m.index) })
-    if (m[1] !== undefined) runs.push({ text: m[1], bold: true })
-    else if (m[2] !== undefined) runs.push({ text: m[2], italic: true })
+    if (m[1] !== undefined) runs.push({ text: m[1], code: true })
+    else if (m[2] !== undefined) runs.push({ text: m[2], bold: true })
+    else if (m[3] !== undefined) runs.push({ text: m[3], italic: true })
     last = re.lastIndex
   }
   if (last < text.length) runs.push({ text: text.slice(last) })
@@ -76,8 +80,9 @@ function normalizeTableRunCells(cells: InlineRun[][], width: number): InlineRun[
 
 /**
  * Parse markdown into a flat list of block descriptors. Block-level support is
- * intentionally small: H1–H3, bullet/numbered list items, paragraphs, and GFM
- * pipe tables. Unsupported blocks still degrade to paragraphs.
+ * intentionally small: H1–H3, bullet/numbered list items, fenced code
+ * blocks, callouts, paragraphs, and GFM pipe tables. Unsupported blocks still
+ * degrade to paragraphs.
  */
 export function parseMarkdownBlocks(markdown: string): DocBlock[] {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n')
@@ -86,6 +91,34 @@ export function parseMarkdownBlocks(markdown: string): DocBlock[] {
     const raw = lines[i]
     const line = raw.trimEnd()
     if (line.trim() === '') continue
+    if (/^\s*```/.test(line)) {
+      const codeLines: string[] = []
+      i += 1
+      while (i < lines.length && !/^\s*```/.test(lines[i].trimEnd())) {
+        codeLines.push(lines[i].replace(/\s+$/, ''))
+        i += 1
+      }
+      blocks.push({ type: 'codeblock', lines: codeLines.length > 0 ? codeLines : [''] })
+      continue
+    }
+    const callout = /^>\s*\[!([a-zA-Z0-9_-]+)\]\s*(.*)$/.exec(line)
+    if (callout) {
+      const contentLines = [callout[2].trim()].filter(Boolean)
+      i += 1
+      while (i < lines.length) {
+        const quoted = /^>\s?(.*)$/.exec(lines[i].trimEnd())
+        if (!quoted) break
+        contentLines.push(quoted[1].trimEnd())
+        i += 1
+      }
+      i -= 1
+      blocks.push({
+        type: 'callout',
+        label: callout[1].toUpperCase(),
+        lines: (contentLines.length > 0 ? contentLines : ['']).map(parseInline),
+      })
+      continue
+    }
     const nextLine = lines[i + 1]?.trimEnd() ?? ''
     if (isPipeRow(line) && isPipeRow(nextLine) && isTableSeparator(nextLine)) {
       const headerCells = splitTableRow(line)
@@ -232,8 +265,10 @@ export async function buildDocxBuffer(
     AlignmentType,
     BorderStyle,
     Document,
+    Footer,
     HeadingLevel,
     LineRuleType,
+    PageNumber,
     Packer,
     Paragraph,
     Table,
@@ -259,6 +294,20 @@ export async function buildDocxBuffer(
   }
   const compactRecord = (values: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined))
+  const bodyFont = style
+    ? {
+        ascii: style.fontLatin ?? DEFAULT_DOCX_STYLE.fontLatin,
+        hAnsi: style.fontLatin ?? DEFAULT_DOCX_STYLE.fontLatin,
+        eastAsia: style.fontEastAsia ?? DEFAULT_DOCX_STYLE.fontEastAsia,
+      }
+    : undefined
+  const monoFont = style
+    ? {
+        ascii: style.fontMono ?? DEFAULT_DOCX_STYLE.fontMono,
+        hAnsi: style.fontMono ?? DEFAULT_DOCX_STYLE.fontMono,
+        eastAsia: style.fontMono ?? DEFAULT_DOCX_STYLE.fontMono,
+      }
+    : undefined
   const paragraphSpacing = (before?: number, after?: number) => {
     const line = lineSpacingToTwip(style?.lineSpacing)
     const spacing = compactRecord({
@@ -282,7 +331,7 @@ export async function buildDocxBuffer(
     spacingBefore?: number,
     spacingAfter?: number,
   ) => {
-    const run = compactRecord({ size: ptToHalf(sizePt), bold: true })
+    const run = compactRecord({ size: ptToHalf(sizePt), bold: true, font: bodyFont })
     const paragraph = compactRecord({ spacing: paragraphSpacing(spacingBefore, spacingAfter) })
     return compactRecord({
       run: Object.keys(run).length > 0 ? run : undefined,
@@ -290,10 +339,64 @@ export async function buildDocxBuffer(
     })
   }
 
-  const toTextRuns = (runs: InlineRun[]) =>
-    runs.map((r) => new TextRun({ text: r.text, bold: r.bold, italics: r.italic }))
+  const toTextRuns = (runs: InlineRun[], forceBold = false) =>
+    runs.map((r) =>
+      new TextRun({
+        text: r.text,
+        bold: forceBold || r.bold,
+        italics: r.italic,
+        font: r.code ? monoFont : bodyFont,
+        shading: r.code ? { fill: 'F5F7FA' } : undefined,
+      }),
+    )
+
+  const blockBorder = {
+    top: { style: BorderStyle.SINGLE, size: 1, color: 'D8E0EA' },
+    bottom: { style: BorderStyle.SINGLE, size: 1, color: 'D8E0EA' },
+    left: { style: BorderStyle.SINGLE, size: 8, color: '9AB2D0' },
+    right: { style: BorderStyle.SINGLE, size: 1, color: 'D8E0EA' },
+  }
+
+  const toCodeblockParagraph = (lines: string[]) =>
+    new Paragraph({
+      children: lines.map((line, index) =>
+        new TextRun({
+          text: line || ' ',
+          break: index === 0 ? undefined : 1,
+          font: monoFont,
+          shading: { fill: 'EEF3F8' },
+        }),
+      ),
+      shading: { fill: 'EEF3F8' },
+      border: blockBorder,
+      ...bodyParagraphOptions(false),
+      alignment: AlignmentType.LEFT,
+    })
+
+  const toCalloutParagraph = (block: Extract<DocBlock, { type: 'callout' }>) => {
+    const children = [
+      new TextRun({
+        text: block.label ? `${block.label}: ` : 'NOTE: ',
+        bold: true,
+        font: bodyFont,
+      }),
+    ]
+    block.lines.forEach((line, index) => {
+      if (index > 0) children.push(new TextRun({ break: 1 }))
+      children.push(...toTextRuns(line))
+    })
+    return new Paragraph({
+      children,
+      shading: { fill: 'F5F7FA' },
+      border: blockBorder,
+      ...bodyParagraphOptions(false),
+      alignment: AlignmentType.LEFT,
+    })
+  }
 
   const toParagraph = (block: Exclude<DocBlock, { type: 'table' }>) => {
+    if (block.type === 'codeblock') return toCodeblockParagraph(block.lines)
+    if (block.type === 'callout') return toCalloutParagraph(block)
     const children = toTextRuns(block.runs)
     if (block.type === 'heading') {
       const level =
@@ -352,9 +455,7 @@ export async function buildDocxBuffer(
         shading: header ? { fill: tableHeaderShading } : undefined,
         children: [
           new Paragraph({
-            children: toTextRuns(
-              header && tableHeaderBold ? runs.map((run) => ({ ...run, bold: true })) : runs,
-            ),
+            children: toTextRuns(runs, header && tableHeaderBold),
           }),
         ],
       })
@@ -388,6 +489,7 @@ export async function buildDocxBuffer(
       text: title,
       bold: style ? style.titleBold : true,
       size: style ? ptToHalf(style.titleSize) : undefined,
+      font: bodyFont,
     })
     children.push(
       new Paragraph({
@@ -406,8 +508,28 @@ export async function buildDocxBuffer(
     children.push(block.type === 'table' ? toTable(block) : toParagraph(block))
   }
 
+  const footer = style
+    ? new Footer({
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: title ? `${title} · 第 ` : '第 ',
+                font: bodyFont,
+                size: ptToHalf(9),
+              }),
+              new TextRun({ children: [PageNumber.CURRENT], font: bodyFont, size: ptToHalf(9) }),
+              new TextRun({ text: ' 页', font: bodyFont, size: ptToHalf(9) }),
+            ],
+          }),
+        ],
+      })
+    : undefined
+
   const section = style
     ? {
+        footers: footer ? { default: footer } : undefined,
         properties: {
           page: {
             margin: {
@@ -438,7 +560,7 @@ export async function buildDocxBuffer(
     docOptions.styles = {
       default: {
         document: {
-          run: { font: style.font, size: ptToHalf(style.bodySize) },
+          run: { font: bodyFont, size: ptToHalf(style.bodySize) },
         },
         heading1: headingParagraphStyle(style.heading1Size, style.heading1SpacingBefore, style.heading1SpacingAfter),
         heading2: headingParagraphStyle(style.heading2Size, style.heading2SpacingBefore, style.heading2SpacingAfter),

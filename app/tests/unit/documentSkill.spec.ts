@@ -44,7 +44,9 @@ test.describe('parseSkill', () => {
         '- 标题最多三级',
         '',
         '## Document Style',
-        'font: Microsoft YaHei',
+        'fontLatin: Arial',
+        'fontEastAsia: Microsoft YaHei',
+        'fontMono: Consolas',
         'bodySize: 11',
         'heading1Size: 18',
         'heading2Size: 15',
@@ -80,7 +82,9 @@ test.describe('parseSkill', () => {
     expect(skill.purpose).toContain('正式报告')
     expect(skill.writingRules).toEqual(['用正式书面语', '标题最多三级'])
     expect(skill.style).toEqual({
-      font: 'Microsoft YaHei',
+      fontLatin: 'Arial',
+      fontEastAsia: 'Microsoft YaHei',
+      fontMono: 'Consolas',
       bodySize: 11,
       heading1Size: 18,
       heading2Size: 15,
@@ -121,7 +125,9 @@ test.describe('parseSkill', () => {
         '## Document Style',
         'bodySize: 999',
         'heading1Size: abc',
-        'font:',
+        'fontLatin:',
+        'fontEastAsia:',
+        'fontMono:',
         'pageMarginTop: 201pt',
         'lineSpacing: 0.1',
         'alignment: middle',
@@ -132,7 +138,9 @@ test.describe('parseSkill', () => {
     )
     expect(skill.style.bodySize).toBeUndefined()
     expect(skill.style.heading1Size).toBeUndefined()
-    expect(skill.style.font).toBeUndefined()
+    expect(skill.style.fontLatin).toBeUndefined()
+    expect(skill.style.fontEastAsia).toBeUndefined()
+    expect(skill.style.fontMono).toBeUndefined()
     expect(skill.style.pageMarginTop).toBeUndefined()
     expect(skill.style.lineSpacing).toBeUndefined()
     expect(skill.style.alignment).toBeUndefined()
@@ -165,10 +173,12 @@ test.describe('resolveSkillSource / loadSkill', () => {
   test('workspace skill overrides builtin', async () => {
     await fs.writeFile(
       path.join(wsDir, '.anvil', 'document-skills', 'default-report.md'),
-      '## Purpose\n自定义\n\n## Document Style\nfont: SimSun\nbodySize: 12\n',
+      '## Purpose\n自定义\n\n## Document Style\nfontEastAsia: SimSun\nbodySize: 12\n',
     )
     const skill = await loadSkill('default-report', wsDir)
-    expect(skill?.style.font).toBe('SimSun')
+    expect(skill?.style.fontLatin).toBe('Arial')
+    expect(skill?.style.fontEastAsia).toBe('SimSun')
+    expect(skill?.style.fontMono).toBe('Consolas')
     expect(skill?.style.bodySize).toBe(12)
     expect(skill?.style.heading1Size).toBe(18)
     expect(skill?.style.paragraphSpacingAfter).toBe(6)
@@ -204,7 +214,8 @@ test.describe('resolveSkillSource / loadSkill', () => {
     const skill = await loadSkill('legacy', wsDir)
     expect(skill?.style).toEqual({
       ...DEFAULT_DOCX_STYLE,
-      font: 'SimSun',
+      fontLatin: 'SimSun',
+      fontEastAsia: 'SimSun',
       bodySize: 10,
       heading1Size: 16,
       heading2Size: 14,
@@ -307,6 +318,7 @@ test.describe('generateDocx with skill style', () => {
     const zip = await JSZip.loadAsync(buf)
     const stylesXml = await zip.file('word/styles.xml')?.async('string')
     expect(stylesXml).toBeTruthy()
+    expect(stylesXml).toContain('Arial')
     expect(stylesXml).toContain('Microsoft YaHei')
   })
 })

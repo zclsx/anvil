@@ -2,7 +2,9 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
 export interface DocxStyleOptions {
-  font?: string
+  fontLatin?: string
+  fontEastAsia?: string
+  fontMono?: string
   bodySize?: number
   heading1Size?: number
   heading2Size?: number
@@ -52,7 +54,9 @@ export type ResolvedTemplatePath =
 export const DEFAULT_SKILL_NAME = 'default-report'
 
 export const DEFAULT_DOCX_STYLE: Required<DocxStyleOptions> = {
-  font: 'Microsoft YaHei',
+  fontLatin: 'Arial',
+  fontEastAsia: 'Microsoft YaHei',
+  fontMono: 'Consolas',
   bodySize: 11,
   heading1Size: 18,
   heading2Size: 15,
@@ -98,9 +102,13 @@ const BUILTIN_DOCUMENT_SKILLS: Record<string, string> = {
 - 列表层级不超过两层
 - 对比类信息优先用表格或并列列表
 - 每段聚焦一个要点，避免超长段落
+- 报告开头使用标题 + 元信息表，元信息表建议包含：评审日期、项目范围、评审重点、结论定位
+- 代码、命令、配置键名使用行内代码或 fenced 代码块；重要提示使用 > [!note] 形式的 callout
 
 ## Document Style
-font: Microsoft YaHei
+fontLatin: Arial
+fontEastAsia: Microsoft YaHei
+fontMono: Consolas
 bodySize: 11
 heading1Size: 18
 heading2Size: 15
@@ -260,7 +268,9 @@ type StyleFieldSpec =
   | { kind: 'hex'; default: string }
 
 const STYLE_FIELD_SPECS = {
-  font: { kind: 'str', default: DEFAULT_DOCX_STYLE.font, minLength: 1, maxLength: 64 },
+  fontLatin: { kind: 'str', default: DEFAULT_DOCX_STYLE.fontLatin, minLength: 1, maxLength: 64 },
+  fontEastAsia: { kind: 'str', default: DEFAULT_DOCX_STYLE.fontEastAsia, minLength: 1, maxLength: 64 },
+  fontMono: { kind: 'str', default: DEFAULT_DOCX_STYLE.fontMono, minLength: 1, maxLength: 64 },
   bodySize: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.bodySize, min: 6, max: 72 },
   heading1Size: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.heading1Size, min: 6, max: 96 },
   heading2Size: { kind: 'halfPtSize', default: DEFAULT_DOCX_STYLE.heading2Size, min: 6, max: 96 },
@@ -326,6 +336,14 @@ function parseStyleValue(rawValue: string, spec: StyleFieldSpec): string | numbe
 }
 
 function parseStyleLine(style: DocxStyleOptions, key: string, rawValue: string): void {
+  if (key === 'font') {
+    const value = parseStyleValue(rawValue, { kind: 'str', default: DEFAULT_DOCX_STYLE.fontEastAsia, minLength: 1, maxLength: 64 })
+    if (typeof value === 'string') {
+      style.fontLatin = value
+      style.fontEastAsia = value
+    }
+    return
+  }
   const spec = STYLE_FIELD_SPECS[key as keyof DocxStyleOptions]
   if (!spec) return
   const value = parseStyleValue(rawValue, spec)
